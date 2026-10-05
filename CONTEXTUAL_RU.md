@@ -298,3 +298,52 @@ GPU assignment remains 0,2, BF16 and 2000 tokens/rank. Intermediate full checkpo
 saves are disabled with `trainer.save_every_n=1000000`; native epoch saving and
 periodic validation remain enabled, avoiding multiple 30-GiB snapshots filling
 the volume. This is one approved larger epoch, not an unattended infinite run.
+
+That epoch completed at global step 6578 and saved `epoch-2.pt`. Greedy
+normalized WER on the fixed contextual 31-cut panel improved from 142.49% to
+12.47%; on the 64-cut Balalaika diagnostic panel it improved from 217.27% to
+15.29%. These small panels retain the pseudo-label and split limitations above.
+They do not demonstrate superiority over the original GigaAM recognizer.
+Two agent-response examples retain more current-utterance facts, but still
+invent details. The ASR readout also hallucinates on silence; this remains an
+unresolved validation failure, even though ordinary speech improved.
+
+## Phone and YouTube continuation
+
+Two format adapters reuse `prepare_asr_manifest.asr_cut`, native Lhotse and
+the existing ASR task. Neither changes the model, decoder or training loop:
+
+- `prepare_openstt.py` reads the official OpenSTT phone training CSV, audio and
+  transcripts. It counts exact duplicate rows once, rejects conflicting rows
+  and validation subsets, and supports explicit held-out audio exclusions.
+- `prepare_youtube_balalaika.py` reads the existing FLAC/JSON tar shards and
+  punctuated ASR transcripts. Whole podcast sources in the supplied held-out
+  voice list are excluded. It preserves each clip without invented history.
+
+Five adapter tests passed, covering target isolation, waveform preservation,
+official validation rejection, duplicate handling and whole-source exclusion.
+
+The continuation contains 206,016 OpenSTT phone cuts (186.250 hours, after
+removing 27,852 duplicate CSV rows), 32,739 local YouTube cuts (63.435 hours),
+the previous 105.542-hour Balalaika set and six passes through the contextual
+task examples. The YouTube export excluded 1,768 clips from 12 held-out sources
+and 185 invalid-text clips. Both new sources have automatic transcripts, not
+human gold labels. Audio-content deduplication across different corpora has not
+been established; 358.355 hours is the sum before task replay, not a claim of
+globally unique recordings. With task replay, exposure is 392.759 hours across
+318,704 ASR and 15,330 answer examples.
+
+Native finite `CutSet.mux(stop_early=False)` consumes the complete manifest.
+Training resumes the previous model and optimizer at step 6578 with
+`trainer.start_epoch=3 trainer.num_epochs=3`, BF16 and GPUs 0,2. Existing
+contextual and Balalaika validation panels remain unchanged. The run and its
+new checkpoints are on dev storage, exposed inside the exp container as
+`/runs/dev-storage/ifao-data/runs/asr-phone-youtube-v1`. Data are likewise read
+over NFS; container processes need the authorized developers group (26403).
+This live-container NFS mount must be restored after container replacement.
+
+Older projector-only `context-v2` epoch-1/2 checkpoints were copied to dev's
+`/mnt/local/drive1/ifao-checkpoint-archive/context-v2`, SHA256-verified, and only
+then removed from exp's root volume. The current continuation checkpoint was
+retained. Background-speaker mixtures are a separate pilot in PR #2 and have
+not been added to this training manifest.
