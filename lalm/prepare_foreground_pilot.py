@@ -147,6 +147,9 @@ def main():
                 "asr_qc": "pending", "training_eligible": False})
         checks.append({"pair_id": row["id"], "duration": duration, "max_additivity_error": error,
             "peak": float(np.abs(audio).max()), "target_gain": target_gain, "common_gain": common_gain,
+            "foreground_offset_seconds": 0.0,
+            "background_offset_seconds": row["background_offset_seconds"],
+            "background_gain_total": float(np.linalg.norm(stems[1]) / np.linalg.norm(interference.load_audio())),
             "aligned_stem_snr_db": float(10 * np.log10(np.mean(stems[0] ** 2) / np.mean(stems[1] ** 2))),
             "file_sha256": {k: digest(v) for k, v in files.items()}})
     for name, records in (("pilot.jsonl", examples), ("sources.jsonl", sources)):

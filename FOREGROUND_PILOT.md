@@ -63,3 +63,30 @@ contain speech despite their empty targets; this narrow task follows the
 foreground definition and should not be interpreted as generic VAD. No codec,
 room, real-call noise, or independent speaker enrollment is simulated. Empty
 targets must not be passed to the current `asr_cut` adapter, which rejects them.
+
+## Verified dev-1 artifact
+
+`/mnt/local/drive1/ifao-data/foreground-pilot-v1` was generated using TTS model
+revision `384ffff264f0407498f3ca7138871b9cf03f69f6` and voice-bank revision
+`860451b106bc799d5235f392a9380b509c7c2d31`, with Lhotse 1.33.0.
+
+There are 48 examples (36 train, 12 validation), 16 source pairs, 32 raw TTS
+sources and 16 empty targets. Each complete example lasts 2.64–4.72 seconds.
+The 16 distinct mixtures total 56.72 seconds; the manifest with paired controls
+totals 170.16 seconds (0.047267 hours). Raw source speech totals 92.96 seconds.
+These durations describe different representations and must not be summed as
+independent material.
+
+Independent verification reread all 64 final WAVs, checked 32 original source
+hashes and all plain transcripts, and confirmed silent targets, disjoint phrase
+and voice-ID splits, and an unchanged serving-model revision. Maximum saved
+WAV additivity error was `1.49e-8`, maximum peak `0.4571`, and measured aligned
+stem SNR ranged from 7.79 to 16.33 dB. Evidence is in
+`saved-audio-verification.json` and `audio-qc.json` beside the manifests.
+
+The configured legacy teacher ASR endpoint at `127.0.0.1:19081` was unavailable.
+ASR transcript checks and human listening therefore remain pending; the pilot
+is not approved for training. No requests were sent to unrelated ASR canaries.
+An initial two-source attempt exposed Lhotse 1.33's list-shaped unmixed output;
+it remains separately preserved at `foreground-pilot-v1-attempt1` and is not
+part of the final manifests.
