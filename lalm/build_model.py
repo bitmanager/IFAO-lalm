@@ -21,6 +21,7 @@ from transformers import (
     AutoFeatureExtractor,
     AutoModelForCausalLM,
     AutoTokenizer,
+    Wav2Vec2FeatureExtractor,
 )
 
 
@@ -41,7 +42,11 @@ def assemble_and_save(
     # the new <|audio|> token has been added to the vocabulary.
     print("Building processor ...")
     tokenizer = AutoTokenizer.from_pretrained(llm_name)
-    feature_extractor = AutoFeatureExtractor.from_pretrained(encoder_name)
+    feature_extractor = (
+        Wav2Vec2FeatureExtractor(do_normalize=False, return_attention_mask=True)
+        if _get_encoder_model_type(encoder) == "gigaam"
+        else AutoFeatureExtractor.from_pretrained(encoder_name)
+    )
     processor = LALMProcessor(
         feature_extractor,
         tokenizer,
@@ -111,6 +116,12 @@ def _load_encoder(
     Do not rely on AutoModel here because some encoder checkpoints are not fully
     registered for generic auto loading. Use model-family-specific APIs instead.
     """
+    if model_name_or_path.endswith(".ckpt"):
+        from lalm_core.model.gigaam_adapter import GigaAMAudioTower
+
+        encoder = GigaAMAudioTower.from_checkpoint(model_name_or_path)
+        return encoder, int(encoder.model.cfg.encoder.d_model)
+
     model_type = _peek_model_type(model_name_or_path)
 
     if model_type == "whisper":
@@ -193,6 +204,7 @@ def _load_encoder(
 def _get_encoder_model_type(encoder) -> str:
     hf_model_type = getattr(encoder.config, "model_type", "")
     supported = {
+        "gigaam",
         "whisper",
         "qwen2_5_omni_audio_encoder",
         "qwen3_omni_moe_audio_encoder",

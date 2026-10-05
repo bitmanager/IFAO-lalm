@@ -76,10 +76,50 @@ The source generator now accepts `messages` in addition to its original caption
 format. Generation stays with upstream vLLM; tensor parallelism can use one GPU
 for Qwen3-4B-Instruct-2507 without moving other workloads.
 
-## Verification and remaining integration
+## GigaAM integration
+
+Install the upstream dependencies pinned in `requirements-gigaam.txt` into the
+GPU environment. Auden's `lalm_hf` branch is required: its default branch has
+incompatible precision, batch and scheduler-checkpoint interfaces. Auden and
+the training loop are used without local patches.
+
+`gigaam_adapter.py` calls the official GigaAM batched forward. It only adapts
+packed waveforms, output shape/lengths and checkpoint configuration. The RNNT
+head is discarded. Raw audio and spectrogram preprocessing stay FP32; the
+official encoder uses FP16 autocast and FlashAttention, while Qwen uses BF16.
+The Hugging Face waveform processor supplies padding, not a Wav2Vec2 model.
+The supported checkpoint has uncentered 320-sample windows, hop 160 and
+subsampling 4; other timing configurations fail instead of guessing lengths.
+
+```bash
+cd lalm
+CUDA_VISIBLE_DEVICES=0 python build_model.py \
+  --llm /models/qwen --encoder /models/gigaam-sip.ckpt \
+  --output_dir /runs/ifao-gigaam-base --dtype bfloat16 \
+  --projector_downsample_rate 2
+
+CUDA_VISIBLE_DEVICES=0 \
+IFAO_MODEL_PATH=/runs/ifao-gigaam-base \
+IFAO_RUN_DIR=/runs/ifao-context-v1 \
+IFAO_TRAIN_CONFIG=/data/context-v1-train.yaml \
+IFAO_VALID_CONFIG=/data/context-v1-validation.yaml \
+python train.py --config-name gigaam_context
+```
+
+Each data YAML is the upstream list of `{name, manifest, hours, weights}`.
+The configuration selects three finite epochs, BF16, raw waveform input and
+2000 tokens per batch. Encoder/LLM freezing, the two-layer projector, causal CE,
+optimizer and training loop remain upstream. Only raw-input dtype handling in
+the trainer is adapted; Qwen's packed attention path uses native SDPA. Validation
+honors the configured bucket count, including small held-out datasets.
+
+## Verification and limitations
 
 ```bash
 QWEN_MODEL_PATH=/models/qwen python -m pytest tests/test_contextual_data.py -q
+CUDA_VISIBLE_DEVICES=0 IFAO_MODEL_PATH=/runs/ifao-gigaam-base \
+IFAO_MANIFEST_PATH=/data/context-train.jsonl.gz \
+python -m pytest tests/test_gigaam_integration.py -q -s
 ```
 
 Tests use the real Qwen tokenizer and native Lhotse cuts. They check audio
@@ -93,9 +133,24 @@ train, 5 validation and 6 test cuts. Native vLLM generated all 36 train answers
 in BF16 on one RTX PRO 6000 Blackwell GPU, and all were imported with matching
 teacher messages. This is a small integration check, not a training run.
 
-This change prepares **contextual data**, not a complete GigaAM deployment.
-Upstream IFAO still needs its GigaAM audio-tower/input adapter before these cuts
-can train our frozen GigaAM + Qwen stack. The existing NeMo ASR run is separate
-and does not train this objective. The small synthetic fixture validates the
-pipeline; it is not a corpus-size or model-quality claim. The prepared 105-hour
-Balalaika ASR corpus must not acquire fabricated conversational history.
+The GPU test loads the actual saved model and real audio, verifies finite,
+nonzero gradients on all four projector parameters and no gradients elsewhere,
+and exercises raw-audio generation without the trainer's autocast context.
+All five tests passed. The projector has 10,490,880 trainable parameters. A full
+upstream trainer smoke run completed an optimizer step, validation and checkpoint
+save. These are integration checks, not evidence of useful speech understanding.
+
+The first larger experiment uses 688 available user turns from 84 rendered
+dialogues. Eleven truncated teacher responses were explicitly quarantined.
+Scikit-learn `GroupShuffleSplit(test_size=0.1, random_state=114514)` separated the
+remaining examples by `source_group_id`: 599 training cuts (75 conversations,
+0.716 audio hours) and 78 validation cuts (9 conversations, 0.105 hours).
+Those two manifests subdivide the source's training split; the original pilot
+validation/test remain separate. This is a small experiment, not a large corpus.
+
+Contextual training and the shared Russian system prompt are our adaptation,
+not the exact instruction-free single-turn template from the IFAO paper.
+Quality must be checked against correct transcript input, silence and mismatched
+audio under identical history. The 105-hour Balalaika ASR corpus is separate and
+must not acquire fabricated conversational history. The prior NeMo ASR run has
+been stopped; its final step-3000 checkpoint is retained.

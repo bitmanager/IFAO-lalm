@@ -75,6 +75,11 @@ class LALMForConditionalGeneration(PreTrainedModel):
         """Build encoder explicitly to avoid relying on AutoModel registration."""
         model_type = getattr(audio_config, "model_type", "")
 
+        if model_type == "gigaam":
+            from .gigaam_adapter import GigaAMAudioTower
+
+            return GigaAMAudioTower(audio_config)
+
         if model_type == "whisper":
             from transformers.models.whisper.modeling_whisper import WhisperEncoder
 
@@ -129,7 +134,7 @@ class LALMForConditionalGeneration(PreTrainedModel):
         inputs_embeds = self.language_model.get_input_embeddings()(input_ids)
         if input_features is not None:
             audio_param = next(self.audio_tower.parameters(), None)
-            if audio_param is not None and input_features.dtype != audio_param.dtype:
+            if self.config.audio_config.model_type != "gigaam" and audio_param is not None and input_features.dtype != audio_param.dtype:
                 input_features = input_features.to(dtype=audio_param.dtype)
             inputs_embeds = self._merge_input_ids_with_audio_features(
                 input_ids, inputs_embeds, input_features, feature_lens=feature_lens
@@ -186,6 +191,9 @@ class LALMForConditionalGeneration(PreTrainedModel):
             raise ValueError("Packed-only LALM requires feature_lens.")
 
         feature_lens = feature_lens.to(device=audio_features.device, dtype=torch.long)
+        if model_type == "gigaam":
+            return self.audio_tower(audio_features, feature_lens).to(self.projector.linear1.weight.dtype)
+
         if model_type == "qwen2_5_omni_audio_encoder":
             aftercnn_lens = (feature_lens - 1) // 2 + 1
             encoded = self.audio_tower(
@@ -212,6 +220,11 @@ class LALMForConditionalGeneration(PreTrainedModel):
 
     def _get_audio_output_lengths(self, feature_lens: torch.Tensor) -> torch.Tensor:
         model_type = getattr(self.config.audio_config, "model_type", "")
+
+        if model_type == "gigaam":
+            from .gigaam_adapter import gigaam_output_length
+
+            return gigaam_output_length(feature_lens)
 
         if model_type == "whisper":
             return (feature_lens - 1) // 2 + 1
@@ -291,6 +304,9 @@ class LALMForConditionalGeneration(PreTrainedModel):
             )
         )
         mask = input_ids == self.config.audio_token_id
+        expected = self._get_audio_output_lengths(feature_lens) // self.projector.downsample_rate
+        if not torch.equal(mask.sum(dim=1), expected):
+            raise ValueError("Audio placeholders must match each cut's projected frame count")
         if not mask.any():
             return inputs_embeds
 

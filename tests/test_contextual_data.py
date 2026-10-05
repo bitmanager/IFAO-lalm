@@ -2,7 +2,6 @@
 
 import json
 import gzip
-import importlib.util
 import os
 import sys
 import shutil
@@ -18,12 +17,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "lalm"))
 from prepare_multitalk_context import dialogue_cuts, main as export_dialogues
 from lhotse import CutSet
 from prepare_conversation import prepare_cut, teacher_messages
-spec = importlib.util.spec_from_file_location(
-    "processing_lalm", Path(__file__).resolve().parents[1] / "lalm/lalm_core/model/processing_lalm.py"
-)
-processing = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(processing)
-LALMProcessor = processing.LALMProcessor
+from lalm_core.model.processing_lalm import LALMProcessor
 
 
 @pytest.fixture
