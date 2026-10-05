@@ -76,6 +76,11 @@ The original evaluator was GigaAM commit
 ## Native IFAO evaluation
 
 After GPU scheduling, reuse the existing exported weights without re-export:
+The native LALM runtime uses
+`PYTHONPATH=/ifao-auden/src:/deps:/gpu:/review/vendor:/olddeps:/flash`
+(existing PyTorch 2.9.0+cu130 and its matching FlashAttention). This differs
+from the GigaAM batch-QC runtime. CPU import and Lhotse WAV loading were checked
+before launch; dependencies were not installed or changed.
 
 ```sh
 python /ifao-context-review/lalm/evaluate_qa.py \
@@ -99,3 +104,32 @@ Validation: five CPU tests pass (new TSV tests plus existing ASR-cut tests),
 including waveform/reference preservation, short evaluation items, isolated
 transcript targets and invalid path/duration rejection. The full exported set
 is reread and decoded for readiness separately from GPU evaluation.
+
+## Completed epoch-2 result
+
+The unchanged native evaluator completed all 1,943 records on the assigned
+exp GPU3 and reused the existing HF export. The process exited successfully;
+no subsequent GPU job was launched by this preparation task. Its log is
+`phone-test-eval-v1/native-epoch2-eval.log`. The initial missing-Auden import
+failure is preserved as `native-epoch2-eval-attempt1.log`; it preceded model
+loading. The successful invocation used the native runtime documented above.
+
+| Same reference set and normalizer | GigaAM baseline WER / CER | IFAO epoch-2 WER / CER |
+| --- | ---: | ---: |
+| Native IFAO | 20.3219% / 8.02161% | 43.5578% / 20.40270% |
+| GigaAM normalization | 17.8653% / 7.50439% | 42.4142% / 20.09021% |
+
+IFAO has 5,007 normalized word errors over the same 11,805 reference words,
+618 exact transcripts and two empty outputs. Thirteen hypotheses exceed three
+times their reference word count and contribute 1,852 errors; inspecting the
+largest cases shows repeated short phrases. This diagnostic does not remove
+any records or change the official score. Keep `max_new_tokens=256` for the
+next checkpoint comparison; changing the cap would affect these failures.
+No digit verbalization or reference substitution was applied.
+
+`phone-test-eval-v1/native-epoch2-qc/` contains `metrics.json`, `cases.jsonl`,
+copies of the untouched native outputs, hashes of the evaluator, manifest,
+model configuration and predictions, and the exact generation settings.
+Every native reference was rechecked against its original TSV row before
+rescoring, and the independently recomputed native metric matches the
+evaluator's result. The original source labels remain evaluation-only.
