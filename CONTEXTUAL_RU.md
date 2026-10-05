@@ -356,3 +356,47 @@ epoch uses its in-memory configuration and is unaffected. Auden has no native
 on-demand save signal or live config reload; killing/restarting this run would
 discard progress since epoch 2. A fresh step checkpoint can be evaluated using
 the existing evaluator on a separate GPU without changing the training loop.
+
+## Staged SOVA RuDevices format conversion
+
+`lalm/prepare_sova_parquet.py` reads already downloaded train parquet shards
+with `audio.bytes` and `transcription`, exports the original WAV bytes in
+64-row batches, and creates `Recording`/`SupervisionSegment` objects passed
+to the existing `prepare_asr_manifest.asr_cut`. It requires `pyarrow` in the
+preparation environment; it does not download data or load an ASR model.
+The staging manifest must contain verified checksums, file sizes, row counts
+and durations. The adapter checks sizes/totals and retains staging checksums
+in provenance; it does not repeat the full parquet checksum scan.
+
+```bash
+CUDA_VISIBLE_DEVICES='' TOKENIZERS_PARALLELISM=false \
+python lalm/prepare_sova_parquet.py \
+  --source-root /runs/dev-storage/ifao-data/sova-rudevices \
+  --output-dir /runs/dev-storage/ifao-data/sova-asr-v1/prepared \
+  --exclusions-json /runs/dev-storage/ifao-data/sova-asr-v1/audit/exclusions.json \
+  --tokenizer /runs/ifao-context-asr-initial \
+  --system-file /runs/dev-storage/ib-offline/slam-asr-data/langfuse-pstn-v1/prepared-v1/system.txt
+```
+
+Use a fresh output directory. The completed manifest is named `train.jsonl.gz`;
+an interrupted run leaves `train.incomplete.jsonl.gz`, which must not be used
+for training. `train.yaml` is a standalone source entry, not an edit to the
+active training configuration. Export paths must be visible under the same
+absolute path to the future trainer.
+
+The exclusion JSON has `texts`, `ids`, and `sha256` string lists and an optional
+`sources` audit list. Text comparison ignores case, punctuation, whitespace,
+and the distinction between е/ё. This deliberately also excludes coincident
+short phrases; it does not establish shared recording identity. IDs and
+existing audio hashes are checked separately. Word alignment tokens should
+not be supplied as whole-utterance references. Exact duplicate audio bytes
+inside train are exported once. Exclusions and their source row coordinates
+are retained in `excluded.jsonl`.
+
+SOVA's dataset card describes manually annotated Russian speech and CC-BY-4.0
+licensing. This conversion retains those annotations without independent
+re-annotation. No history, target-speaker label, background-speech label, or
+segmentation is invented. The staged parquet has no usable utterance path or
+speaker ID, so IDs are stable shard/row coordinates with audio SHA256. Only
+train is staged; upstream validation/test and speaker-disjointness cannot be
+verified from these local files.
