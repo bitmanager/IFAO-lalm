@@ -148,6 +148,42 @@ remaining examples by `source_group_id`: 599 training cuts (75 conversations,
 Those two manifests subdivide the source's training split; the original pilot
 validation/test remain separate. This is a small experiment, not a large corpus.
 
+Audit correction: this pilot initially missed the source's existing quarantine
+file. Two dialogues (`5bc8c6e653792899b03f`, `820fd23046e3d7a4934e`) contain
+assistant facts not grounded in preceding user speech. They must be excluded
+from subsequent training/validation manifests. The pilot's loss is only an
+integration measurement, not a clean quality baseline.
+
+For additional reviewed text, `lalm/prepare_reviewed_scripts.py` converts the
+existing approval manifest and byte-identical scenario files into MultiTalk's
+TTS input format. It verifies source hashes, source-group splits and alternating
+user/assistant turns. Only spoken history is converted; hidden scenario text is
+not inserted into the conversation. The existing MultiTalk worker/mixer and our
+existing TTS API adapter render the audio; this file does not synthesize speech.
+
+```bash
+python lalm/prepare_reviewed_scripts.py --manifest /data/accepted.jsonl \
+  --scenario-root /data/scenarios --output /data/scripts.jsonl
+```
+
+The first export passed on all 130 approved dialogues (68 source groups).
+Do not merge them with earlier data without checking source-group overlap.
+
+Native two-GPU launch uses `CUDA_VISIBLE_DEVICES=0,2 python -m
+torch.distributed.run --standalone --nproc_per_node=2 train.py` with the same
+configuration. Nsight Systems traces of short runs measured 0.363 s/step on one
+GPU and 0.402 s/step on two at 2000 tokens per rank. Estimated aggregate token
+throughput increased 1.87x (rank-0 throughput multiplied by world size; not exact
+cross-rank accounting). A 4000-token budget was slower per token. These short
+measurements exclude validation/checkpoint IO and include profiling overhead.
+
+The upstream packed path constructs a dense 4D block-diagonal causal mask.
+BF16 memory-efficient SDPA kernels were observed; this is not sparse attention
+or cross-example KV-cache reuse. Teacher forcing predicts answer positions in
+parallel. Removed the pilot's save-every-50-step overrides: full 24-GiB
+checkpoints took about 10 seconds each. The config now inherits upstream
+validation/save intervals; epoch checkpoints remain enabled.
+
 Contextual training and the shared Russian system prompt are our adaptation,
 not the exact instruction-free single-turn template from the IFAO paper.
 Quality must be checked against correct transcript input, silence and mismatched
