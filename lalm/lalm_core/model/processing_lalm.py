@@ -245,6 +245,8 @@ class LALMProcessor(ProcessorMixin):
             )[0]  # positions of matching <|im_start|>
             if len(assistant_starts) == 0:
                 continue
+            # Earlier assistant turns are context, not targets for this audio cut.
+            assistant_starts = assistant_starts[-1:]
 
             # response content starts right after "<|im_start|>assistant\n"
             response_starts = (assistant_starts + 1 + header_len).clamp(max=L)
@@ -276,7 +278,7 @@ class LALMProcessor(ProcessorMixin):
             )
             label_mask = signal[:L].cumsum(0).bool()  # [L]
 
-            labels[b] = ids.masked_fill(~label_mask, -100)
+            labels[b] = ids.masked_fill(~(label_mask & attention_mask[b].bool()), -100)
 
         return labels
 
