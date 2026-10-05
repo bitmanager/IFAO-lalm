@@ -83,6 +83,8 @@ and voice-ID splits, and an unchanged serving-model revision. Maximum saved
 WAV additivity error was `1.49e-8`, maximum peak `0.4571`, and measured aligned
 stem SNR ranged from 7.79 to 16.33 dB. Evidence is in
 `saved-audio-verification.json` and `audio-qc.json` beside the manifests.
+`component-gains.json` also records the gains measured against each resampled
+original source, including the background start offset.
 
 The configured legacy teacher ASR endpoint at `127.0.0.1:19081` was unavailable.
 ASR transcript checks and human listening therefore remain pending; the pilot
