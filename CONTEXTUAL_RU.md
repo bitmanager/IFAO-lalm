@@ -251,3 +251,13 @@ native checkpoint reload, packed-versus-native readout equality, empty-ASR
 batch gradients for DDP, target isolation and unchanged agent modules.
 The real test found gradients only on the projector and ASR norm/head:
 398,768,640 trainable parameters. This verifies integration, not ASR quality.
+
+The first one-epoch run completed 800 optimizer steps and saved
+`/runs/ifao-context-asr-v1/epoch-1.pt`. On a fixed 31-cut panel (15 synthetic,
+16 telephone, one cut per source group), normalized free-decoding WER changed
+from 208.31% before training to 142.49% after training. WER above 100% comes
+from insertions, including repetitive/hallucinated text. This is still poor ASR,
+not evidence of usable transcription or superiority over the source recognizer.
+The two prior agent examples still lose current-utterance facts; text-input
+answers remain unchanged. Silence/wrong-audio controls are retained alongside
+correct-audio outputs. No further epoch was launched automatically.
