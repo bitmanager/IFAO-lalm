@@ -43,9 +43,21 @@ with st.sidebar:
 recording = st.audio_input("Записать реплику", sample_rate=16000, key=f"mic-{st.session_state.recording_id}")
 uploaded = st.file_uploader("Или загрузить WAV / FLAC", type=["wav", "flac"], key=f"file-{st.session_state.recording_id}")
 source = uploaded if uploaded is not None else recording
-if source is not None:
-    payload = source.getvalue()
-    selected_channel = channel if uploaded is not None else 0
+example = None
+if os.environ.get("IFAO_DEMO_EXAMPLES"):
+    examples = json.loads(Path(os.environ["IFAO_DEMO_EXAMPLES"]).read_text())
+    example = st.selectbox(
+        "Готовая проверка — вместо микрофона или файла", [None, *examples],
+        format_func=lambda item: "Использовать микрофон / файл" if item is None else item["name"],
+        key=f"example-{st.session_state.recording_id}",
+    )
+    if example is not None:
+        st.caption(example["description"])
+        with st.expander("Эталон для сравнения — не передаётся модели"):
+            st.write(example["reference"])
+if source is not None or example is not None:
+    payload = Path(example["audio_path"]).read_bytes() if example is not None else source.getvalue()
+    selected_channel = channel if uploaded is not None and example is None else 0
     identity = hashlib.sha256(payload + bytes([selected_channel])).hexdigest()
     if st.session_state.get("pending", {}).get("id") != identity:
         try:
