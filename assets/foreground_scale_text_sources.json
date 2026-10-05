@@ -1,0 +1,24 @@
+{
+  "data-designer-natural-bulk256-quality": {
+    "accepted_dialogues": 72,
+    "source_file": "/home/se@bitmanager.ai/lychee-ru-pipeline/data-designer-natural-bulk256-quality/quality-input.jsonl",
+    "source_sha256": "8946f4610ebcd499bb9fa31e26a7a7c304b203586dbbf81178a32ccb94aa82c6",
+    "quality_report_file": "/home/se@bitmanager.ai/lychee-ru-pipeline/data-designer-natural-bulk256-quality/quality-report.json",
+    "quality_report_sha256": "3e6d5641251650613a743e760e385e26471ef7347466e355073e16717aad01b8",
+    "eligible_standalone_first_user_turns": 54,
+    "eligible_original_train_turns": 54,
+    "excluded_original_holdout_turns": 0,
+    "eligible_original_train_source_groups": 54
+  },
+  "data-designer-diverse-d512-quality-a": {
+    "accepted_dialogues": 212,
+    "source_file": "/home/se@bitmanager.ai/lychee-ru-pipeline/data-designer-diverse-d512-quality-a/quality-input.jsonl",
+    "source_sha256": "d7aa6214b52437b0f3d8390a63d37439d7088adbd9b06858f5ba8330de32b677",
+    "quality_report_file": "/home/se@bitmanager.ai/lychee-ru-pipeline/data-designer-diverse-d512-quality-a/quality-report.json",
+    "quality_report_sha256": "ac77c8617c92f6e0c6ee73f822316cbc8182d83bc654107deb7c19fe1c74760f",
+    "eligible_standalone_first_user_turns": 125,
+    "eligible_original_train_turns": 118,
+    "excluded_original_holdout_turns": 7,
+    "eligible_original_train_source_groups": 65
+  }
+}

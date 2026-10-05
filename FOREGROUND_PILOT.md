@@ -1,7 +1,7 @@
 # Russian foreground speech pilot
 
-This isolated pilot asks for the designated main utterance while another,
-quieter voice speaks. It is a small synthetic curriculum, not a benchmark for
+This isolated pilot asks for the designated main utterance while another
+voice speaks, including equally loud and louder interference. It is a small synthetic curriculum, not a benchmark for
 identifying an arbitrary desired speaker. There is no enrollment input and no
 architecture or main-training change.
 
@@ -183,3 +183,94 @@ first-voice instruction, not a measured improvement from training.
 The v2 `asr-qc-gigaam-v1/{metrics.json,cases.jsonl}` sidecars contain results,
 per-level metrics, exact predictions and immutable evaluator/checkpoint hashes.
 All examples remain ineligible for main training; listening review is pending.
+
+## Additional source shard 01
+
+The next staging shard uses the same `Teachers.synthesize` and Lhotse adapters.
+Its 64 scripts are verbatim first user turns from existing DataDesigner
+dialogues accepted by the existing DuplexOmni quality filter. Acceptance here
+is automatic (`accepted=true`, `failed=false`, matching `hallucination=false`),
+not human correction or acoustic gold. Source files, hashes, dialogue IDs,
+turn indices, original context and voice IDs are recorded in
+`assets/foreground_scale_shard01.jsonl`.
+
+The two inspected pools provide 54 + 118 original-train first turns satisfying
+the conservative standalone filter (35–130 characters, 7–18 words, no Latin
+letters or digits). Seven additional qualifying turns are original holdout
+and excluded. These 172 candidates span 54 + 65 source groups; repeated
+scenario seeds must remain together in any larger export. This is available
+text capacity, not promised unique speaker-hours. Counts and source hashes are
+in `assets/foreground_scale_text_sources.json`.
+
+All 64 selected source scenarios were originally train. The later seed-group
+audit found three scenario groups shared by our proposed train and validation.
+The overlap export therefore excludes **train** pairs `fgs01-008`, `fgs01-011`
+and `fgs01-015`, preserving the validation set. The complete audit is in
+`assets/foreground_scale_shard01_split_audit.json` and beside both manifests.
+Retained texts, dialogue IDs, source seed groups and voice IDs do not cross
+splits. Retained source groups also have no intersection with original
+holdout groups, and no new exact phrase repeats the first pilot.
+The eight voice IDs are six for train (`anastasia-1`, `valera-1`,
+`male-ru-14`, `male-ru-17`, `male-ru-21`, `male-ru-25`) and two reserved for
+validation (`ekaterina-1`, `male-ru-37`). Voice IDs are not a biometric audit.
+
+Artifacts on dev-1:
+
+- `/mnt/local/drive1/ifao-data/foreground-scale-shard01-source`: all 64 original
+  24 kHz TTS sources, 362 seconds (0.100556 hours), recipe and provenance.
+  The existing source adapter also emits intermediate +9 dB examples and
+  empty-target controls; these are staging and are not the final overlap set.
+- `/mnt/local/drive1/ifao-data/foreground-scale-shard01-overlap`: 29 retained
+  pairs, 58 referenced sources (326.56 seconds), 87 mixtures and 29 clean
+  controls, 84 train / 32 validation records. Mixture variants total 543.84
+  seconds, clean controls 165.84 seconds, or 0.197133 manifest hours. Variants
+  are correlated and must not be counted as independent new speech.
+
+The final export was produced with:
+
+```sh
+CUDA_VISIBLE_DEVICES='' OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 \
+  /mnt/local/drive2/conversation-router-poc-ib-20260911/envs/poc/bin/python \
+  lalm/remix_foreground_pilot.py \
+  --source-pilot /mnt/local/drive1/ifao-data/foreground-scale-shard01-source \
+  --output /mnt/local/drive1/ifao-data/foreground-scale-shard01-overlap \
+  --snr-db 3 0 -3 \
+  --exclude-pair fgs01-008 fgs01-011 fgs01-015
+```
+
+`--exclude-pair` is an explicit manifest filter. It rejects unknown IDs and
+an empty retained set and records exclusions in provenance. It adds no new
+synthesis, mixing or inference mechanism. The fixed recipe preserves the
+exact synthesized inputs; exclusion happens only during overlap export.
+
+Independent reread checked all 290 saved WAVs, transcripts and 58 source hashes.
+Maximum peak is 0.77145; maximum saved additivity residual is `2.98e-8`.
+Simultaneous activity lasts 2.20–5.08 seconds and covers at least 57.46% of
+target activity. Target identity remains first active voice, never loudness.
+The competing source comes from a separate topic/context; this is unrelated
+synthetic speech, not natural dialogue or a verified real-room overlap corpus.
+
+The same unchanged GigaAM evaluator checked all 64 new raw sources, then the
+87 final mixtures on exp-1 GPU3. Evidence is under the overlap directory's
+`asr-qc-gigaam-v1/`, including per-example cases and exact predictions.
+
+| Input | Normalized WER | Exact transcripts |
+| --- | ---: | ---: |
+| All 64 original sources | 9/844 = 1.07% | 57/64 |
+| 58 retained sources | 8/766 = 1.04% | 52/58 |
+| +3 dB mixtures | 129/381 = 33.86% | 6/29 |
+| 0 dB mixtures | 265/381 = 69.55% | 2/29 |
+| -3 dB mixtures | 379/381 = 99.48% | 0/29 |
+
+Clean disagreements include inflections and rare-word spelling, requiring
+listening to distinguish TTS errors from ASR errors. The mixture result is an
+unconditioned ASR baseline, not target-selection training progress. All
+records remain `training_eligible=false`; human listening is pending. There
+is no added telephone codec, echo, room noise, enrollment or main-training
+connection.
+
+Voice `male-ru-06` returned `empty_upstream_audio` twice and was replaced by
+the existing `male-ru-25` ID before the final generation. The incomplete first
+attempt and five successful voice probes remain separately in
+`foreground-scale-shard01-source-attempt1` and `foreground-scale-voice-probe`;
+they are excluded from final manifests. Serving models were not changed.

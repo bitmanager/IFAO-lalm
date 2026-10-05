@@ -43,11 +43,19 @@ def main():
     parser.add_argument("--source-pilot", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--snr-db", type=float, nargs="+", default=[3, 0, -3])
+    parser.add_argument("--exclude-pair", nargs="*", default=[], help="Explicit source pairs excluded by QC or split audit")
     args = parser.parse_args()
     if len(set(args.snr_db)) != len(args.snr_db) or any(not -6 <= x <= 6 for x in args.snr_db):
         raise ValueError("Expected unique SNR levels between -6 and +6 dB")
     sources = read_jsonl(args.source_pilot / "sources.jsonl")
     recipe = read_jsonl(args.source_pilot / "recipe.jsonl")
+    excluded = set(args.exclude_pair)
+    if excluded - {row["id"] for row in recipe}:
+        raise ValueError("Unknown excluded pair")
+    recipe = [row for row in recipe if row["id"] not in excluded]
+    sources = [row for row in sources if row["pair_id"] not in excluded]
+    if not recipe:
+        raise ValueError("No source pairs retained")
     lookup = {(r["pair_id"], r["role"]): r for r in sources}
     if len(lookup) != len(sources) or len(sources) != len(recipe) * 2:
         raise ValueError("Expected exactly two existing sources per pair")
@@ -69,12 +77,13 @@ def main():
     source_provenance = json.loads((args.source_pilot / "provenance.json").read_text())
     provenance = {"source_pilot": str(args.source_pilot), "source_provenance": source_provenance,
         "source_manifest_sha256": digest(args.source_pilot / "sources.jsonl"),
+        "excluded_pair_ids": sorted(excluded),
         "adapter_sha256": digest(__file__), "mixer": "lhotse.Cut.mix / MixedCut.load_audio",
         "lhotse_version": lhotse.__version__, "snr_db_levels": args.snr_db,
         "target_policy": "First active voice; competing voice enters at least 0.26 seconds later; not selected by loudness",
         "activity_qc": "20 ms RMS frames > -30 dB relative to each isolated source's peak frame RMS; energy proxy, not speech annotation",
         "enrollment_conditioning": False, "main_training_connected": False,
-        "label_quality": "Authored TTS scripts; original 32 sources passed GigaAM normalized WER 0/209; human listening pending"}
+        "label_quality": "Saved TTS scripts; consult this source pilot's ASR QC sidecars; human listening pending"}
     save_json(args.output / "provenance.json", provenance)
     examples, checks = [], []
     for row in recipe:
