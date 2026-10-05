@@ -347,3 +347,12 @@ Older projector-only `context-v2` epoch-1/2 checkpoints were copied to dev's
 then removed from exp's root volume. The current continuation checkpoint was
 retained. Background-speaker mixtures are a separate pilot in PR #2 and have
 not been added to this training manifest.
+
+For subsequent launches, the contextual config now sets `save_every_n: 1`:
+native Auden saves after every validation (the inherited interval is 1000
+global steps), retaining two step checkpoints. Do not pass the earlier
+`trainer.save_every_n=1000000` override on future launches. The already running
+epoch uses its in-memory configuration and is unaffected. Auden has no native
+on-demand save signal or live config reload; killing/restarting this run would
+discard progress since epoch 2. A fresh step checkpoint can be evaluated using
+the existing evaluator on a separate GPU without changing the training loop.
