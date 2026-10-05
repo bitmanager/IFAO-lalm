@@ -44,6 +44,8 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--snr-db", type=float, nargs="+", default=[3, 0, -3])
     parser.add_argument("--exclude-pair", nargs="*", default=[], help="Explicit source pairs excluded by QC or split audit")
+    parser.add_argument("--split-by-source-group", action="store_true",
+                        help="Require source-group separation; report rather than forbid shared voice IDs")
     args = parser.parse_args()
     if len(set(args.snr_db)) != len(args.snr_db) or any(not -6 <= x <= 6 for x in args.snr_db):
         raise ValueError("Expected unique SNR levels between -6 and +6 dB")
@@ -62,7 +64,7 @@ def main():
     for source in sources:
         if digest(source["path"]) != source["wav_sha256"]:
             raise ValueError("Source checksum changed")
-    split_keys = {}
+    split_keys, voice_splits = {}, {}
     for row in recipe:
         if Path(row["id"]).name != row["id"] or row["split"] not in ("train", "validation"):
             raise ValueError("Unsafe pair ID or unsupported split")
@@ -70,7 +72,11 @@ def main():
             source = lookup[(row["id"], role)]
             if (source["split"], source["text"], source["voice"]) != (row["split"], row[role + "_text"], row[role + "_voice"]):
                 raise ValueError("Source differs from recipe")
-            for key in (("text", source["text"].casefold()), ("voice", source["voice"])):
+            voice_splits.setdefault(source["voice"], set()).add(row["split"])
+            group = source.get("source_group_id") if args.split_by_source_group else source["voice"]
+            if not group:
+                raise ValueError("Missing source split-group identifier")
+            for key in (("text", source["text"].casefold()), ("source_group" if args.split_by_source_group else "voice", group)):
                 if split_keys.setdefault(key, row["split"]) != row["split"]:
                     raise ValueError("Source phrase or voice ID crosses splits")
     args.output.mkdir(parents=True, exist_ok=False)
@@ -78,12 +84,14 @@ def main():
     provenance = {"source_pilot": str(args.source_pilot), "source_provenance": source_provenance,
         "source_manifest_sha256": digest(args.source_pilot / "sources.jsonl"),
         "excluded_pair_ids": sorted(excluded),
+        "split_policy": "source_group" if args.split_by_source_group else "voice_id",
+        "shared_voice_ids_between_splits": sorted(k for k, v in voice_splits.items() if len(v) > 1),
         "adapter_sha256": digest(__file__), "mixer": "lhotse.Cut.mix / MixedCut.load_audio",
         "lhotse_version": lhotse.__version__, "snr_db_levels": args.snr_db,
         "target_policy": "First active voice; competing voice enters at least 0.26 seconds later; not selected by loudness",
         "activity_qc": "20 ms RMS frames > -30 dB relative to each isolated source's peak frame RMS; energy proxy, not speech annotation",
         "enrollment_conditioning": False, "main_training_connected": False,
-        "label_quality": "Saved TTS scripts; consult this source pilot's ASR QC sidecars; human listening pending"}
+        "label_quality": source_provenance.get("label_quality", "Saved TTS scripts; acoustic verification and listening pending")}
     save_json(args.output / "provenance.json", provenance)
     examples, checks = [], []
     for row in recipe:
@@ -180,7 +188,9 @@ def main():
         "limitations": ["First-active-voice task needs a consistent instruction or conversation context",
             "No arbitrary target speaker enrollment; source activity timing is an energy proxy",
             "Background-only negatives remain in v1; first-entrant identity alone cannot label an isolated competing voice as non-target",
-            "Synthetic sources, no telephone noise or codec, small held-out voice-ID set"]}
+            ("Existing sources, no added telephone noise or codec; voice IDs may cross splits"
+             if args.split_by_source_group else
+             "Synthetic sources, no telephone noise or codec, small held-out voice-ID set")]}
     save_json(args.output / "summary.json", summary)
     print(json.dumps(summary, ensure_ascii=False, indent=2))
 
