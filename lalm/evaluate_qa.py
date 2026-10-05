@@ -213,7 +213,8 @@ def main(cfg: DictConfig):
         logging.info(f"[evaluate_qa] Test set: {test_set['name']}")
         cutset = CutSet.from_file(test_set["manifest"]).resample(sampling_rate)
         sampler = DynamicBucketingSampler(
-            cutset, max_duration=cfg.data.max_duration, shuffle=False
+            cutset, max_duration=cfg.data.max_duration, shuffle=False,
+            num_buckets=min(10, len(cutset)),
         )
 
         all_results = []  # list of (cut_id, hyp_str, ref_str)
