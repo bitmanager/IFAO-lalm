@@ -261,3 +261,40 @@ not evidence of usable transcription or superiority over the source recognizer.
 The two prior agent examples still lose current-utterance facts; text-input
 answers remain unchanged. Silence/wrong-audio controls are retained alongside
 correct-audio outputs. No further epoch was launched automatically.
+
+## Balalaika ASR stage
+
+After explicit approval of the next stage, `prepare_asr_manifest.py` adapts the
+existing Lhotse ASR corpus without synthesizing/copying audio or generating
+teacher answers. It unwraps a single MonoCut from padding-only MixedCuts, checks
+audio paths and transcript bounds, preserves the transcript and uses only the
+ASR readout task. It never invents dialogue history. Three tests cover waveform
+preservation, isolated transcript targets, mixed-speaker rejection and bounds.
+
+```bash
+python lalm/prepare_asr_manifest.py --input-manifest /data/prepared/train.jsonl.gz \
+  --output-manifest /data/balalaika-train.jsonl.gz \
+  --tokenizer /runs/ifao-context-asr-v1/hf \
+  --system-file lalm/configs/system_ru.txt
+```
+
+The export contains 64,619 training cuts / 105.542 hours and 662 validation
+cuts / 1.084 hours. The existing validation split hashes transcripts; source
+recording/speaker separation is not established. It is an additional diagnostic,
+not a replacement for source-disjoint contextual validation.
+
+The next finite epoch consumes all Balalaika training cuts and three passes of
+the 5,110 contextual task examples, using native `CutSet.mux(stop_early=False)`
+to write a single shuffled-mixture manifest. This avoids upstream's multi-source
+`stop_early=True` ending an epoch when the smaller source is exhausted. There
+are 79,949 examples: 72,284 ASR and 7,665 answer tasks. Unique audio is about
+108.67 hours; total task exposure with replay is 124.31 hours.
+
+Native resume uses `trainer.start_epoch=2 trainer.num_epochs=2`, restoring both
+model and optimizer from `/runs/ifao-context-asr-v1/epoch-1.pt` at step 800.
+The new run directory is `/data/ifao-runs/asr-balalaika-v1` on the separate
+data volume. Its `epoch-1.pt` is a symlink to the retained source checkpoint.
+GPU assignment remains 0,2, BF16 and 2000 tokens/rank. Intermediate full checkpoint
+saves are disabled with `trainer.save_every_n=1000000`; native epoch saving and
+periodic validation remain enabled, avoiding multiple 30-GiB snapshots filling
+the volume. This is one approved larger epoch, not an unattended infinite run.
