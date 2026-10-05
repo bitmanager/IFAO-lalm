@@ -70,6 +70,8 @@ class LALMDataset(torch.utils.data.Dataset):
 
         rendered_texts = []
         for cut in cuts:
+            if getattr(cut, "task", "answer") not in ("answer", "asr"):
+                raise ValueError(f"Cut {cut.id}: unsupported training task")
             rendered_text = getattr(cut, "rendered_conversation", None)
             if rendered_text is None:
                 raise ValueError(
@@ -93,6 +95,7 @@ class LALMDataset(torch.utils.data.Dataset):
             "feature_lens": inputs["feature_lens"],
             "labels": inputs["labels"],
             "batch_size": inputs["input_ids"].size(0),
+            "asr_mask": torch.tensor([getattr(c, "task", "answer") == "asr" for c in cuts]),
         }
 
         flat_cuts = [cut for cut in cuts for _ in cut.supervisions]

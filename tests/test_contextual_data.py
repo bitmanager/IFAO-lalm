@@ -16,7 +16,7 @@ from transformers import AutoTokenizer
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "lalm"))
 from prepare_multitalk_context import dialogue_cuts, main as export_dialogues
 from lhotse import CutSet
-from prepare_conversation import prepare_cut, teacher_messages
+from prepare_conversation import prepare_cut, prepare_asr_cut, teacher_messages
 from lalm_core.model.processing_lalm import LALMProcessor
 
 
@@ -88,6 +88,18 @@ def test_no_silent_asr_target_or_prompt_override(cuts, tokenizer):
         prepare_cut(cuts[1], tokenizer)
     with pytest.raises(ValueError, match="system prompt"):
         teacher_messages(cuts[1], "Другой промпт")
+
+
+def test_asr_target_is_separate_from_agent_context(cuts, tokenizer):
+    cut = cuts[1]
+    cut.supervisions[0].custom = {"answer": "Назовите имя."}
+    agent = prepare_cut(cut, tokenizer)
+    asr = prepare_asr_cut(agent, tokenizer)
+    assert asr.task == "asr" and asr.id != agent.id
+    assert asr.conversation[-1]["content"] == cut.supervisions[0].text
+    assert agent.conversation[-1]["content"] == "Назовите имя."
+    assert asr.conversation[:-2] == agent.conversation[:-2]
+    assert cut.supervisions[0].text not in json.dumps(asr.conversation[:-1], ensure_ascii=False)
 
 
 def test_export_uses_recording_split_and_ignores_completion_sidecar(cuts, tmp_path, monkeypatch):

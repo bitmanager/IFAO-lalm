@@ -140,6 +140,7 @@ class LALMTrainer(BaseTrainer):
                 feature_lens=feature_lens,
                 attention_mask=attention_mask,
                 labels=labels,
+                asr_mask=batch["asr_mask"].to(device, non_blocking=True),
             )
             loss = outputs.loss
             logits = outputs.logits

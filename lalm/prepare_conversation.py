@@ -88,7 +88,7 @@ def _render_conversation(
                     parts.append(str(item.get("text", "")))
                 else:
                     raise ValueError(f"Unknown content type: {item_type!r}")
-            rendered_content = "".join(parts)
+            rendered_content = " ".join(parts)
         else:
             rendered_content = str(content)
         chunks.append({"role": role, "content": rendered_content})
@@ -146,6 +146,7 @@ def main():
     )
     parser.add_argument("--teacher-input", help="Export contextual messages for the upstream teacher generator")
     parser.add_argument("--responses", type=Path, help="Directory produced by the upstream teacher generator")
+    parser.add_argument("--with-asr", action="store_true", help="Also write an isolated transcript task for each cut")
     args = parser.parse_args()
 
     out_path = Path(args.output_manifest)
@@ -172,7 +173,19 @@ def main():
                     raise ValueError(f"Cut {cut.id}: empty, truncated or control-token teacher response")
                 cut.supervisions[0].custom = {**(cut.supervisions[0].custom or {}), "answer": answer}
             writer.write(prepare_cut(cut, tokenizer, instruction=args.instruction, system=args.system))
+            if args.with_asr:
+                writer.write(prepare_asr_cut(cut, tokenizer))
     print(f"Saved prepared CutSet to: {out_path}")
+
+
+def prepare_asr_cut(cut, tokenizer):
+    import copy
+
+    cut = copy.deepcopy(cut)
+    cut.id += "-asr"
+    cut.custom["task"] = "asr"
+    cut.supervisions[0].custom = {**(cut.supervisions[0].custom or {}), "answer": cut.supervisions[0].text}
+    return prepare_cut(cut, tokenizer, instruction="Дословно расшифруй текущую аудиозапись. Выведи только её текст.")
 
 
 if __name__ == "__main__":

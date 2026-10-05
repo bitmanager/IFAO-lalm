@@ -7,8 +7,10 @@ For each example, the teacher and student receive the same system prompt and
 preceding user/assistant messages. The teacher receives the current transcript;
 the student receives only the corresponding audio cut. The teacher's response
 is the sole supervised assistant turn. Earlier assistant messages and padding
-are masked. This uses the upstream causal language-model loss, not TARS/RL or an
-auxiliary ASR head. The training loop is unchanged.
+are masked. The original projector-only run uses the upstream causal
+language-model loss. An optional intermediate ASR readout is described below;
+neither path implements TARS/RL or hidden-state/KL alignment. The training loop
+is unchanged.
 
 ## Data contract
 
@@ -190,3 +192,62 @@ Quality must be checked against correct transcript input, silence and mismatched
 audio under identical history. The 105-hour Balalaika ASR corpus is separate and
 must not acquire fabricated conversational history. The prior NeMo ASR run has
 been stopped; its final step-3000 checkpoint is retained.
+
+## Optional Qwen ASR readout
+
+The readout is our integration, not a published IFAO/NVIDIA ASR branch. It uses
+the existing Qwen transformer, tokenizer, Hugging Face causal CE and generation.
+`add_asr_readout.py` strictly loads a native trainer checkpoint and copies Qwen's
+final RMSNorm and vocabulary projection into independent trainable modules.
+For Qwen3-4B this adds 388,277,760 parameters; it is not a tiny classifier.
+The readout consumes hidden states after layer 35 of 36. Qwen, its native
+answer head and GigaAM remain frozen; projector, ASR norm and ASR head train.
+
+```bash
+cd lalm
+python add_asr_readout.py --checkpoint /runs/ifao-context-v2-ddp/epoch-3.pt \
+  --output-dir /runs/ifao-context-asr-initial
+```
+
+This preserves trained model weights and starts a new optimization stage.
+Optimizer/scheduler states are not carried across the changed parameter set.
+The first stage uses native `gigaam_context` training with one epoch and
+`trainer.optimizer.lr=0.0001`, with the new HF directory as `IFAO_MODEL_PATH`.
+No full-backbone training or separate Transformer decoder is introduced.
+
+`prepare_conversation.py --with-asr` adds a separate transcript example for
+each answer example. Both retain preceding history and the source split. The
+ASR example adds an explicit transcription instruction and uses the current
+transcript as its target. The answer example never receives that transcript.
+Independent packed causal segments prevent cross-task/example target leakage.
+The loss is token-averaged CE over the two tasks, with a 1:1 example mix; no KL
+term or additional loss weighting is currently used.
+
+`task=asr` routes its packed sequence to the intermediate readout. At evaluation,
+`generate(asr=True)` constructs a shallow native Qwen view sharing the first 35
+layers and using the independent norm/head. It does not mutate the agent model
+or implement a custom decoding loop. Native `evaluate_qa.py +asr=true` evaluates
+transcript-task manifests using greedy generation and jiwer WER/CER. It reports
+raw WER and lowercased/punctuation-stripped WER/CER separately; numbers are not
+expanded and ё is not replaced. The head remains optional for agent inference.
+
+The real-call adapter `prepare_calls_context.py` reads the existing stereo IVR
+manifest. It checks channel permutations, hashes, splits and turn bounds, and
+includes only complete preceding turns. These are approximate RNNT turn bounds,
+not production VAD commits. Source train/dev remain train/validation; test and
+control recordings are excluded. Roles are relative to the selected speaker,
+not inferred operator/customer labels.
+
+The first joint stage contains 2,555 unique training cuts (3.128 hours), comprising
+846 earlier synthetic cuts and 1,709 real telephone cuts, doubled into 5,110
+task examples. Validation has 688 unique cuts (0.849 hours) from 40 groups,
+disjoint from 210 training groups. One invalid teacher response was quarantined.
+Counting both tasks gives 6.255 training hours of exposure, not unique audio.
+Telephone transcripts are GigaAM pseudo-labels: their WER measures agreement
+with those labels and cannot establish superiority over GigaAM.
+
+Validation: 27 tests passed, including a real GPU backward/generation test,
+native checkpoint reload, packed-versus-native readout equality, empty-ASR
+batch gradients for DDP, target isolation and unchanged agent modules.
+The real test found gradients only on the projector and ASR norm/head:
+398,768,640 trainable parameters. This verifies integration, not ASR quality.

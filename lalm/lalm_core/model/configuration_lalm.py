@@ -48,6 +48,7 @@ class LALMConfig(PretrainedConfig):
         text_dim: Optional[int] = None,
         projector_downsample_rate: int = 4,
         audio_token_id: Optional[int] = None,
+        asr_layer: Optional[int] = None,
         **kwargs: Any,
     ) -> None:
         self.text_config = _resolve_config(text_config, DEFAULT_TEXT_MODEL_TYPE)
@@ -56,6 +57,7 @@ class LALMConfig(PretrainedConfig):
         self.text_dim = text_dim
         self.projector_downsample_rate = projector_downsample_rate
         self.audio_token_id = audio_token_id
+        self.asr_layer = asr_layer
         super().__init__(**kwargs)
 
     def to_dict(self) -> dict:
