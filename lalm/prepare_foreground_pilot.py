@@ -114,6 +114,8 @@ def main():
         if common_gain < 1:
             mixed = target.perturb_volume(common_gain).mix(interference.perturb_volume(common_gain), **kwargs)
         audio, stems = mixed.load_audio(), mixed.load_audio(mixed=False)
+        if isinstance(stems, list):
+            stems = np.concatenate(stems, axis=0)
         if stems.shape != (2, audio.shape[1]):
             raise ValueError("Unexpected Lhotse track layout")
         error = float(np.max(np.abs(audio[0] - stems.sum(axis=0))))
