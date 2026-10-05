@@ -55,7 +55,7 @@ def native_cuts(args):
     rows = list(map(json.loads, args.native_calls.read_text().splitlines()))
     validate_manifest(rows)
     args.output_dir.mkdir(parents=True, exist_ok=False)
-    count, seconds = 0, 0.0
+    count, seconds, used_calls = 0, 0.0, set()
     with CutSet.open_writer(args.output_dir / "long-source.jsonl.gz") as writer:
         for row in rows:
             metadata = accepted[row["call_id"]]
@@ -72,7 +72,13 @@ def native_cuts(args):
                 writer.write(cut)
                 count += 1
                 seconds += cut.duration
+                used_calls.add(row["call_id"])
     summary = {"source_calls": len(rows), "caller_cuts": count, "caller_cut_hours": seconds / 3600,
+               "caller_source_calls": len(used_calls),
+               "caller_source_hours": sum(row["duration_seconds"] for row in rows
+                                          if row["call_id"] in used_calls) / 3600,
+               "calls_without_eligible_caller_cuts": [row["call_id"] for row in rows
+                                                      if row["call_id"] not in used_calls],
                "boundaries": "Existing prepare_calls_context.call_cuts, RNNT emission approximate",
                "text_quality": "native GigaAM pseudo, human accuracy unmeasured"}
     (args.output_dir / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
