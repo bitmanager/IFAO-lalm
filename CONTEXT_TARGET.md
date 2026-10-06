@@ -129,3 +129,27 @@ enrollment. Generic responses or two contextually plausible voices remain
 ambiguous. Different topics and source groups are paired, while speaker IDs
 can cross train/validation. No TTS, teacher/model inference, decoder or
 trainer was added or run for this export.
+
+## Separate phone sources with unknown voice identity
+
+`--allow-unknown-foreground-speaker` is an explicit opt-in for train-only
+context-target recipes. A phone foreground may have `foreground_voice: null`
+and `foreground_speaker_identity_verified: false`; its original physical
+channel, source call ID and audio checksum must match the recipe. It requires
+a recorded agent review of the complete grouped transcript and an unrelated
+background whose existing synthetic voice metadata remains checksum-bound.
+The default distinct-voice recipe checks are unchanged.
+
+The exported custom metadata records `speaker_identity_verified: false` and
+`distinct_voice_identity_verified: false`. These audit fields never enter the
+prompt or target. Speaker-relative conversation roles do not establish
+operator/customer roles or acoustic speaker enrollment. Agent text review is
+not human listening or gold annotation. For phone references produced by the
+same GigaAM checkpoint as clean-source QC, exact agreement measures cropped
+audio self-consistency; the QC mask records that dependency explicitly.
+
+Keep this source in a separate output directory and preserve its recipe,
+grouped review, quarantine, original reference and ASR hypotheses. The native
+mixer, seven conditions, overlap threshold, PCM binding, history, teacher
+answers and label construction are unchanged. Existing train/validation
+manifests and active training are not modified by this export.

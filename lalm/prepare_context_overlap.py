@@ -33,7 +33,7 @@ CONTEXT_TARGET_POLICY = (
 )
 
 
-def validate_pairs(recipe, cuts):
+def validate_pairs(recipe, cuts, allow_unknown_foreground_speaker=False):
     seen, split_keys = set(), {}
     for row in recipe:
         if row["id"] in seen or Path(row["id"]).name != row["id"]:
@@ -42,9 +42,26 @@ def validate_pairs(recipe, cuts):
         split = row["split"]
         if split not in ("train", "validation"):
             raise ValueError("Preserve the existing train/validation split")
-        if row["foreground_voice"] == row["background_voice"]:
+        unknown_voice = row.get("foreground_voice") is None
+        if unknown_voice:
+            review = row.get("semantic_review", {})
+            foreground = cuts[row["foreground_cut_id"]]
+            if not (allow_unknown_foreground_speaker and split == "train"
+                    and row.get("foreground_speaker_identity_verified") is False
+                    and row.get("foreground_source_channel") == foreground.channel
+                    and row.get("background_voice") and row.get("background_voice_metadata_path")
+                    and row.get("background_topic")
+                    and review.get("method") == "agent_full_grouped_transcript_review"
+                    and review.get("unrelated") is True and review.get("note")
+                    and review.get("source_call_id") == foreground.custom.get("source_call_id")
+                    and review.get("source_audio_sha256") == foreground.custom.get("source_sha256")
+                    and review.get("background_cut_id") == row["background_cut_id"]
+                    and foreground.custom.get("source_call_id")
+                    and foreground.custom.get("source_sha256")):
+                raise ValueError("Unknown foreground speaker requires explicit train-only source-bound semantic review")
+        elif row["foreground_voice"] == row["background_voice"]:
             raise ValueError("Pair requires distinct voice IDs")
-        if row["foreground_topic"] == row["background_topic"]:
+        if not unknown_voice and row["foreground_topic"] == row["background_topic"]:
             raise ValueError("Pair requires distinct reviewed topics")
         groups = []
         for role in ("foreground", "background"):
@@ -85,7 +102,7 @@ def validate_pairs(recipe, cuts):
         raise ValueError("Empty pair recipe")
 
 
-def task_views(foreground, example, tokenizer):
+def task_views(foreground, example, tokenizer, pair_metadata=None):
     recording = Recording.from_file(example["audio_path"], recording_id=example["id"])
     if recording.num_channels != 1 or abs(recording.duration - example["duration"]) > .001:
         raise ValueError("Mixed audio differs from the existing mixer manifest")
@@ -105,6 +122,12 @@ def task_views(foreground, example, tokenizer):
         snr_db=example.get("snr_db_requested"), training_eligible=False,
         main_training_connected=False, foreground_source_cut_id=foreground.id,
     )
+    if pair_metadata and pair_metadata.get("foreground_voice") is None:
+        cut.custom.update(
+            speaker_identity_verified=False, distinct_voice_identity_verified=False,
+            foreground_source_channel=foreground.channel,
+            semantic_review=copy.deepcopy(pair_metadata["semantic_review"]),
+        )
     policy = None
     if example["condition"] == "mixture":
         policy = CONTEXT_TARGET_POLICY if cut.target_policy == "context_target" else FIRST_VOICE_POLICY
@@ -128,11 +151,15 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--tokenizer", required=True)
     parser.add_argument("--context-target", action="store_true")
+    parser.add_argument("--allow-unknown-foreground-speaker", action="store_true",
+                        help="Separate train-only physical-channel sources with explicit agent semantic review; no distinct-voice claim")
     parser.add_argument("--clean-qc-mask", type=Path,
-                        help="Frozen independent source-QC mask; selects train only, keeps all validation")
+                        help="Frozen source-QC mask with its reference provenance; selects train only, keeps all validation")
     args = parser.parse_args()
     if args.context_target and not args.clean_qc_mask:
-        parser.error("--context-target requires the independent --clean-qc-mask")
+        parser.error("--context-target requires a frozen --clean-qc-mask")
+    if args.allow_unknown_foreground_speaker and not args.context_target:
+        parser.error("Unknown foreground identity is supported only by the context-target recipe")
     cuts = {}
     for manifest in args.source_manifests:
         for cut in CutSet.from_file(manifest):
@@ -140,7 +167,7 @@ def main():
                 raise ValueError("Duplicate source cut ID")
             cuts[cut.id] = cut
     recipe = read_jsonl(args.recipe)
-    validate_pairs(recipe, cuts)
+    validate_pairs(recipe, cuts, args.allow_unknown_foreground_speaker)
     qc_mask = {}
     if args.clean_qc_mask:
         qc_rows = read_jsonl(args.clean_qc_mask)
@@ -209,10 +236,11 @@ def main():
         "--snr-db", "3", "0", "-3", "--split-by-source-group"] +
         (["--context-target"] if args.context_target else []), check=True)
     lookup = {r["id"]: cuts[r["foreground_cut_id"]] for r in recipe}
+    pair_metadata = {r["id"]: r for r in recipe}
     groups = defaultdict(list)
     for example in read_jsonl(mixed_root / "pilot.jsonl"):
         foreground = lookup[example["source_group_id"]]
-        for cut in task_views(foreground, example, tokenizer):
+        for cut in task_views(foreground, example, tokenizer, pair_metadata[example["source_group_id"]]):
             if qc_mask:
                 cut.custom["clean_source_qc"] = qc_mask[example["source_group_id"]]
             groups[cut.custom["split"]].append(cut)
@@ -250,6 +278,11 @@ def main():
         "task_exposure_hours": sum(c.duration for rs in groups.values() for c in rs) / 3600,
         "training_eligible": False, "main_training_connected": False,
         "speaker_disjoint": False, "source_group_disjoint": True,
+        "unknown_foreground_speaker_pairs": sum(r.get("foreground_voice") is None for r in recipe),
+        "distinct_voice_identity_verified_all_pairs": all(
+            r.get("foreground_voice") is not None and
+            all(r.get(role + "_voice_metadata_path") for role in ("foreground", "background"))
+            for r in recipe),
         "new_tts_requests": 0, "new_teacher_answers": 0, "gpu_inference": "not run",
         "target_policy": "context_target" if args.context_target else "first_active_voice",
         "clean_source_admission_train_pairs": sum(r["split"] == "train" for r in recipe) if qc_mask else None,

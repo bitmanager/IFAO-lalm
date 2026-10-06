@@ -69,6 +69,37 @@ def test_source_group_crossing_and_invented_split_are_rejected(tmp_path):
         validate_pairs([pair("one", "train", "c", "b")], cuts)
 
 
+def test_unknown_phone_identity_requires_source_bound_opt_in_review(tmp_path):
+    fg, bg = source(tmp_path, "phone", "train", "call"), source(tmp_path, "tts", "train", "script")
+    fg.custom.update(source_call_id="original-call", source_sha256="original-audio-hash")
+    metadata = tmp_path / "tts.json"
+    metadata.write_text(json.dumps({"speaker_to_channel": {"person": 0}, "voice": {"person": "two"}}))
+    row = {"id": "unknown", "split": "train", "foreground_cut_id": fg.id,
+        "background_cut_id": bg.id, "foreground_voice": None, "background_voice": "two",
+        "foreground_speaker_identity_verified": False, "foreground_source_channel": 0,
+        "background_topic": "plant care", "background_voice_metadata_path": str(metadata),
+        "background_voice_metadata_sha256": hashlib.sha256(metadata.read_bytes()).hexdigest(),
+        "semantic_review": {"method": "agent_full_grouped_transcript_review", "unrelated": True,
+            "source_call_id": "original-call", "source_audio_sha256": "original-audio-hash",
+            "background_cut_id": bg.id, "note": "Debt discussion versus plant care; agent review, not gold."}}
+    cuts = {fg.id: fg, bg.id: bg}
+    with pytest.raises(ValueError, match="Unknown foreground"):
+        validate_pairs([row], cuts)
+    validate_pairs([row], cuts, allow_unknown_foreground_speaker=True)
+    for key, value in [("source_call_id", "another-call"), ("source_audio_sha256", "changed"),
+                       ("background_cut_id", "another-background"), ("unrelated", False)]:
+        changed = {**row, "semantic_review": {**row["semantic_review"], key: value}}
+        with pytest.raises(ValueError, match="Unknown foreground"):
+            validate_pairs([changed], cuts, allow_unknown_foreground_speaker=True)
+    example = {"id": "unknown-clean", "source_group_id": "unknown", "duration": 1,
+               "audio_path": fg.recording.sources[0].source, "condition": "clean"}
+    for cut in task_views(fg, example, Tokenizer(), row):
+        assert cut.speaker_identity_verified is False
+        assert cut.distinct_voice_identity_verified is False
+        assert cut.semantic_review == row["semantic_review"]
+        assert row["semantic_review"]["note"] not in cut.rendered_conversation
+
+
 @pytest.mark.parametrize("duplicate_waveforms", [False, True])
 @pytest.mark.parametrize("context_target", [False, True])
 def test_native_export_writes_string_splits_and_both_tasks(tmp_path, monkeypatch, duplicate_waveforms, context_target):
