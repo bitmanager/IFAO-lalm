@@ -12,7 +12,8 @@ from lhotse.dataset import DynamicBucketingSampler
 from lhotse.dataset.sampling.base import TokenConstraint
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "lalm"))
-from prepare_paired_tasks import prepare_paired_cut
+from prepare_paired_tasks import prepare_paired_cut, pack_existing_task_views, replace_mixed_answer
+from prepare_conversation import prepare_cut, prepare_asr_cut
 from lalm_core.paired_tasks import expand_task_views
 from lalm_core.data_module import estimate_cut_tokens, LALMDataset
 from lalm_core.task_loss import separate_task_ce
@@ -71,6 +72,69 @@ def test_no_labels_and_already_task_adapted_input_are_rejected():
     cut.custom['task'] = 'asr'
     with pytest.raises(ValueError, match='base cuts'):
         prepare_paired_cut(cut, Tokenizer())
+
+
+def prepared_mixed_views():
+    base = source()
+    base.custom.update(split='train', foreground_source_cut_id=base.id,
+                       mixture_pair_id='pair', target_policy='context_target')
+    original = prepare_cut(copy.deepcopy(base), Tokenizer())
+    mixed = copy.deepcopy(base).with_id('mixture')
+    mixed.supervisions[0].custom['answer'] = 'Прежний teacher'
+    policy = 'Выбери собеседника из истории, а не самый громкий голос.'
+    answer = prepare_cut(copy.deepcopy(mixed).with_id('mixture-answer'), Tokenizer(), policy)
+    answer.custom['task'] = 'answer'
+    asr = prepare_asr_cut(mixed, Tokenizer())
+    prompt = asr.conversation[-2]['content'][1]['text']
+    asr = prepare_cut(asr, Tokenizer(), prompt + '\n' + policy)
+    return base, original, asr, answer
+
+
+def test_existing_mixed_views_preserve_policy_audio_and_original_answer_bridge():
+    base, original, asr, answer = prepared_mixed_views()
+    before = [copy.deepcopy(c.to_dict()) for c in (base, original, asr, answer)]
+    replaced = replace_mixed_answer(answer, base, original, Tokenizer())
+    assert replaced.conversation[:-1] == answer.conversation[:-1]
+    assert replaced.supervisions[0].custom['answer'] == 'Точный ответ'
+    unit = pack_existing_task_views(asr, replaced, Tokenizer())
+    expanded = list(expand_task_views(CutSet.from_cuts([unit])))
+    for got, expected in zip(expanded, (asr, replaced)):
+        assert got.id == expected.id
+        assert got.conversation == expected.conversation
+        assert got.rendered_conversation == expected.rendered_conversation
+        assert got.recording.to_dict() == expected.recording.to_dict()
+        assert got.supervisions[0].custom['answer'] == expected.supervisions[0].custom['answer']
+    assert unit.num_text_tokens == asr.num_text_tokens + replaced.num_text_tokens
+    assert [c.to_dict() for c in (base, original, asr, answer)] == before
+
+
+@pytest.mark.parametrize('field', ['history', 'audio', 'policy', 'source_id'])
+def test_existing_view_bridge_rejects_incorrect_pairs(field):
+    base, original, asr, answer = prepared_mixed_views()
+    if field == 'history':
+        answer.custom['history'] = []
+    elif field == 'audio':
+        answer.recording.sources[0].source = '/different.wav'
+    elif field == 'source_id':
+        answer.custom['mixture_pair_id'] = 'different'
+    else:
+        answer.conversation[-2]['content'][1]['text'] = 'Выбери другой голос.'
+        from prepare_conversation import _render_conversation, _estimate_text_tokens
+        answer.custom['rendered_conversation'] = _render_conversation(answer.conversation, Tokenizer())
+        answer.custom['num_text_tokens'] = _estimate_text_tokens(answer.rendered_conversation, Tokenizer())
+    with pytest.raises(ValueError):
+        pack_existing_task_views(asr, answer, Tokenizer())
+
+
+def test_original_answer_bridge_rejects_foreground_identity_and_missing_target():
+    base, original, _, answer = prepared_mixed_views()
+    original.recording.sources[0].source = '/different.wav'
+    with pytest.raises(ValueError, match='audio'):
+        replace_mixed_answer(answer, base, original, Tokenizer())
+    base, original, _, answer = prepared_mixed_views()
+    original.supervisions[0].custom.pop('answer')
+    with pytest.raises(ValueError, match='explicit original'):
+        replace_mixed_answer(answer, base, original, Tokenizer())
 
 
 def test_pair_cannot_silently_lose_one_view_or_change_asr_target():
