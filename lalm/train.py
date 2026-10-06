@@ -34,6 +34,8 @@ def _freeze_modules(model: torch.nn.Module, names: list[str]) -> None:
 @hydra.main(version_base=None, config_path="configs", config_name="train")
 def main(cfg: DictConfig):
     logging.info("\n" + OmegaConf.to_yaml(cfg))
+    if cfg.data.get("paired_tasks", False) and cfg.trainer.get("answer_loss_weight") is None:
+        raise ValueError("Linked task views require explicit trainer.answer_loss_weight")
 
     # 1) Fix random seed
     if "seed" in cfg:

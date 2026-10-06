@@ -5,6 +5,7 @@ import torch.nn as nn
 from transformers import AutoModel, AutoModelForCausalLM, PreTrainedModel
 
 from .configuration_lalm import LALMConfig
+from ..task_loss import separate_task_ce
 
 
 class LALMProjector(nn.Module):
@@ -189,6 +190,8 @@ class LALMForConditionalGeneration(PreTrainedModel):
         position_ids: torch.Tensor = None,
         labels: torch.Tensor = None,
         asr_mask: torch.Tensor = None,
+        answer_loss_weight: float = None,
+        sync_task_counts: bool = False,
         **kwargs,
     ):
         inputs_embeds = self.language_model.get_input_embeddings()(input_ids)
@@ -203,7 +206,8 @@ class LALMForConditionalGeneration(PreTrainedModel):
 
         if labels is not None and attention_mask is not None:
             outputs, packed_labels = self._forward_packed(
-                inputs_embeds, attention_mask, labels, asr_mask=asr_mask, **kwargs
+                inputs_embeds, attention_mask, labels, asr_mask=asr_mask,
+                answer_loss_weight=answer_loss_weight, sync_task_counts=sync_task_counts, **kwargs
             )
             outputs.packed_labels = packed_labels
             return outputs
@@ -296,6 +300,8 @@ class LALMForConditionalGeneration(PreTrainedModel):
         attention_mask: torch.Tensor,
         labels: torch.Tensor,
         asr_mask: torch.Tensor = None,
+        answer_loss_weight: float = None,
+        sync_task_counts: bool = False,
         **kwargs,
     ):
         device = inputs_embeds.device
@@ -306,6 +312,12 @@ class LALMForConditionalGeneration(PreTrainedModel):
         valid = attention_mask.bool()
         packed_embeds = inputs_embeds[valid].unsqueeze(0)
         packed_labels = labels[valid].unsqueeze(0)
+        if answer_loss_weight is not None:
+            if asr_mask is None:
+                raise ValueError("Separate task CE requires explicit task routing")
+            # No sequence's first token may be predicted by the previous sequence.
+            packed_labels = packed_labels.clone()
+            packed_labels[:, torch.cat((seq_lens.new_zeros(1), seq_lens.cumsum(0)[:-1]))] = -100
 
         T_total = packed_embeds.size(1)
         ones = torch.ones(T_total, device=device, dtype=torch.long)
@@ -325,7 +337,7 @@ class LALMForConditionalGeneration(PreTrainedModel):
             inputs_embeds=packed_embeds,
             attention_mask=attn_mask,
             position_ids=position_ids,
-            labels=packed_labels if self.config.asr_layer is None else None,
+            labels=packed_labels if self.config.asr_layer is None and answer_loss_weight is None else None,
             output_hidden_states=self.config.asr_layer is not None,
             **kwargs,
         )
@@ -340,11 +352,17 @@ class LALMForConditionalGeneration(PreTrainedModel):
             outputs.logits = outputs.logits.index_copy(
                 1, asr_positions.nonzero().flatten(), asr_logits.to(outputs.logits.dtype)
             )
-            outputs.loss = self.language_model.loss_function(
-                logits=outputs.logits, labels=packed_labels,
-                vocab_size=self.config.text_config.vocab_size,
-            )
+            if answer_loss_weight is None:
+                outputs.loss = self.language_model.loss_function(
+                    logits=outputs.logits, labels=packed_labels,
+                    vocab_size=self.config.text_config.vocab_size,
+                )
             outputs.hidden_states = None
+        if answer_loss_weight is not None:
+            asr_positions = torch.repeat_interleave(asr_mask, seq_lens)
+            outputs.loss, outputs.task_nll_sums, outputs.task_token_counts = separate_task_ce(
+                outputs.logits, packed_labels, asr_positions, answer_loss_weight,
+                sync_counts=sync_task_counts)
         return outputs, packed_labels
 
     def _merge_input_ids_with_audio_features(
