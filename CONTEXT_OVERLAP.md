@@ -132,7 +132,9 @@ keep source-group holdout and identical pairs across onset/SNR conditions,
 and replace the first-voice qualification with a consistent instruction to
 continue the interlocutor from the history. Clean controls retain their
 ordinary instruction. This requires a small recipe/format extension, not
-new DSP or an architecture change, and is **not implemented here**.
+new DSP or an architecture change. It is now implemented as a separate
+optional export described in [CONTEXT_TARGET.md](CONTEXT_TARGET.md); the
+first-voice artifacts and results above remain unchanged.
 Text history identifies topic/context but supplies no acoustic enrollment:
 generic utterances, same-topic intrusions, and two equally plausible voices
 remain ambiguous. Both-order evaluation should report those limits and

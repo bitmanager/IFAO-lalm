@@ -26,6 +26,11 @@ FIRST_VOICE_POLICY = (
     "В текущей аудиозаписи пользователь — собеседник, начавший говорить первым. "
     "Учитывай только его речь; одновременная посторонняя речь на фоне не является его репликой."
 )
+CONTEXT_TARGET_POLICY = (
+    "Целевой собеседник — пользователь из истории диалога. "
+    "Учитывай только его реплику, продолжающую эту историю; игнорируй нерелевантную фоновую речь. "
+    "Не выбирай собеседника по громкости или по тому, кто заговорил первым."
+)
 
 
 def validate_pairs(recipe, cuts):
@@ -95,11 +100,14 @@ def task_views(foreground, example, tokenizer):
                   if k not in ("conversation", "rendered_conversation", "num_text_tokens", "task")}
     cut.custom.update(
         condition=example["condition"], mixture_pair_id=example["source_group_id"],
-        target_policy="first_active_voice" if example["condition"] == "mixture" else "ordinary_clean",
+        target_policy=example.get("target_policy", "first_active_voice") if example["condition"] == "mixture" else "ordinary_clean",
+        onset_order=example.get("onset_order"),
         snr_db=example.get("snr_db_requested"), training_eligible=False,
         main_training_connected=False, foreground_source_cut_id=foreground.id,
     )
-    policy = FIRST_VOICE_POLICY if example["condition"] == "mixture" else None
+    policy = None
+    if example["condition"] == "mixture":
+        policy = CONTEXT_TARGET_POLICY if cut.target_policy == "context_target" else FIRST_VOICE_POLICY
     answer = copy.deepcopy(cut)
     answer.id += "-answer"
     answer.custom["task"] = "answer"
@@ -119,7 +127,12 @@ def main():
     parser.add_argument("--recipe", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--tokenizer", required=True)
+    parser.add_argument("--context-target", action="store_true")
+    parser.add_argument("--clean-qc-mask", type=Path,
+                        help="Frozen independent source-QC mask; selects train only, keeps all validation")
     args = parser.parse_args()
+    if args.context_target and not args.clean_qc_mask:
+        parser.error("--context-target requires the independent --clean-qc-mask")
     cuts = {}
     for manifest in args.source_manifests:
         for cut in CutSet.from_file(manifest):
@@ -128,6 +141,23 @@ def main():
             cuts[cut.id] = cut
     recipe = read_jsonl(args.recipe)
     validate_pairs(recipe, cuts)
+    qc_mask = {}
+    if args.clean_qc_mask:
+        qc_rows = read_jsonl(args.clean_qc_mask)
+        qc_mask = {r["pair_id"]: r for r in qc_rows}
+        if len(qc_mask) != len(qc_rows):
+            raise ValueError("Duplicate clean-QC mask IDs")
+        selected = []
+        for row in recipe:
+            qc = qc_mask[row["id"]]
+            if qc["split"] != row["split"]:
+                raise ValueError("Clean-QC mask split differs from recipe")
+            for role in ("foreground", "background"):
+                if qc[role + "_source_cut_id"] != row[role + "_cut_id"]:
+                    raise ValueError("Clean-QC source ID differs from recipe")
+            if row["split"] == "validation" or qc["clean_qc_candidate"]:
+                selected.append(row)
+        recipe = selected
     tokenizer = AutoTokenizer.from_pretrained(args.tokenizer, local_files_only=True)
     args.output.mkdir(parents=True, exist_ok=False)
     source_root = args.output / "source"
@@ -148,6 +178,8 @@ def main():
             # FLOAT WAV headers can carry varying PEAK-chunk timestamps.
             # Split deduplication must compare samples, not container bytes.
             pcm_sha = hashlib.sha256(samples.astype("<f4", copy=False).tobytes()).hexdigest()
+            if qc_mask and pcm_sha != qc_mask[row["id"]][role + "_pcm_float32_le_sha256"]:
+                raise ValueError("Source waveform differs from independent clean QC")
             if source_hash_splits.setdefault(pcm_sha, row["split"]) != row["split"]:
                 raise ValueError("Identical source waveform crosses splits")
             text = cut.supervisions[0].text
@@ -168,29 +200,49 @@ def main():
         "voice_bank_revision": None, "source_kind": "Existing native contextual audio cuts",
         "label_quality": "Foreground transcript/history/teacher answer preserved; no new teacher labels; not human acoustic gold",
         "new_tts_requests": 0, "speaker_disjoint": False, "training_eligible": False,
+        "clean_qc_mask_sha256": digest(args.clean_qc_mask) if args.clean_qc_mask else None,
+        "target_policy": "context_target" if args.context_target else "first_active_voice",
     })
     mixed_root = args.output / "mixed"
     subprocess.run([sys.executable, str(Path(__file__).with_name("remix_foreground_pilot.py")),
         "--source-pilot", str(source_root), "--output", str(mixed_root),
-        "--snr-db", "3", "0", "-3", "--split-by-source-group"], check=True)
+        "--snr-db", "3", "0", "-3", "--split-by-source-group"] +
+        (["--context-target"] if args.context_target else []), check=True)
     lookup = {r["id"]: cuts[r["foreground_cut_id"]] for r in recipe}
     groups = defaultdict(list)
     for example in read_jsonl(mixed_root / "pilot.jsonl"):
         foreground = lookup[example["source_group_id"]]
         for cut in task_views(foreground, example, tokenizer):
+            if qc_mask:
+                cut.custom["clean_source_qc"] = qc_mask[example["source_group_id"]]
             groups[cut.custom["split"]].append(cut)
     for split, rows in groups.items():
         CutSet.from_cuts(rows).to_file(args.output / (split + ".jsonl.gz"))
+    def condition_name(c):
+        if c.condition == "clean":
+            return "clean"
+        return (c.onset_order + "-" if args.context_target else "") + f"snr{c.snr_db:+g}"
+    conditions = ["clean"] + ([order + "-" + snr for order in ("foreground-first", "background-first")
+                               for snr in ("snr+3", "snr+0", "snr-3")] if args.context_target
+                              else ["snr+3", "snr+0", "snr-3"])
     for task in ("asr", "answer"):
-        config = []
-        for condition in ("clean", "snr+3", "snr+0", "snr-3"):
+        config, masked_config = [], []
+        for condition in conditions:
             selected = [c for c in groups["validation"] if c.task == task and
-                ("clean" if c.condition == "clean" else f"snr{c.snr_db:+g}") == condition]
-            name = f"context-overlap-{condition}-{task}"
+                condition_name(c) == condition]
+            prefix = "context-target" if args.context_target else "context-overlap"
+            name = f"{prefix}-{condition}-{task}"
             path = args.output / (name + ".jsonl.gz")
             CutSet.from_cuts(selected).to_file(path)
             config.append({"name": name, "manifest": str(path)})
+            if qc_mask:
+                masked = [c for c in selected if c.clean_source_qc["clean_qc_candidate"]]
+                masked_path = args.output / (name + "-cleanqc.jsonl.gz")
+                CutSet.from_cuts(masked).to_file(masked_path)
+                masked_config.append({"name": name + "-cleanqc", "manifest": str(masked_path)})
         (args.output / ("eval-" + task + ".yaml")).write_text(yaml.safe_dump(config))
+        if qc_mask:
+            (args.output / ("eval-" + task + "-cleanqc.yaml")).write_text(yaml.safe_dump(masked_config))
     save_json(args.output / "summary.json", {
         "pairs": len(recipe), "source_fg_seconds": sum(c.duration for c in {c.id: c for c in lookup.values()}.values()),
         "split_examples": {s: len(rs) for s, rs in groups.items()},
@@ -199,6 +251,8 @@ def main():
         "training_eligible": False, "main_training_connected": False,
         "speaker_disjoint": False, "source_group_disjoint": True,
         "new_tts_requests": 0, "new_teacher_answers": 0, "gpu_inference": "not run",
+        "target_policy": "context_target" if args.context_target else "first_active_voice",
+        "clean_source_admission_train_pairs": sum(r["split"] == "train" for r in recipe) if qc_mask else None,
     })
 
 
