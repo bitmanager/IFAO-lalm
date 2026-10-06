@@ -81,6 +81,12 @@ source cases hash is
 `4eb081d883d38af9a559ddd8567682b32ea8ca18a9aac684cd994e4c3b43a658`.
 No exp GPU inference or human listening was performed. Acoustic ASR fidelity
 remains pending; the TTS scripts alone do not certify what was spoken.
+The unchanged upstream GigaAM evaluator can consume
+`asr-qc-gigaam-v1/six-current-utterances.tsv` directly (six rows, standard
+`path/duration/transcription` columns). Its frozen input hash and handoff
+status are in `asr-qc-gigaam-v1/input-provenance.json`. The agent owning the
+separately scheduled GPU1 evaluation slot is responsible for that single
+baseline batch; this preparation task starts no exp GPU job.
 
 For a scheduled native answer run, reuse the allocated epoch export and
 ordinary `evaluate_qa.py` with
