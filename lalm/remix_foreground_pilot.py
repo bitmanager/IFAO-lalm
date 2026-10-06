@@ -1,7 +1,8 @@
 """Export an overlap/SNR comparison using saved sources and upstream Lhotse mix.
 
 No synthesis, model inference, enrollment, or training is performed here.
-The first active voice is the declared target, independent of source level.
+By default the first active voice is the target. Context-target mode renders
+both onset orders without changing the declared foreground role.
 """
 
 import argparse
@@ -44,7 +45,13 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--snr-db", type=float, nargs="+", default=[3, 0, -3])
     parser.add_argument("--exclude-pair", nargs="*", default=[], help="Explicit source pairs excluded by QC or split audit")
+    parser.add_argument("--split-by-source-group", action="store_true",
+                        help="Require source-group separation; report rather than forbid shared voice IDs")
+    parser.add_argument("--context-target", action="store_true",
+                        help="Render both onset orders; foreground is identified by context, not onset")
     args = parser.parse_args()
+    orders = ("foreground-first", "background-first") if args.context_target else ("foreground-first",)
+    target_policy = "context_target" if args.context_target else "first_active_voice"
     if len(set(args.snr_db)) != len(args.snr_db) or any(not -6 <= x <= 6 for x in args.snr_db):
         raise ValueError("Expected unique SNR levels between -6 and +6 dB")
     sources = read_jsonl(args.source_pilot / "sources.jsonl")
@@ -62,7 +69,7 @@ def main():
     for source in sources:
         if digest(source["path"]) != source["wav_sha256"]:
             raise ValueError("Source checksum changed")
-    split_keys = {}
+    split_keys, voice_splits = {}, {}
     for row in recipe:
         if Path(row["id"]).name != row["id"] or row["split"] not in ("train", "validation"):
             raise ValueError("Unsafe pair ID or unsupported split")
@@ -70,7 +77,11 @@ def main():
             source = lookup[(row["id"], role)]
             if (source["split"], source["text"], source["voice"]) != (row["split"], row[role + "_text"], row[role + "_voice"]):
                 raise ValueError("Source differs from recipe")
-            for key in (("text", source["text"].casefold()), ("voice", source["voice"])):
+            voice_splits.setdefault(source["voice"], set()).add(row["split"])
+            group = source.get("source_group_id") if args.split_by_source_group else source["voice"]
+            if not group:
+                raise ValueError("Missing source split-group identifier")
+            for key in (("text", source["text"].casefold()), ("source_group" if args.split_by_source_group else "voice", group)):
                 if split_keys.setdefault(key, row["split"]) != row["split"]:
                     raise ValueError("Source phrase or voice ID crosses splits")
     args.output.mkdir(parents=True, exist_ok=False)
@@ -78,12 +89,15 @@ def main():
     provenance = {"source_pilot": str(args.source_pilot), "source_provenance": source_provenance,
         "source_manifest_sha256": digest(args.source_pilot / "sources.jsonl"),
         "excluded_pair_ids": sorted(excluded),
+        "split_policy": "source_group" if args.split_by_source_group else "voice_id",
+        "shared_voice_ids_between_splits": sorted(k for k, v in voice_splits.items() if len(v) > 1),
         "adapter_sha256": digest(__file__), "mixer": "lhotse.Cut.mix / MixedCut.load_audio",
         "lhotse_version": lhotse.__version__, "snr_db_levels": args.snr_db,
-        "target_policy": "First active voice; competing voice enters at least 0.26 seconds later; not selected by loudness",
+        "target_policy": target_policy, "onset_orders": orders,
+        "onset_gap_policy": "At least 0.26 seconds between first active source frames",
         "activity_qc": "20 ms RMS frames > -30 dB relative to each isolated source's peak frame RMS; energy proxy, not speech annotation",
         "enrollment_conditioning": False, "main_training_connected": False,
-        "label_quality": "Saved TTS scripts; consult this source pilot's ASR QC sidecars; human listening pending"}
+        "label_quality": source_provenance.get("label_quality", "Saved TTS scripts; acoustic verification and listening pending")}
     save_json(args.output / "provenance.json", provenance)
     examples, checks = [], []
     for row in recipe:
@@ -93,16 +107,6 @@ def main():
         raw = [c.load_audio() for c in cuts]
         masks = [activity(y) for y in raw]
         starts = [int(np.flatnonzero(mask)[0]) for mask in masks]
-        offset_frames = max(0, starts[0] + 13 - starts[1])
-        offset = offset_frames * FRAME / RATE
-        size = max(len(masks[0]), offset_frames + len(masks[1]))
-        fgmask = np.pad(masks[0], (0, size - len(masks[0])))
-        bgmask = np.pad(masks[1], (offset_frames, size - offset_frames - len(masks[1])))
-        overlap_mask = fgmask & bgmask
-        overlap_seconds = float(overlap_mask.sum() * FRAME / RATE)
-        overlap_fraction = float(overlap_mask.sum() / fgmask.sum())
-        if overlap_fraction < 0.5:
-            raise ValueError(f"Insufficient simultaneous activity for {pair}: {overlap_fraction}")
         gain = 0.06 / float(np.sqrt(np.mean(raw[0] ** 2)))
         target = cuts[0].perturb_volume(gain)
         pair_dir = args.output / "audio" / pair
@@ -116,54 +120,79 @@ def main():
             "foreground_voice": row["foreground_voice"], "background_voice": row["background_voice"],
             "background_text": row["background_text"], "category": row["category"],
             "voice_bank_revision": source_provenance["voice_bank_revision"],
-            "target_policy": "first_active_voice", "enrollment_conditioning": False,
+            "target_policy": target_policy, "enrollment_conditioning": False,
             "asr_qc": "pending", "training_eligible": False}
         examples.append({**base, "id": pair + "-clean", "condition": "clean",
             "audio_path": str(clean), "target_audio_path": str(clean),
             "duration": target.duration, "num_samples": target.num_samples})
-        for snr in args.snr_db:
-            tag = f"snr_{snr:+g}db"
-            dest = pair_dir / tag
-            dest.mkdir()
-            kwargs = dict(offset_other_by=offset, snr=snr, allow_padding=True)
-            mixed = target.mix(cuts[1], **kwargs)
-            peak = float(np.abs(mixed.load_audio()).max())
-            common_gain = min(1.0, 0.9 / max(peak, 1e-8))
-            if common_gain < 1:
-                mixed = target.perturb_volume(common_gain).mix(cuts[1].perturb_volume(common_gain), **kwargs)
-            audio, stems = mixed.load_audio(), mixed.load_audio(mixed=False)
-            if isinstance(stems, list):
-                stems = np.concatenate(stems, axis=0)
-            if stems.shape != (2, audio.shape[1]):
-                raise ValueError("Unexpected upstream track layout")
-            error = float(np.max(np.abs(audio[0] - stems.sum(axis=0))))
-            if error > 1e-6 or not np.isfinite(audio).all() or np.abs(audio).max() >= 0.95:
-                raise ValueError("Invalid mixture")
-            files = {name: dest / (name + ".wav") for name in ("mix", "target", "interference")}
-            for name, y in zip(files, (audio[0], stems[0], stems[1])):
-                sf.write(files[name], y, RATE, subtype="FLOAT")
-            save_json(dest / "lhotse-mix.json", mixed.to_dict())
-            sample_mask = np.repeat(overlap_mask, FRAME)[:audio.shape[1]]
-            sample_mask = np.pad(sample_mask, (0, audio.shape[1] - sample_mask.size))
-            overlap_snr = float(10 * np.log10(np.mean(stems[0, sample_mask] ** 2) / np.mean(stems[1, sample_mask] ** 2)))
-            timing = {"foreground_offset_seconds": 0.0, "background_offset_seconds": offset,
-                "foreground_first_active_seconds": starts[0] * FRAME / RATE,
-                "background_first_active_seconds": (offset_frames + starts[1]) * FRAME / RATE,
-                "simultaneous_active_seconds": overlap_seconds,
-                "foreground_active_overlap_fraction": overlap_fraction}
-            examples.append({**base, **timing, "id": pair + "-" + tag, "condition": "mixture",
-                "audio_path": str(files["mix"]), "target_audio_path": str(files["target"]),
-                "interference_audio_path": str(files["interference"]),
-                "snr_db_requested": snr, "overlap_active_snr_db_measured": overlap_snr,
-                "duration": audio.shape[1] / RATE, "num_samples": audio.shape[1]})
-            checks.append({"pair_id": pair, "level": tag, **timing,
-                "snr_db_requested": snr, "overlap_active_snr_db_measured": overlap_snr,
-                "max_additivity_error": error, "peak": float(np.abs(audio).max()),
-                "target_gain_total": gain * common_gain, "common_gain": common_gain,
-                "background_gain_total": float(np.linalg.norm(stems[1]) / np.linalg.norm(raw[1])),
-                "file_sha256": {name: digest(path) for name, path in files.items()}})
+        for order in orders:
+            first_role = 0 if order == "foreground-first" else 1
+            second_role = 1 - first_role
+            offset_frames = max(0, starts[first_role] + 13 - starts[second_role])
+            offsets = [0, 0]
+            offsets[second_role] = offset_frames
+            offset = offset_frames * FRAME / RATE
+            size = max(offsets[i] + len(masks[i]) for i in (0, 1))
+            fgmask, bgmask = [np.pad(masks[i], (offsets[i], size - offsets[i] - len(masks[i])))
+                              for i in (0, 1)]
+            overlap_mask = fgmask & bgmask
+            overlap_seconds = float(overlap_mask.sum() * FRAME / RATE)
+            overlap_fraction = float(overlap_mask.sum() / fgmask.sum())
+            if overlap_fraction < 0.5:
+                raise ValueError(f"Insufficient simultaneous activity for {pair}/{order}: {overlap_fraction}")
+            for snr in args.snr_db:
+                tag = f"snr_{snr:+g}db"
+                if args.context_target:
+                    tag = order + "-" + tag
+                dest = pair_dir / tag
+                dest.mkdir()
+                first, second = (target, cuts[1]) if first_role == 0 else (cuts[1], target)
+                # Lhotse SNR is relative to its first track; foreground stays the target.
+                kwargs = dict(offset_other_by=offset, snr=snr if first_role == 0 else -snr, allow_padding=True)
+                mixed = first.mix(second, **kwargs)
+                peak = float(np.abs(mixed.load_audio()).max())
+                common_gain = min(1.0, 0.9 / max(peak, 1e-8))
+                if common_gain < 1:
+                    mixed = first.perturb_volume(common_gain).mix(second.perturb_volume(common_gain), **kwargs)
+                audio, stems = mixed.load_audio(), mixed.load_audio(mixed=False)
+                if isinstance(stems, list):
+                    stems = np.concatenate(stems, axis=0)
+                if stems.shape != (2, audio.shape[1]):
+                    raise ValueError("Unexpected upstream track layout")
+                if first_role == 1:
+                    stems = stems[[1, 0]]  # Always export target first, interference second.
+                error = float(np.max(np.abs(audio[0] - stems.sum(axis=0))))
+                if error > 1e-6 or not np.isfinite(audio).all() or np.abs(audio).max() >= 0.95:
+                    raise ValueError("Invalid mixture")
+                files = {name: dest / (name + ".wav") for name in ("mix", "target", "interference")}
+                for name, y in zip(files, (audio[0], stems[0], stems[1])):
+                    sf.write(files[name], y, RATE, subtype="FLOAT")
+                save_json(dest / "lhotse-mix.json", mixed.to_dict())
+                sample_mask = np.repeat(overlap_mask, FRAME)[:audio.shape[1]]
+                sample_mask = np.pad(sample_mask, (0, audio.shape[1] - sample_mask.size))
+                overlap_snr = float(10 * np.log10(np.mean(stems[0, sample_mask] ** 2) / np.mean(stems[1, sample_mask] ** 2)))
+                timing = {"onset_order": order,
+                    "foreground_offset_seconds": offsets[0] * FRAME / RATE,
+                    "background_offset_seconds": offsets[1] * FRAME / RATE,
+                    "foreground_first_active_seconds": (offsets[0] + starts[0]) * FRAME / RATE,
+                    "background_first_active_seconds": (offsets[1] + starts[1]) * FRAME / RATE,
+                    "simultaneous_active_seconds": overlap_seconds,
+                    "foreground_active_overlap_fraction": overlap_fraction}
+                examples.append({**base, **timing, "id": pair + "-" + tag, "condition": "mixture",
+                    "audio_path": str(files["mix"]), "target_audio_path": str(files["target"]),
+                    "interference_audio_path": str(files["interference"]),
+                    "snr_db_requested": snr, "overlap_active_snr_db_measured": overlap_snr,
+                    "duration": audio.shape[1] / RATE, "num_samples": audio.shape[1]})
+                checks.append({"pair_id": pair, "level": tag, **timing,
+                    "snr_db_requested": snr, "overlap_active_snr_db_measured": overlap_snr,
+                    "max_additivity_error": error, "peak": float(np.abs(audio).max()),
+                    "native_track_roles": ["foreground", "background"] if first_role == 0 else ["background", "foreground"],
+                    "target_gain_total": float(np.linalg.norm(stems[0]) / np.linalg.norm(raw[0])), "common_gain": common_gain,
+                    "background_gain_total": float(np.linalg.norm(stems[1]) / np.linalg.norm(raw[1])),
+                    "file_sha256": {name: digest(path) for name, path in files.items()}})
     exported_recipe = [{**{k: v for k, v in row.items() if k not in ("snr_db", "background_offset_seconds")},
-                        "snr_db_levels": args.snr_db, "background_onset_policy": "At least 0.26 s after target activity"}
+                        "snr_db_levels": args.snr_db, "onset_orders": orders,
+                        "target_policy": target_policy, "onset_gap_seconds": 0.26}
                        for row in recipe]
     for name, records in [("pilot.jsonl", examples), ("sources.jsonl", sources), ("recipe.jsonl", exported_recipe)]:
         (args.output / name).write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in records))
@@ -177,10 +206,13 @@ def main():
         "numeric_qc": "passed", "human_listening_qc": "pending", "training_eligible": False,
         "minimum_foreground_active_overlap_fraction": min(r["foreground_active_overlap_fraction"] for r in checks),
         "maximum_peak": max(r["peak"] for r in checks),
-        "limitations": ["First-active-voice task needs a consistent instruction or conversation context",
+        "limitations": [("Context identifies the foreground topic, not an enrolled acoustic speaker; ambiguous utterances remain"
+                         if args.context_target else "First-active-voice task needs a consistent instruction or conversation context"),
             "No arbitrary target speaker enrollment; source activity timing is an energy proxy",
             "Background-only negatives remain in v1; first-entrant identity alone cannot label an isolated competing voice as non-target",
-            "Synthetic sources, no telephone noise or codec, small held-out voice-ID set"]}
+            ("Existing sources, no added telephone noise or codec; voice IDs may cross splits"
+             if args.split_by_source_group else
+             "Synthetic sources, no telephone noise or codec, small held-out voice-ID set")]}
     save_json(args.output / "summary.json", summary)
     print(json.dumps(summary, ensure_ascii=False, indent=2))
 
