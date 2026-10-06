@@ -1,4 +1,4 @@
-"""Stage exactly the first 1000 pinned Golos farfield/train rows with native ASR cuts.
+"""Stage a fixed prefix of pinned Golos farfield/train rows with native ASR cuts.
 
 No shuffled selection, transcript normalization, transcription, or training admission.
 Original JSONL manifests, when supplied, are compared verbatim by original ID.
@@ -34,10 +34,13 @@ def main():
     parser.add_argument("--cache-dir", type=Path, required=True)
     parser.add_argument("--tokenizer", required=True)
     parser.add_argument("--system-file", type=Path, required=True)
+    parser.add_argument("--limit", type=int, default=LIMIT)
     parser.add_argument("--original-manifest", type=Path, action="append", default=[])
     parser.add_argument("--heldout-manifest", type=Path, action="append", required=True)
     parser.add_argument("--heldout-index", type=Path, action="append", required=True)
     args = parser.parse_args()
+    if not 1 <= args.limit <= 124003:
+        raise ValueError("Expected a positive limit no larger than official train count 124003")
     for path in (args.output_dir, args.cache_dir):
         if not any(path.resolve().is_relative_to(root) for root in
                    (Path("/runs/dev-storage"), Path("/mnt/local/drive1"))):
@@ -107,7 +110,7 @@ def main():
     with CutSet.open_writer(args.output_dir / "pilot-asr.jsonl.gz", overwrite=False) as writer, \
             (args.output_dir / "source-index.jsonl").open("x") as index, \
             (args.output_dir / "unresolved.jsonl").open("x") as unresolved:
-        for number, row in enumerate(source.take(LIMIT)):
+        for number, row in enumerate(source.take(args.limit)):
             metadata = row["json"]
             key, text = metadata["id"], metadata["text"]
             if (not re.fullmatch(r"[0-9a-f]{28,64}", key) or key != row["__key__"]
@@ -171,11 +174,11 @@ def main():
             writer.write(asr_cut(cut, tokenizer, system))
             counts["native_staging_cuts"] += 1
             seconds += recording.duration
-    if counts["source_rows"] != LIMIT:
-        raise ValueError(f"Expected exactly {LIMIT} source rows: {counts}")
+    if counts["source_rows"] != args.limit:
+        raise ValueError(f"Expected exactly {args.limit} source rows: {counts}")
     summary = dict(counts=counts, unique_native_audio_hours=seconds / 3600,
         source_dataset=REPO, revision=REVISION, config="farfield", split="train",
-        selection="First 1000 streaming train rows before any checks; no shuffle",
+        selection=f"First {args.limit} streaming train rows before any checks; no shuffle",
         input_sha256=provenance, adapter_sha256=sha256(__file__), heldout_counts=heldout_counts,
         datasets_version=datasets.__version__, lhotse_version=lhotse.__version__,
         training_eligible=False, label_text_unchanged=True,
