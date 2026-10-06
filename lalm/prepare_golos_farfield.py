@@ -1,4 +1,4 @@
-"""Stage a fixed prefix of pinned Golos farfield/train rows with native ASR cuts.
+"""Stage pinned Golos farfield train rows or the complete eval-only test split.
 
 No shuffled selection, transcript normalization, transcription, or training admission.
 Original JSONL manifests, when supplied, are compared verbatim by original ID.
@@ -35,12 +35,16 @@ def main():
     parser.add_argument("--tokenizer", required=True)
     parser.add_argument("--system-file", type=Path, required=True)
     parser.add_argument("--limit", type=int, default=LIMIT)
+    parser.add_argument("--split", choices=("train", "test"), default="train")
     parser.add_argument("--original-manifest", type=Path, action="append", default=[])
     parser.add_argument("--heldout-manifest", type=Path, action="append", required=True)
     parser.add_argument("--heldout-index", type=Path, action="append", required=True)
     args = parser.parse_args()
-    if not 1 <= args.limit <= 124003:
-        raise ValueError("Expected a positive limit no larger than official train count 124003")
+    expected_count = 124003 if args.split == "train" else 1916
+    if not 1 <= args.limit <= expected_count:
+        raise ValueError(f"Expected a positive limit no larger than {expected_count}")
+    if args.split == "test" and args.limit != expected_count:
+        raise ValueError("Official test requires all 1916 source rows; no subset")
     for path in (args.output_dir, args.cache_dir):
         if not any(path.resolve().is_relative_to(root) for root in
                    (Path("/runs/dev-storage"), Path("/mnt/local/drive1"))):
@@ -96,26 +100,29 @@ def main():
         with path.open() as stream:
             for line in stream:
                 row = json.loads(line)
-                if not row["audio_filepath"].startswith("farfield/"):
+                prefix = "farfield/" if args.split == "train" else "files/"
+                if not row["audio_filepath"].startswith(prefix):
                     continue
                 if row["id"] in originals and originals[row["id"]] != row:
                     raise ValueError(f"Conflicting original manifest ID: {row['id']}")
                 originals[row["id"]] = row
-    source = load_dataset(REPO, "farfield", split="train", revision=REVISION,
+    source = load_dataset(REPO, "farfield", split=args.split, revision=REVISION,
                           streaming=True, cache_dir=str(args.cache_dir / "datasets"))
     source = source.cast_column("opus", Audio(decode=False))
     counts, seen, seconds = Counter(), set(), 0.0
     audio_dir = args.output_dir / "audio"
     audio_dir.mkdir()
-    with CutSet.open_writer(args.output_dir / "pilot-asr.jsonl.gz", overwrite=False) as writer, \
+    manifest_name = "pilot-asr.jsonl.gz" if args.split == "train" else "eval-asr.jsonl.gz"
+    corpus_id = "golos-farfield" if args.split == "train" else "golos-farfield-test"
+    with CutSet.open_writer(args.output_dir / manifest_name, overwrite=False) as writer, \
             (args.output_dir / "source-index.jsonl").open("x") as index, \
             (args.output_dir / "unresolved.jsonl").open("x") as unresolved:
         for number, row in enumerate(source.take(args.limit)):
             metadata = row["json"]
             key, text = metadata["id"], metadata["text"]
             if (not re.fullmatch(r"[0-9a-f]{28,64}", key) or key != row["__key__"]
-                    or key in seen or "farfield/train/" not in row["__url__"]):
-                raise ValueError(f"Unexpected train source identity at row {number}")
+                    or key in seen or f"farfield/{args.split}/" not in row["__url__"]):
+                raise ValueError(f"Unexpected {args.split} source identity at row {number}")
             seen.add(key)
             path = audio_dir / f"{key}.opus"
             payload = row["opus"]["bytes"]
@@ -124,13 +131,13 @@ def main():
             with path.open("xb") as stream:
                 stream.write(payload)
             info = sf.info(path)
-            original_recording = Recording.from_file(path, recording_id=f"golos-farfield-{key}")
+            original_recording = Recording.from_file(path, recording_id=f"{corpus_id}-{key}")
             recording = original_recording.resample(16000)
             audio = recording.load_audio()
             if recording.num_channels != 1 or not np.isfinite(audio).all():
                 raise ValueError(f"Invalid mono audio: {key}")
             item = dict(source_row=number, original_id=key, original_metadata=metadata,
-                        source_dataset=REPO, revision=REVISION, config="farfield", split="train",
+                        source_dataset=REPO, revision=REVISION, config="farfield", split=args.split,
                         source_shard=row["__url__"], audio_filepath=str(path),
                         source_audio_sha256=sha256(path), pcm_sha256=pcm_sha256(audio),
                         original_audio_format=info.format, original_audio_subtype=info.subtype,
@@ -138,6 +145,8 @@ def main():
                         sampling_rate=recording.sampling_rate, duration=recording.duration,
                         history_available=False, speaker_identity_available=False,
                         training_eligible=False)
+            if args.split == "test":
+                item["evaluation_only"] = True
             original = originals.get(key)
             item["original_manifest_match"] = None
             if original:
@@ -149,14 +158,18 @@ def main():
                 reasons.append("empty_or_invalid_reference")
             if abs(recording.duration - float(metadata["duration"])) > 0.05:
                 reasons.append("declared_duration_mismatch")
-            if not 0.5 <= recording.duration <= 30:
+            if args.split == "train" and not 0.5 <= recording.duration <= 30:
                 reasons.append("outside_native_duration_range")
             if original and not item["original_manifest_match"]:
                 reasons.append("original_manifest_mismatch")
             if (key in excluded_ids or recording.id in excluded_ids or
                     item["source_audio_sha256"] in excluded_files or
                     (recording.sampling_rate, tuple(audio.shape), item["pcm_sha256"]) in excluded_pcm):
-                reasons.append("heldout_identity_or_exact_audio")
+                if args.split == "train":
+                    reasons.append("heldout_identity_or_exact_audio")
+                else:
+                    item["other_eval_identity_or_exact_audio_overlap"] = True
+                    counts["other_eval_overlap_rows"] += 1
             item["unresolved_reasons"] = reasons
             counts["source_rows"] += 1
             counts["original_labels_verified" if original and item["original_manifest_match"]
@@ -177,8 +190,8 @@ def main():
     if counts["source_rows"] != args.limit:
         raise ValueError(f"Expected exactly {args.limit} source rows: {counts}")
     summary = dict(counts=counts, unique_native_audio_hours=seconds / 3600,
-        source_dataset=REPO, revision=REVISION, config="farfield", split="train",
-        selection=f"First {args.limit} streaming train rows before any checks; no shuffle",
+        source_dataset=REPO, revision=REVISION, config="farfield", split=args.split,
+        selection=f"First {args.limit} streaming {args.split} rows before any checks; no shuffle",
         input_sha256=provenance, adapter_sha256=sha256(__file__), heldout_counts=heldout_counts,
         datasets_version=datasets.__version__, lhotse_version=lhotse.__version__,
         training_eligible=False, label_text_unchanged=True,
@@ -188,6 +201,8 @@ def main():
                       "No speaker-disjoint claim; no future validation identities provided",
                       "Unverified original-manifest labels remain staging, not admitted train"],
         output_sha256={p.name: sha256(p) for p in args.output_dir.iterdir() if p.is_file()})
+    if args.split == "test":
+        summary["evaluation_only"] = True
     (args.output_dir / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n")
 
 
