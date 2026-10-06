@@ -65,12 +65,15 @@ def test_source_group_crossing_and_invented_split_are_rejected(tmp_path):
         validate_pairs([pair("one", "train", "c", "b")], cuts)
 
 
-def test_native_export_writes_string_splits_and_both_tasks(tmp_path, monkeypatch):
+@pytest.mark.parametrize("duplicate_waveforms", [False, True])
+def test_native_export_writes_string_splits_and_both_tasks(tmp_path, monkeypatch, duplicate_waveforms):
     cuts, recipe = [], []
     for split in ("train", "validation"):
         for role in ("foreground", "background"):
             name = split + "-" + role
             c = source(tmp_path, name, split, name)
+            if duplicate_waveforms:
+                sf.write(c.recording.sources[0].source, np.ones(16000) * .05, 16000)
             c.supervisions[0].text += " " + name
             cuts.append(c)
         recipe.append({"id": split, "split": split,
@@ -85,6 +88,12 @@ def test_native_export_writes_string_splits_and_both_tasks(tmp_path, monkeypatch
     monkeypatch.setattr(prepare_context_overlap.AutoTokenizer, "from_pretrained", lambda *a, **k: Tokenizer())
     monkeypatch.setattr(sys, "argv", ["adapter", "--source-manifests", str(manifest),
         "--recipe", str(pairs), "--output", str(output), "--tokenizer", "unused"])
+    if duplicate_waveforms:
+        # Different container hashes must not hide identical decoded samples.
+        monkeypatch.setattr(prepare_context_overlap, "digest", lambda path: str(path))
+        with pytest.raises(ValueError, match="Identical source waveform crosses splits"):
+            prepare_context_overlap.main()
+        return
     prepare_context_overlap.main()
     for split in ("train", "validation"):
         exported = list(CutSet.from_file(output / (split + ".jsonl.gz")))

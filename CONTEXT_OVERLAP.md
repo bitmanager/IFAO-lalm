@@ -35,8 +35,9 @@ teacher answer. No new teacher answers were generated or corrected.
 topics of the 68 source dialogues. `assets/context_overlap_pairs.jsonl`
 selects different broad topics, source groups and voice IDs for each pair.
 Each role keeps its original split. Both roles are checked for cross-split
-source groups, recording IDs, exact case-folded transcripts and waveform
-hashes. Renderer metadata hashes and participant/channel voice mappings
+source groups, recording IDs, exact case-folded transcripts and decoded-PCM
+hashes. WAV container hashes separately track artifact integrity. Renderer
+metadata hashes and participant/channel voice mappings
 verify declared voice IDs. This guards this source set, not every external
 corpus. Voice IDs **do overlap across splits**; this is not speaker-disjoint.
 One short validation foreground requires a longer background tail; its fixed
@@ -103,12 +104,15 @@ conditions for native evaluation. Run the former with `+asr=true`; run the
 latter in ordinary answer mode. No training configuration references these
 manifests. **Every task cut remains `training_eligible=false`.**
 
-CPU tests cover task/history preservation, source-group leakage rejection,
+CPU tests cover task/history preservation, source-group/PCM leakage rejection,
 and actual native mixer/export execution. A real eight-cut smoke batch also
 passed the unchanged `LALMDataset` and `LALMProcessor`: four ASR flags, exact
 last-assistant labels, and history masked from labels. No model weights or
-GPU inference were loaded for these checks. Human listening, ASR fidelity
-and answer-fact scoring on the new mixtures remain pending. This small set
+GPU inference were loaded for these structural checks. Subsequent independent
+source ASR and native epoch-2 diagnostics are documented in
+[CONTEXT_OVERLAP_QC.md](CONTEXT_OVERLAP_QC.md), including quarantine and an
+independent clean-source eligibility mask. Human listening and a complete
+answer-fact rubric remain pending. This small set
 is an addressed supplement to real phone/SOVA data, not a large standalone
 training epoch.
 

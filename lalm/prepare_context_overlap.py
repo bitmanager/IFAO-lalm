@@ -6,6 +6,7 @@ preserve foreground history; only the final assistant target differs by task.
 
 import argparse
 import copy
+import hashlib
 import json
 import subprocess
 import sys
@@ -144,12 +145,16 @@ def main():
                 raise ValueError("Expected the selected source channel only")
             sf.write(path, samples[0], 16000, subtype="FLOAT")
             sha = digest(path)
-            if source_hash_splits.setdefault(sha, row["split"]) != row["split"]:
+            # FLOAT WAV headers can carry varying PEAK-chunk timestamps.
+            # Split deduplication must compare samples, not container bytes.
+            pcm_sha = hashlib.sha256(samples.astype("<f4", copy=False).tobytes()).hexdigest()
+            if source_hash_splits.setdefault(pcm_sha, row["split"]) != row["split"]:
                 raise ValueError("Identical source waveform crosses splits")
             text = cut.supervisions[0].text
             mix_row[role + "_text"] = text
             staged.append({"pair_id": row["id"], "role": role, "split": row["split"],
-                "path": str(path), "wav_sha256": sha, "duration": samples.shape[1] / 16000,
+                "path": str(path), "wav_sha256": sha, "pcm_float32_le_sha256": pcm_sha,
+                "duration": samples.shape[1] / 16000,
                 "text": text, "voice": row[role + "_voice"], "source_group_id": cut.source_group_id,
                 "source_cut_id": cut.id, "source_start": cut.start, "source_channel": cut.channel})
             originals.append({"pair_id": row["id"], "role": role, "cut": cut.to_dict()})
