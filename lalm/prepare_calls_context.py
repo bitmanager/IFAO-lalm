@@ -42,8 +42,10 @@ def validate_manifest(rows):
             seen.add((field, value))
 
 
-def call_cuts(row, audio_root, system):
-    if row["split"] not in ("train", "dev"):
+def call_cuts(row, audio_root, system, *, evaluation_only=False):
+    if evaluation_only and row["split"] != "test":
+        raise ValueError("Evaluation-only export requires the original test split")
+    if not evaluation_only and row["split"] not in ("train", "dev"):
         raise ValueError("Held-out test/control calls must not be exported")
     path = audio_root / Path(row["audio_path"]).name
     digest = hashlib.sha256()
@@ -86,7 +88,8 @@ def call_cuts(row, audio_root, system):
             )],
             custom={"history": history, "system": system, "source_group_id": row["call_id"],
                     "source_call_id": row["call_id"], "source_sha256": row["provenance"]["source_sha256"],
-                    "original_split": row["split"], "split": "validation" if row["split"] == "dev" else "train",
+                    "original_split": row["split"], "split": "test" if evaluation_only else ("validation" if row["split"] == "dev" else "train"),
+                    **({"evaluation_only": True, "training_eligible": False} if evaluation_only else {}),
                     "source_turn_id": current["id"], "boundary_source": "rnnt_emission_approximate",
                     "role_mapping": "current_speaker_user_other_speaker_assistant"},
         ).resample(16000)

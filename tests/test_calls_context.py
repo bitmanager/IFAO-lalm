@@ -130,3 +130,20 @@ def test_short_turn_is_history_but_not_a_training_cut(make_call, tmp_path, durat
 def test_direct_helper_rejects_heldout(make_call, tmp_path, split):
     with pytest.raises(ValueError, match="Held-out"):
         list(call_cuts(make_call(split), tmp_path, "Отвечай по-русски."))
+
+
+def test_explicit_test_export_preserves_split_and_short_causal_history(make_call, tmp_path):
+    row = make_call("test")
+    row["turns"][0]["end"] = 0.2
+    cuts = list(call_cuts(row, tmp_path, "Отвечай по-русски.", evaluation_only=True))
+    assert len(cuts) == 5
+    assert all(c.original_split == c.custom["split"] == "test" for c in cuts)
+    assert all(c.evaluation_only and not c.training_eligible for c in cuts)
+    assert cuts[0].history == [{"role": "user", "content": "Первый факт."}]
+    assert next(c for c in cuts if c.source_turn_id == "t4").history[-1]["content"] == "Предыдущий ответ."
+
+
+@pytest.mark.parametrize("split", ["train", "dev", "control"])
+def test_evaluation_opt_in_cannot_remap_other_splits(make_call, tmp_path, split):
+    with pytest.raises(ValueError, match="original test"):
+        list(call_cuts(make_call(split), tmp_path, "Отвечай по-русски.", evaluation_only=True))
