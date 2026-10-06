@@ -27,7 +27,7 @@ with st.sidebar:
     st.write("**Чекпойнт**", Path(checkpoint).name)
     st.caption(os.environ.get("IFAO_DEMO_LABEL", checkpoint))
     st.caption("BF16 · одна GPU · экспериментальная модель")
-    system = st.text_area("Системный промпт", Path(__file__).with_name("configs").joinpath("system_ru.txt").read_text())
+    system = st.text_area("Системный промпт", Path(__file__).with_name("configs").joinpath("system_ru.txt").read_text().strip())
     use_history = st.checkbox("Учитывать историю", True)
     compare_text = st.checkbox("Сравнить с ответом по обычному ASR-тексту", True)
     channel = st.selectbox("Канал загруженного аудио", [0, 1], help="Для стерео выберите канал; голоса не смешиваются автоматически.")
