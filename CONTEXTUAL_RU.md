@@ -356,3 +356,35 @@ epoch uses its in-memory configuration and is unaffected. Auden has no native
 on-demand save signal or live config reload; killing/restarting this run would
 discard progress since epoch 2. A fresh step checkpoint can be evaluated using
 the existing evaluator on a separate GPU without changing the training loop.
+
+## Recorded-noise SVQ evaluation
+
+`lalm/prepare_svq_eval.py` exports only the four Russian SVQ 2.0.0 shards from
+`google/svq`, pinned to `74f17ec92f0654860c160029d3542199626f63ef`. The staged
+`source-manifest.json` records each repository path, byte count and LFS SHA256;
+the adapter rechecks all four hashes before preparing evaluation files.
+
+Run the adapter with `--source-root`, a new `--output-dir`, `--tokenizer` and
+`--system-file`. It copies the embedded mono16k PCM16 WAV bytes exactly and uses
+`transcript_truth` as the reference. The displayed `text` prompt is retained as
+metadata: it is not interchangeable with the spoken transcript. Utterance,
+speaker, environment and available page/passage/span identifiers are preserved.
+There is no upstream query ID, so the additional text hash is explicitly named
+`derived_query_sha256`.
+
+Outputs include native `full.yaml` and `pilot.yaml`, each listing clean,
+background speech, media noise and traffic noise separately; combined native
+manifests; and matching TSVs (`path`, `duration`, `transcription`) for the stock
+GigaAM evaluator. No training duration filter or duplicate removal is applied.
+The default pilot contains 100 utterances per environment, ranked by
+SHA256(`svq-ru-pilot-v1` + NUL + utterance ID). `pilot_ids.json` freezes selection
+before inference. Completion is marked by `summary.json`; failed exports keep
+incomplete manifest names and must not be evaluated.
+
+Both the full collection and its nested pilot are **evaluation only**, including
+all recordings outside the pilot. Never add them to a training manifest. These
+are separately recorded environmental strata, not exact paired clean/noisy
+waveforms; the upstream prompts and environments were randomly assigned.
+No speaker/text-disjointness between the pilot and remainder is claimed. Use
+the same reference/hypothesis normalizer for native ASR and plain GigaAM scores.
+The adapter performs no GPU inference.
