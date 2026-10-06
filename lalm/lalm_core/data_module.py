@@ -12,6 +12,7 @@ from torch.utils.data import DataLoader
 
 from auden.data.lhotse_datamodule import BaseLhotseDatamodule, _SeedWorkers
 from .paired_tasks import expand_task_views, task_views
+from .response_kl import prepare_response_teacher
 
 
 def estimate_cut_tokens(cut, audio_token_rate: float, paired_tasks: bool = False):
@@ -44,6 +45,7 @@ class LALMDataset(torch.utils.data.Dataset):
         input_transforms=None,
         return_cuts: bool = False,
         paired_tasks: bool = False,
+        response_kl: bool = False,
     ):
         self.input_strategy = input_strategy
         self.processor = processor
@@ -51,6 +53,7 @@ class LALMDataset(torch.utils.data.Dataset):
         self.input_transforms = input_transforms
         self.return_cuts = return_cuts
         self.paired_tasks = paired_tasks
+        self.response_kl = response_kl
         self.hdf5_fix = Hdf5MemoryIssueFix(reset_interval=100)
 
     def __getitem__(self, cuts) -> dict:
@@ -113,6 +116,8 @@ class LALMDataset(torch.utils.data.Dataset):
             "batch_size": inputs["input_ids"].size(0),
             "asr_mask": torch.tensor([getattr(c, "task", "answer") == "asr" for c in cuts]),
         }
+        if self.response_kl:
+            batch["teacher_inputs"] = prepare_response_teacher(cuts, self.processor, inputs)
 
         flat_cuts = [cut for cut in cuts for _ in cut.supervisions]
         if self.return_cuts:
@@ -188,6 +193,7 @@ class LALMDataModule(BaseLhotseDatamodule):
             input_transforms=self.input_transforms,
             return_cuts=True,
             paired_tasks=self.cfg.get("paired_tasks", False),
+            response_kl=self.cfg.get("response_kl", False),
         )
         seed = torch.randint(0, 100_000, ()).item()
         worker_init_fn = _SeedWorkers(seed)
@@ -239,6 +245,7 @@ class LALMDataModule(BaseLhotseDatamodule):
                 processor=self.processor,
                 return_cuts=True,
                 paired_tasks=self.cfg.get("paired_tasks", False),
+                response_kl=self.cfg.get("response_kl", False),
             )
             valid_dl = DataLoader(
                 valid_dataset,

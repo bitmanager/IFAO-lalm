@@ -11,6 +11,8 @@ model:
   pretrained_model:
 
 trainer:
+  response_kl: false
+  response_kl_temperature: 2.0
   optimizer:
     type: adamw
     lr: 1.0e-3
@@ -49,6 +51,7 @@ trainer:
   find_unused_parameters: false
 
 data:
+  response_kl: ${trainer.response_kl}
   # YAML files listing manifests.
   train_data_config: configs/train_data_config.yaml
   valid_data_config: configs/valid_data_config.yaml

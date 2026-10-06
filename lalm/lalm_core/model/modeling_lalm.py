@@ -5,7 +5,8 @@ import torch.nn as nn
 from transformers import AutoModel, AutoModelForCausalLM, PreTrainedModel
 
 from .configuration_lalm import LALMConfig
-from ..task_loss import separate_task_ce
+from ..task_loss import separate_task_ce, response_kl_loss
+from ..response_kl import validate_response_targets
 
 
 class LALMProjector(nn.Module):
@@ -192,8 +193,27 @@ class LALMForConditionalGeneration(PreTrainedModel):
         asr_mask: torch.Tensor = None,
         answer_loss_weight: float = None,
         sync_task_counts: bool = False,
+        response_kl: bool = False,
+        response_kl_temperature: float = 2.,
+        teacher_inputs: dict = None,
         **kwargs,
     ):
+        if response_kl:
+            self.validate_response_kl_freeze()
+            if (answer_loss_weight is not None or asr_mask is None or asr_mask.any()
+                    or labels is None or attention_mask is None or teacher_inputs is None
+                    or audio_features is None):
+                raise ValueError("Response KL requires answer-only audio/text batches, without CE weighting")
+            validate_response_targets(labels, teacher_inputs["labels"], attention_mask,
+                                      teacher_inputs["attention_mask"])
+            # eval disables frozen dropout/buffer updates but retains the student
+            # autograd path through the frozen LLM into the trainable projector.
+            for name in ("audio_tower", "language_model", "asr_head", "asr_norm"):
+                module = getattr(self, name, None)
+                if module is not None:
+                    module.eval()
+        elif teacher_inputs is not None:
+            raise ValueError("Teacher inputs require response_kl=true")
         inputs_embeds = self.language_model.get_input_embeddings()(input_ids)
 
         if audio_features is not None:
@@ -207,8 +227,18 @@ class LALMForConditionalGeneration(PreTrainedModel):
         if labels is not None and attention_mask is not None:
             outputs, packed_labels = self._forward_packed(
                 inputs_embeds, attention_mask, labels, asr_mask=asr_mask,
-                answer_loss_weight=answer_loss_weight, sync_task_counts=sync_task_counts, **kwargs
+                answer_loss_weight=answer_loss_weight, sync_task_counts=sync_task_counts,
+                response_kl=response_kl, **kwargs
             )
+            if response_kl:
+                with torch.no_grad():
+                    teacher_embeds = self.language_model.get_input_embeddings()(teacher_inputs["input_ids"])
+                    teacher, teacher_labels = self._forward_packed(
+                        teacher_embeds, teacher_inputs["attention_mask"], teacher_inputs["labels"],
+                        response_kl=True, **kwargs)
+                outputs.loss, outputs.response_kl_sum, outputs.response_target_tokens = response_kl_loss(
+                    outputs.logits, teacher.logits, packed_labels, teacher_labels,
+                    temperature=response_kl_temperature, sync_counts=sync_task_counts)
             outputs.packed_labels = packed_labels
             return outputs
 
@@ -219,6 +249,11 @@ class LALMForConditionalGeneration(PreTrainedModel):
             labels=labels,
             **kwargs,
         )
+
+    def validate_response_kl_freeze(self):
+        trainable = [name for name, p in self.named_parameters() if p.requires_grad]
+        if not trainable or any(not name.startswith("projector.") for name in trainable):
+            raise ValueError("Response KL requires only projector parameters trainable; freeze audio/LLM/ASR heads")
 
     def encode_audio(
         self,
@@ -302,6 +337,7 @@ class LALMForConditionalGeneration(PreTrainedModel):
         asr_mask: torch.Tensor = None,
         answer_loss_weight: float = None,
         sync_task_counts: bool = False,
+        response_kl: bool = False,
         **kwargs,
     ):
         device = inputs_embeds.device
@@ -312,8 +348,8 @@ class LALMForConditionalGeneration(PreTrainedModel):
         valid = attention_mask.bool()
         packed_embeds = inputs_embeds[valid].unsqueeze(0)
         packed_labels = labels[valid].unsqueeze(0)
-        if answer_loss_weight is not None:
-            if asr_mask is None:
+        if answer_loss_weight is not None or response_kl:
+            if asr_mask is None and not response_kl:
                 raise ValueError("Separate task CE requires explicit task routing")
             # No sequence's first token may be predicted by the previous sequence.
             packed_labels = packed_labels.clone()
@@ -337,11 +373,11 @@ class LALMForConditionalGeneration(PreTrainedModel):
             inputs_embeds=packed_embeds,
             attention_mask=attn_mask,
             position_ids=position_ids,
-            labels=packed_labels if self.config.asr_layer is None and answer_loss_weight is None else None,
-            output_hidden_states=self.config.asr_layer is not None,
+            labels=packed_labels if self.config.asr_layer is None and answer_loss_weight is None and not response_kl else None,
+            output_hidden_states=self.config.asr_layer is not None and not response_kl,
             **kwargs,
         )
-        if self.config.asr_layer is not None:
+        if self.config.asr_layer is not None and not response_kl:
             if asr_mask is None:
                 raise ValueError("Training an ASR readout requires explicit task routing")
             asr_positions = torch.repeat_interleave(asr_mask, seq_lens)
