@@ -23,12 +23,24 @@ def engine():
 st.session_state.setdefault("history", [])
 st.session_state.setdefault("turns", [])
 st.session_state.setdefault("recording_id", 0)
+st.session_state.setdefault("system_prompt", Path(__file__).with_name("configs").joinpath("system_ru.txt").read_text().strip())
+st.session_state.setdefault("use_history", True)
+
+
+def load_example_context(item):
+    st.session_state.history = [dict(turn) for turn in item["history"]]
+    st.session_state.turns = []
+    st.session_state.system_prompt = item["system"]
+    st.session_state.use_history = True
+    st.session_state.pop("pending", None)
+
+
 with st.sidebar:
     st.write("**Чекпойнт**", Path(checkpoint).name)
     st.caption(os.environ.get("IFAO_DEMO_LABEL", checkpoint))
     st.caption("BF16 · одна GPU · экспериментальная модель")
-    system = st.text_area("Системный промпт", Path(__file__).with_name("configs").joinpath("system_ru.txt").read_text().strip())
-    use_history = st.checkbox("Учитывать историю", True)
+    system = st.text_area("Системный промпт", key="system_prompt")
+    use_history = st.checkbox("Учитывать историю", key="use_history")
     compare_text = st.checkbox("Сравнить с ответом по обычному ASR-тексту", True)
     channel = st.selectbox("Канал загруженного аудио", [0, 1], help="Для стерео выберите канал; голоса не смешиваются автоматически.")
     if st.button("Новый разговор"):
@@ -53,6 +65,9 @@ if os.environ.get("IFAO_DEMO_EXAMPLES"):
     )
     if example is not None:
         st.caption(example["description"])
+        if "history" in example:
+            st.button("Начать с истории примера", key=f"context-{example['name']}",
+                      on_click=load_example_context, args=(example,))
         with st.expander("Эталон для сравнения — не передаётся модели"):
             st.write(example["reference"])
 if source is not None or example is not None:
@@ -102,7 +117,8 @@ if source is not None or example is not None:
                 st.write(result["text_answer"]["text"] or "∅")
         if any(value.get("limit_reached") for value in result.values() if isinstance(value, dict)):
             st.warning("Один из ответов достиг ограничения длины и мог оборваться.")
-        user_text = st.text_area("Текст реплики для следующей истории — можно исправить", result["asr"]["text"], key=f"history-{identity}")
+        result_id = hashlib.sha256(json.dumps(result, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+        user_text = st.text_area("Текст реплики для следующей истории — можно исправить", result["asr"]["text"], key=f"history-{result_id}")
         if st.button("Добавить реплику и ответ в историю", disabled=pending.get("committed", False)):
             st.session_state.history.extend([{"role": "user", "content": user_text},
                                              {"role": "assistant", "content": result["answer"]["text"]}])
