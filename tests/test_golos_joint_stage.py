@@ -71,6 +71,24 @@ def test_native_sampler_rejects_unattainable_unique_hours():
         audit_sampler(fixture_cuts(), {f'g{i}' for i in range(30)}, target_hours=1)
 
 
+def test_token_metadata_reconciliation_preserves_every_other_field():
+    from types import SimpleNamespace
+    cut = next(iter(fixture_cuts()))
+    cut.custom.update(num_text_tokens=6, rendered_conversation=' <|audio|> text\n')
+    before = copy.deepcopy(cut.to_dict())
+    class Tokenizer:
+        def __init__(self, audio_ids): self.audio_ids = audio_ids
+        def __call__(self, text, add_special_tokens):
+            assert text == '<|audio|> text' and add_special_tokens is False
+            return SimpleNamespace(input_ids=self.audio_ids + [1495])
+    source, native = Tokenizer([27, 91, 16736, 91, 29]), Tokenizer([151669])
+    assert module.reconcile_golos_token_count(cut, source, native) == (6, 2)
+    before['custom']['num_text_tokens'] = 2
+    assert cut.to_dict() == before
+    with pytest.raises(AssertionError):
+        module.reconcile_golos_token_count(cut, source, native)
+
+
 @pytest.mark.parametrize('bad_field,bad_value', [
     ('status', 'pending'), ('test_decoded_rows', 1915),
     ('train_manifest_sha256', 'stale'),

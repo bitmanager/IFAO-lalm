@@ -11,8 +11,10 @@ import yaml
 from lhotse import CutSet
 from lhotse.dataset import AudioSamples, DynamicBucketingSampler
 from lhotse.dataset.sampling.base import TokenConstraint
+from transformers import AutoTokenizer
 from lalm_core.data_module import LALMDataset, estimate_cut_tokens
 from lalm_core.model import LALMProcessor
+from prepare_conversation import _estimate_text_tokens
 from scripts.prepare_phone2_context_stage import identities
 from scripts.prepare_projector_semantic_v3 import MODEL, ROOT, SEED, sha256
 
@@ -26,6 +28,16 @@ VALID_SHA = 'e7322428ce50ba4d6b76c50625b0cccd844ba3fcccd0e4caf3b816419bbbdafc'
 FROZEN = ['audio_tower', 'language_model', 'asr_head', 'asr_norm']
 TEST = ROOT / 'golos-farfield-official-test-v1'
 TEST_GATE = TEST / 'train-test-intersection-qa.json'
+EXPORT_TOKENIZER = Path('/llm')
+
+
+def reconcile_golos_token_count(cut, source_tokenizer, native_tokenizer):
+    """Change only sampler metadata; validate the immutable exporter's count first."""
+    before = cut.num_text_tokens
+    assert before == _estimate_text_tokens(cut.rendered_conversation, source_tokenizer), cut.id
+    after = _estimate_text_tokens(cut.rendered_conversation, native_tokenizer)
+    cut.custom['num_text_tokens'] = after
+    return before, after
 
 
 def check_full_qa(qa):
@@ -151,9 +163,17 @@ def main():
     overlap = {k: len(v & heldout[k]) for k, v in identities(golos).items()}
     assert not any(overlap.values()), overlap
     processor = LALMProcessor.from_pretrained(MODEL)
-    totals, sample = Counter(), []
+    export_tokenizer = AutoTokenizer.from_pretrained(EXPORT_TOKENIZER, local_files_only=True)
+    tokenizer_files = {str(p): sha256(p) for p in EXPORT_TOKENIZER.iterdir()
+        if p.name in ('tokenizer.json', 'tokenizer_config.json', 'added_tokens.json',
+                      'special_tokens_map.json', 'vocab.json', 'merges.txt', 'chat_template.jinja')}
+    checks.update(tokenizer_files)
+    totals, sample, token_deltas = Counter(), [], Counter()
     for name, source in (('golos', golos), ('replay', replay)):
         for cut in source:
+            if name == 'golos':
+                before, after = reconcile_golos_token_count(cut, export_tokenizer, processor.tokenizer)
+                token_deltas[str(after - before)] += 1
             task = cut.custom.get('task', 'answer')
             assert task in ('asr', 'answer') and .5 <= cut.duration <= 30
             target = cut.supervisions[0].custom['answer']
@@ -202,6 +222,10 @@ def main():
         frozen_modules=FROZEN, trainable_parameters=10490880, trainable_tensors=ready['trainable_tensors'],
         finite_sampler=sampler, target_tokens=dict(totals), native_cpu_batch=dict(cuts=16, asr=12, answer=4,
             exact_final_target_and_EOS=True, ids=[c.id for c in batch['cuts']]), heldout_overlap=overlap,
+        golos_sampler_metadata=dict(field='num_text_tokens', source_tokenizer=str(EXPORT_TOKENIZER),
+            native_tokenizer=str(MODEL), after_minus_before_counts=dict(token_deltas),
+            original_export_counts_verified=True, text_labels_history_audio_unchanged=True,
+            note='Exporter /llm has no audio special token; native tokenizer adds it. Only new combined-manifest sampler metadata is recalculated with existing _estimate_text_tokens.'),
         preparation_script_sha256=sha256(__file__), training_launched=False,
         official_test_overlap=dict(status='pending_final_launch_gate', audit=str(TEST_GATE),
             note='Launch requires actual1916 decoded test rows, including1 blank reference; preparation does not claim PASS.'),
