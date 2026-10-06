@@ -44,7 +44,7 @@ def sha256(path):
     return h.hexdigest()
 
 
-def finite_sampler_audit(cuts):
+def finite_sampler_audit(cuts, required_updates=1500):
     """Same native data/sampler settings, explicit DDP ranks, no audio/model pass."""
     counts = {}
     for rank in (0, 1):
@@ -54,8 +54,8 @@ def finite_sampler_audit(cuts):
             drop_last=False, world_size=2, rank=rank, seed=0)
         sampler.set_epoch(0)
         counts[str(rank)] = sum(1 for _ in sampler)
-    assert min(counts.values()) >= 1500, counts
-    return dict(batches_per_rank=counts, required_updates=1500, grad_accum_steps=1,
+    assert min(counts.values()) >= required_updates, counts
+    return dict(batches_per_rank=counts, required_updates=required_updates, grad_accum_steps=1,
                 native_sampler_seed=0, epoch=0, drop_last=False, world_size=2)
 
 
