@@ -16,7 +16,16 @@ class LALMTrainer(BaseTrainer):
 
     def __init__(self, cfg, model, data_module, rank=0, local_rank=0, world_size=1):
         t = cfg.trainer
+        self.response_kl = bool(t.get("response_kl", False))
+        self.response_kl_temperature = float(t.get("response_kl_temperature", 2.))
         self.answer_loss_weight = t.get("answer_loss_weight", None)
+        if self.response_kl != bool(cfg.data.get("response_kl", False)):
+            raise ValueError("Trainer and data response_kl modes must match")
+        if self.response_kl:
+            if self.answer_loss_weight is not None:
+                raise ValueError("Response KL requires matching data mode and no answer CE weight")
+            if not math.isfinite(self.response_kl_temperature) or self.response_kl_temperature <= 0:
+                raise ValueError("Response KL temperature must be positive and finite")
         if self.answer_loss_weight is not None:
             self.answer_loss_weight = float(self.answer_loss_weight)
             if not math.isfinite(self.answer_loss_weight) or self.answer_loss_weight < 0:
@@ -29,6 +38,8 @@ class LALMTrainer(BaseTrainer):
 
     def setup_model(self, model: nn.Module):
         """float32 EMA on rank-0 (not float64), find_unused_parameters=False."""
+        if self.response_kl:
+            model.validate_response_kl_freeze()
         if self.rank == 0:
             model_avg = copy.deepcopy(model).to(torch.float32).to("cpu")
         else:
@@ -142,7 +153,12 @@ class LALMTrainer(BaseTrainer):
         ):
             # Validation may have unequal batch counts across ranks. Avoid DDP
             # forward buffer broadcasts; reduce task statistics once per split.
-            forward_model = model_ref if self.answer_loss_weight is not None and not is_training else self.model
+            task_normalized = self.answer_loss_weight is not None or self.response_kl
+            forward_model = model_ref if task_normalized and not is_training else self.model
+            teacher_inputs = None
+            if self.response_kl:
+                teacher_inputs = {k: v.to(device, non_blocking=True)
+                                  for k, v in batch["teacher_inputs"].items()}
             outputs = forward_model(
                 input_ids=input_ids,
                 audio_features=audio_features,
@@ -151,7 +167,10 @@ class LALMTrainer(BaseTrainer):
                 labels=labels,
                 asr_mask=batch["asr_mask"].to(device, non_blocking=True),
                 answer_loss_weight=self.answer_loss_weight,
-                sync_task_counts=is_training and self.answer_loss_weight is not None,
+                sync_task_counts=is_training and task_normalized,
+                response_kl=self.response_kl,
+                response_kl_temperature=self.response_kl_temperature,
+                teacher_inputs=teacher_inputs,
             )
             loss = outputs.loss
             logits = outputs.logits
@@ -175,10 +194,13 @@ class LALMTrainer(BaseTrainer):
             for i, task in enumerate(("asr", "answer")):
                 info.set_value(f"{task}_nll", outputs.task_nll_sums[i].item(), "sum")
                 info.set_value(f"{task}_target_tokens", outputs.task_token_counts[i].item(), "sum")
+        if self.response_kl:
+            info.set_value("response_kl_sum", outputs.response_kl_sum.item(), "sum")
+            info.set_value("response_target_tokens", outputs.response_target_tokens.item(), "sum")
         return loss, info
 
     def validate(self, epoch):
-        if self.answer_loss_weight is None:
+        if self.answer_loss_weight is None and not self.response_kl:
             return super().validate(epoch)
         # Same native validation iteration/reduction; task numerators and counts
         # are summed before division, rather than averaging batch/task means.
@@ -187,6 +209,9 @@ class LALMTrainer(BaseTrainer):
             for name, loader in zip(self.data_module.valid_names, self.data_module.valid_dls):
                 stats = dict(asr_nll=0., answer_nll=0., asr_target_tokens=0., answer_target_tokens=0.,
                     samples=0., tokens=0., sample_accuracy_sum=0.)
+                if self.response_kl:
+                    stats = dict(response_kl_sum=0., response_target_tokens=0.,
+                                 samples=0., tokens=0., sample_accuracy_sum=0.)
                 for batch in loader:
                     _, metrics = self._forward_one_batch(batch, is_training=False)
                     for key in stats:
@@ -198,7 +223,11 @@ class LALMTrainer(BaseTrainer):
                     total.set_value(key, value, "sum")
                 if self.world_size > 1:
                     total.reduce(self.device)
-                values = task_validation_values(total._values, self.answer_loss_weight)
+                if self.response_kl:
+                    mean = total._values["response_kl_sum"] / max(total._values["response_target_tokens"], 1)
+                    values = dict(response_kl=mean, loss=mean)
+                else:
+                    values = task_validation_values(total._values, self.answer_loss_weight)
                 values["acc"] = total._values["sample_accuracy_sum"] / max(total._values["samples"], 1)
                 for key, value in values.items():
                     total.set_value(key, value)
