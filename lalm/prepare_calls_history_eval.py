@@ -24,6 +24,7 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     for name in ('manifest', 'audio-root', 'output-dir', 'model', 'system-source'):
         p.add_argument('--' + name, type=Path, required=True)
+    p.add_argument('--short-supplement', action='store_true', help='Only original <0.5s turns; stock Lhotse right-zero-padding to 0.5s')
     args = p.parse_args()
     rows = [json.loads(s) for s in args.manifest.read_text().splitlines()]
     validate_manifest(rows)
@@ -38,23 +39,34 @@ def main():
     views = {'with-history': [], 'no-history': []}
     excluded, ledger = [], []
     for row in rows:
-        selected = list(call_cuts(row, args.audio_root, system['content'], evaluation_only=True))
+        selected = list(call_cuts(row, args.audio_root, system['content'], evaluation_only=True,
+                                  include_short=args.short_supplement))
+        if args.short_supplement:
+            selected = [c for c in selected if c.duration < 0.5]
         kept = {c.source_turn_id for c in selected}
-        excluded.extend(dict(call_id=row['call_id'], **t, reason='current_duration_outside_0.5_to_30', retained_in_causal_history=True)
+        excluded.extend(dict(call_id=row['call_id'], **t, reason='scored_in_primary420' if args.short_supplement else 'current_duration_outside_0.5_to_30', retained_in_causal_history=True)
                         for t in row['turns'] if t['id'] not in kept)
         for original in selected:
             # Stock Lhotse channel selection/resampling and audio export only.
-            cut = original.save_audio(out / 'audio' / (original.id + '.wav'), encoding='FLOAT')
+            audio = original.pad(duration=0.5, direction='right', preserve_id=True) if args.short_supplement else original
+            cut = audio.save_audio(out / 'audio' / (original.id + '.wav'), encoding='FLOAT')
+            cut.custom = copy.deepcopy(original.custom)
             for s in cut.supervisions:
                 s.channel = 0
-            assert np.array_equal(original.load_audio(), cut.load_audio()), original.id
+                s.duration = cut.duration
+            assert np.array_equal(audio.load_audio(), cut.load_audio()), original.id
+            if args.short_supplement:
+                n = original.num_samples
+                assert np.array_equal(original.load_audio(), cut.load_audio()[:, :n]), original.id
+                assert np.count_nonzero(cut.load_audio()[:, n:]) == 0
             cut.custom.update(original_channel=original.channel, original_start=original.start,
+                original_duration=original.duration, right_zero_padding_seconds=cut.duration-original.duration,
                 original_audio_sha256=row['provenance']['audio_sha256'],
                 reference_kind='physical_channel_RNNT_pseudo_not_human_gold',
                 history_kind='previous_completed_source_RNNT_turns_not_oracle')
             record = dict(id=cut.id, call_id=row['call_id'], turn_id=cut.source_turn_id,
                 audio=str(out/'audio'/(cut.id+'.wav')), audio_sha256=sha(out/'audio'/(cut.id+'.wav')),
-                duration=cut.duration, original_channel=original.channel, original_start=original.start,
+                duration=cut.duration, original_duration=original.duration, original_channel=original.channel, original_start=original.start,
                 history_turns=len(cut.history), reference=cut.supervisions[0].text)
             for mode in views:
                 c = copy.deepcopy(cut)
@@ -66,8 +78,9 @@ def main():
                 assert c.conversation[:-2] == ([system] + c.history)
                 views[mode].append(c)
             ledger.append(record)
-    assert len(ledger) == 420 and len(excluded) == 113
-    assert len({r['id'] for r in ledger}) == 420
+    expected = 113 if args.short_supplement else 420
+    assert len(ledger) == expected and len(excluded) == 533-expected
+    assert len({r['id'] for r in ledger}) == expected
     max_actual = 0
     for mode, cuts in views.items():
         # Native processor over every row: no text truncation; labels/EOS exact.
@@ -80,7 +93,7 @@ def main():
                 assert n + 256 <= 32768, (c.id, n)
         manifest = out / (mode + '.jsonl.gz')
         CutSet.from_cuts(cuts).to_file(manifest)
-        (out/(mode+'.yaml')).write_text(yaml.safe_dump([dict(name='ten-calls-'+mode, manifest=str(manifest))]))
+        (out/(mode+'.yaml')).write_text(yaml.safe_dump([dict(name='ten-calls-'+('short-' if args.short_supplement else '')+mode, manifest=str(manifest))]))
     with (out/'rnnt.tsv').open('w') as f:
         writer = csv.writer(f, delimiter='\t')
         writer.writerow(['path', 'duration', 'transcription'])
@@ -90,7 +103,9 @@ def main():
     summary = dict(status='PASS', evaluation_only=True, training_eligible=False,
         source_rows=10, original_turns=sum(len(r['turns']) for r in rows), scored_turns=len(ledger),
         excluded_current_turns=len(excluded), original_recording_seconds=sum(r['duration_seconds'] for r in rows),
-        scored_channel_seconds=sum(r['duration'] for r in ledger),
+        scored_channel_seconds=sum(r['original_duration'] for r in ledger),
+        rendered_seconds_including_padding=sum(r['duration'] for r in ledger),
+        short_supplement=args.short_supplement,
         reference_kind='RNNT pseudo; report agreement, not human WER',
         history_kind='source RNNT completed turns, including short turns; not oracle, not newly decoded history',
         max_actual_processor_sequence_tokens=max_actual, generation_budget=256,

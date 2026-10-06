@@ -42,7 +42,9 @@ def validate_manifest(rows):
             seen.add((field, value))
 
 
-def call_cuts(row, audio_root, system, *, evaluation_only=False):
+def call_cuts(row, audio_root, system, *, evaluation_only=False, include_short=False):
+    if include_short and not evaluation_only:
+        raise ValueError("Short-turn export is evaluation-only")
     if evaluation_only and row["split"] != "test":
         raise ValueError("Evaluation-only export requires the original test split")
     if not evaluation_only and row["split"] not in ("train", "dev"):
@@ -74,7 +76,7 @@ def call_cuts(row, audio_root, system, *, evaluation_only=False):
             raise ValueError(f"{row['call_id']}: invalid speaker or turn bounds")
     for current in turns:
         start, end = current["start"], min(current["end"], recording.duration)
-        if not 0.5 <= end - start <= 30:
+        if not (0 < end - start <= 30 if include_short else 0.5 <= end - start <= 30):
             continue
         history = [{"role": "user" if past["speaker"] == current["speaker"] else "assistant",
                     "content": plain_text(past["text"])}

@@ -147,3 +147,15 @@ def test_explicit_test_export_preserves_split_and_short_causal_history(make_call
 def test_evaluation_opt_in_cannot_remap_other_splits(make_call, tmp_path, split):
     with pytest.raises(ValueError, match="original test"):
         list(call_cuts(make_call(split), tmp_path, "Отвечай по-русски.", evaluation_only=True))
+
+
+def test_short_opt_in_requires_evaluation_and_preserves_native_interval(make_call, tmp_path):
+    with pytest.raises(ValueError, match="evaluation-only"):
+        list(call_cuts(make_call(), tmp_path, "Система", include_short=True))
+    row = make_call("test")
+    row["turns"][0]["end"] = 0.04
+    cut = next(call_cuts(row, tmp_path, "Система", evaluation_only=True, include_short=True))
+    assert cut.duration == 0.04 and cut.source_turn_id == "t0"
+    padded = cut.pad(duration=0.5, direction="right", preserve_id=True)
+    assert np.array_equal(padded.load_audio()[:, :cut.num_samples], cut.load_audio())
+    assert np.count_nonzero(padded.load_audio()[:, cut.num_samples:]) == 0
