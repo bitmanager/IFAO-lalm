@@ -393,6 +393,12 @@ not be supplied as whole-utterance references. Exact duplicate audio bytes
 inside train are exported once. Exclusions and their source row coordinates
 are retained in `excluded.jsonl`.
 
+Byte-identical audio with conflicting normalized transcripts is quarantined
+in every variant, including an earlier copy already written to the temporary
+manifest. A held-out transcript also excludes later/earlier copies with the
+same audio hash. The final pass uses native Lhotse manifest filtering and
+does not re-export or segment audio.
+
 SOVA's dataset card describes manually annotated Russian speech and CC-BY-4.0
 licensing. This conversion retains those annotations without independent
 re-annotation. No history, target-speaker label, background-speech label, or

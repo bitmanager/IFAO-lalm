@@ -70,3 +70,16 @@ def test_duplicate_audio_and_source_ids_are_excluded(tmp_path):
     assert result["counts"]["duplicate_audio_bytes"] == 1
     assert result["counts"]["heldout_id_or_sha256"] == 1
     assert text_key(" Ещё,  РАЗ! ") == "еще раз"
+
+
+def test_conflicting_audio_and_late_heldout_variant_remove_first_copy(tmp_path):
+    rows = [{"audio": {"bytes": wav_bytes(value), "path": None}, "transcription": text}
+            for value, text in [(100, "Первый текст"), (200, "Ранний текст"),
+                                (300, "Нужная запись"), (100, "Иной текст"),
+                                (200, "Закрытая фраза")]]
+    result = prepare(stage(tmp_path, rows), tmp_path / "out",
+        {"texts": ["Закрытая фраза"], "ids": [], "sha256": []}, Tokenizer(), "Русский.")
+    cuts = list(CutSet.from_file(result["train_manifest"]))
+    assert [c.supervisions[0].text for c in cuts] == ["Нужная запись"]
+    assert result["counts"]["conflicting_audio_transcripts"] == 1
+    assert result["counts"]["heldout_audio_hash_closure"] == 1

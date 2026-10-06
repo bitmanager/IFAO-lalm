@@ -24,6 +24,21 @@ def text_key(text):
     return " ".join(re.findall(r"\w+", text.casefold().replace("ё", "е")))
 
 
+def quarantine_audio_hashes(input_manifest, output_manifest, hash_reasons):
+    """Remove every admitted variant of audited conflicting/held-out audio."""
+    removed = []
+    with CutSet.open_writer(output_manifest, overwrite=False) as writer:
+        for cut in CutSet.from_file(input_manifest):
+            provenance = cut.custom["source"]
+            reason = hash_reasons.get(provenance["audio_sha256"])
+            if reason:
+                removed.append({"id": cut.id.removesuffix("-asr"), "reason": reason,
+                                "duration": cut.duration, "source": provenance})
+            else:
+                writer.write(cut)
+    return removed
+
+
 def prepare(source_root, output_dir, exclusions, tokenizer, system):
     source_root, output_dir = Path(source_root), Path(output_dir)
     source_manifest = source_root / "manifest.json"
@@ -46,6 +61,7 @@ def prepare(source_root, output_dir, exclusions, tokenizer, system):
     partial = output_dir / "train.incomplete.jsonl.gz"
     counts, seconds = Counter(), Counter()
     seen_hashes, seen_ids = set(), set()
+    observed_texts, conflicting_hashes, heldout_text_hashes = {}, set(), set()
     shard_reports = []
     with CutSet.open_writer(partial, overwrite=False) as writer, \
             (output_dir / "excluded.jsonl").open("x") as rejected:
@@ -63,6 +79,12 @@ def prepare(source_root, output_dir, exclusions, tokenizer, system):
                     audio, text = row["audio"], row["transcription"]
                     data = audio["bytes"]
                     digest = hashlib.sha256(data).hexdigest()
+                    normalized = text_key(text) if isinstance(text, str) else None
+                    if digest in observed_texts and observed_texts[digest] != normalized:
+                        conflicting_hashes.add(digest)
+                    observed_texts[digest] = normalized
+                    if normalized in blocked_text:
+                        heldout_text_hashes.add(digest)
                     uid = f"sova-train-{shard_id:05d}-{row_id:06d}"
                     with wave.open(io.BytesIO(data)) as wav:
                         rate, frames = wav.getframerate(), wav.getnframes()
@@ -125,7 +147,20 @@ def prepare(source_root, output_dir, exclusions, tokenizer, system):
             print(json.dumps(report), flush=True)
     if counts["source"] != manifest["train_rows"] or abs(seconds["source"] - manifest["duration_seconds"]) > 0.001:
         raise ValueError("Staged source totals changed")
-    partial.rename(final)
+    hash_reasons = {h: "conflicting_audio_transcripts" for h in conflicting_hashes}
+    hash_reasons.update({h: "heldout_audio_hash_closure" for h in heldout_text_hashes})
+    removed = quarantine_audio_hashes(partial, final, hash_reasons)
+    with (output_dir / "excluded.jsonl").open("a") as rejected:
+        for row in removed:
+            counts["kept"] -= 1
+            seconds["kept"] -= row["duration"]
+            counts[row["reason"]] += 1
+            seconds[row["reason"]] += row["duration"]
+            shard_report = next(s for s in shard_reports if s["path"] == row["source"]["parquet"])
+            shard_report["kept"] -= 1
+            shard_report["kept_seconds"] -= row["duration"]
+            rejected.write(json.dumps(row, ensure_ascii=False) + "\n")
+    partial.unlink()
     summary = {"counts": dict(counts), "hours": {k: v / 3600 for k, v in seconds.items()},
                "shards": shard_reports, "source": manifest["source"],
                "source_manifest_sha256": hashlib.sha256(source_manifest.read_bytes()).hexdigest(),
