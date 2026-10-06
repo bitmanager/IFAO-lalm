@@ -104,3 +104,19 @@ def test_official_test_gate_rejects_pending_partial_stale_or_overlap(bad_field, 
     qa[bad_field] = bad_value
     with pytest.raises(AssertionError):
         module.check_test_overlap(qa, 'train', 'index')
+
+
+def test_replay_only_accepts_verified_conservative_legacy_count():
+    from types import SimpleNamespace
+    cut = next(iter(fixture_cuts()))
+    cut.custom.update(num_text_tokens=73, rendered_conversation=' exact text ')
+    source = lambda text, add_special_tokens: SimpleNamespace(input_ids=list(range(73)))
+    before = copy.deepcopy(cut.to_dict())
+    assert module.validate_replay_token_count(cut, source, 69) == 4
+    assert cut.to_dict() == before
+    cut.custom['num_text_tokens'] = 69
+    assert module.validate_replay_token_count(cut, source, 69) == 0
+    for bad in (68, 72, 74):
+        cut.custom['num_text_tokens'] = bad
+        with pytest.raises(AssertionError):
+            module.validate_replay_token_count(cut, source, 69)

@@ -40,6 +40,14 @@ def reconcile_golos_token_count(cut, source_tokenizer, native_tokenizer):
     return before, after
 
 
+def validate_replay_token_count(cut, source_tokenizer, native_count):
+    """Preserve exact replay metadata, permitting only verified conservative counts."""
+    stored = cut.num_text_tokens
+    assert stored >= native_count, cut.id
+    assert stored == native_count or stored == _estimate_text_tokens(cut.rendered_conversation, source_tokenizer), cut.id
+    return stored - native_count
+
+
 def check_full_qa(qa):
     assert qa['status'] == 'CPU_QA_PASS_STAGING_ONLY'
     for key in ('original_farfield_rows', 'streamed_source_rows',
@@ -168,7 +176,7 @@ def main():
         if p.name in ('tokenizer.json', 'tokenizer_config.json', 'added_tokens.json',
                       'special_tokens_map.json', 'vocab.json', 'merges.txt', 'chat_template.jinja')}
     checks.update(tokenizer_files)
-    totals, sample, token_deltas = Counter(), [], Counter()
+    totals, sample, token_deltas, replay_deltas = Counter(), [], Counter(), Counter()
     for name, source in (('golos', golos), ('replay', replay)):
         for cut in source:
             if name == 'golos':
@@ -186,7 +194,10 @@ def main():
                 assert not cut.custom['unresolved_reasons'] and not cut.custom.get('history')
             target_n = len(processor.tokenizer.encode(target + '<|im_end|>', add_special_tokens=False))
             text_n = len(processor.tokenizer.encode(cut.rendered_conversation.strip(), add_special_tokens=False))
-            assert text_n == cut.num_text_tokens, cut.id
+            if name == 'replay':
+                replay_deltas[str(validate_replay_token_count(cut, export_tokenizer, text_n))] += 1
+            else:
+                assert text_n == cut.num_text_tokens, cut.id
             assert target_n <= 256 and text_n + round(cut.duration * 12.5) <= 2000, cut.id
             totals[name + '_' + task + '_target_tokens'] += target_n
         for task, count in (('asr', 6), ('answer', 4 if name == 'replay' else 0)):
@@ -222,6 +233,8 @@ def main():
         frozen_modules=FROZEN, trainable_parameters=10490880, trainable_tensors=ready['trainable_tensors'],
         finite_sampler=sampler, target_tokens=dict(totals), native_cpu_batch=dict(cuts=16, asr=12, answer=4,
             exact_final_target_and_EOS=True, ids=[c.id for c in batch['cuts']]), heldout_overlap=overlap,
+        replay_sampler_metadata=dict(stored_minus_native_counts=dict(replay_deltas),
+            verified_conservative_source_or_native_counts=True, original_rows_unchanged=True),
         golos_sampler_metadata=dict(field='num_text_tokens', source_tokenizer=str(EXPORT_TOKENIZER),
             native_tokenizer=str(MODEL), after_minus_before_counts=dict(token_deltas),
             original_export_counts_verified=True, text_labels_history_audio_unchanged=True,
