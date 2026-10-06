@@ -406,3 +406,38 @@ segmentation is invented. The staged parquet has no usable utterance path or
 speaker ID, so IDs are stable shard/row coordinates with audio SHA256. Only
 train is staged; upstream validation/test and speaker-disjointness cannot be
 verified from these local files.
+
+### Local OpenSTT preparation and container paths
+
+The existing `prepare_openstt.py` can read the official CSV (or a row subset)
+beside locally extracted audio/text on the storage host. `--manifest-audio-root`
+maps only its resulting Recording and conversation audio paths to the trainer's
+mount; `asr_cut` first validates the real local source. Neither audio bytes nor
+targets are changed. This avoids hundreds of thousands of NFS metadata reads
+during preparation. Verify the resulting paths and a native dataset batch from
+the actual trainer container before admitting the source.
+
+```bash
+CUDA_VISIBLE_DEVICES='' HF_HUB_OFFLINE=1 TOKENIZERS_PARALLELISM=false \
+python lalm/prepare_openstt.py \
+  --manifest /storage/phone2/short-0.5-2.csv \
+  --audio-root /storage/phone2 \
+  --manifest-audio-root /trainer-storage/phone2 \
+  --output /storage/phone2/prepared/train.jsonl.gz \
+  --tokenizer /storage/current-tokenizer \
+  --system-file /storage/audit/system.txt \
+  --exclude-csv /storage/asr_calls_2_val.csv \
+  --exclusions-json /storage/audit/exclusions.json
+```
+
+Use a fresh output path and require the completed summary and native validation.
+Official validation IDs, available audited IDs and encoded-file SHA256 hashes
+are hard exclusions. Normalized exact held-out text of at least four words is
+conservatively excluded; matches of one to three words are counted and retained
+unless their audio/source is excluded. A common answer such as «да» is not
+evidence of recording overlap. Every variant of byte-identical audio with
+conflicting transcripts or an excluded source is removed in a final native
+manifest pass. The summary reports counts, hours, duration bins, text policy,
+path mapping and output checksum; the rejection log records source IDs/hashes.
+Encoded hashes do not establish cross-codec acoustic or speaker disjointness.
+OpenSTT phone labels remain automatic ASR, with no invented dialogue history.
