@@ -89,6 +89,8 @@ if source is not None or example is not None:
     st.write(pending["baseline"]["text"] or "∅ Пустая расшифровка")
     st.caption(f'{pending["baseline"]["seconds"]:.2f} с')
     if st.button("Коммит — передать аудио в Qwen", type="primary"):
+        pending.pop("result", None)
+        pending.pop("committed", None)
         try:
             history = list(st.session_state.history) if use_history else []
             with st.spinner("Qwen: расшифровка и ответ с учётом истории…"):
