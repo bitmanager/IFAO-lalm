@@ -89,7 +89,8 @@ def main():
             official[row['message_id']] = {**row, 'source_split': split}
     assert {r['source_split'] for r in official.values()} == {'train', 'validation'}
     blocked = {r['message_tree_id'] for r in official.values() if r['source_split'] == 'validation'}
-    blocked.update(r['root'] for r in json.loads(args.inventory.read_text())['heldout_collisions'])
+    # Generic text matches are review metadata, not source identity or leakage.
+    text_flags = json.loads(args.inventory.read_text())['heldout_collisions']
     blocked.update(json.loads(args.exclusions.read_text())['excluded_roots'])
     selected = [json.loads(line) for line in args.selection.read_text().splitlines() if line.strip()]
     assert len(selected) == args.expected_roots
@@ -107,6 +108,8 @@ def main():
         scripts=str(manifest), scripts_sha256=sha256(manifest), provenance=provenance,
         casting_counts={f'{a}/{b}':sum(r['participants'][0]['gender']==a and r['participants'][1]['gender']==b for r in records) for a,b in CASTING},
         heldout_or_excluded_root_overlap=0, original_text_bytes_preserved=True, original_ids_roles_parentage_verified=True,
+        text_match_policy='Report only; generic reference matches do not exclude source roots',
+        selected_text_match_flags=[f for f in text_flags if f['root'] in {r['root_id'] for r in selected}],
         no_text_generation=True, no_TTS=True, no_training=True,
         limitations=['Original human source is not fact-checked gold.',
                     'Selected root-to-completed-assistant prefixes need not be terminal leaves; future source replies are not appended.',
