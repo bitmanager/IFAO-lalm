@@ -153,3 +153,31 @@ grouped review, quarantine, original reference and ASR hypotheses. The native
 mixer, seven conditions, overlap threshold, PCM binding, history, teacher
 answers and label construction are unchanged. Existing train/validation
 manifests and active training are not modified by this export.
+
+## Same-waveform history-flip diagnostic
+
+Six fixed validation pairs have distinct complete preceding histories for
+both sources: 0162, 0163, 0164, 0165, 0166 and 0168. The separate diagnostic
+reuses their 36 mixture WAVs. Each waveform receives history A/reference A
+and history B/reference B, for 72 ASR views. Clean-A controls are excluded
+because they contain no B speech. Only pair 0165 has independent exact
+clean-source QC for both roles; its 12 views form a predeclared stratum.
+
+```sh
+CUDA_VISIBLE_DEVICES='' python lalm/prepare_context_history_flip.py \
+  --source /runs/dev-storage/ifao-data/context-target-v1 \
+  --output /runs/dev-storage/ifao-data/context-history-flip-v1 \
+  --processor /runs/dev-storage/ifao-data/runs/asr-short-context-v1/hf
+```
+
+The adapter uses existing `task_views`/`prepare_asr_cut`, native prompt
+stripping, and CPU processing. It verifies all 72 histories, final labels
+and EOS; inference prompts exclude the current reference. Source manifests
+and waveform SHA256 values are checked before and after export. No audio,
+history or targets are invented, and primary validation remains unchanged.
+`eval-all6.yaml` and `eval-qc0165.yaml` reference the separate diagnostic
+manifests; model inference is not performed by the adapter. Onset/SNR metadata
+is relative to the selected target, with original mixture values retained.
+`clean_source_qc` retains original foreground A/background B roles: for
+history B, its target error count is `background_word_errors`, not
+`foreground_word_errors`.
