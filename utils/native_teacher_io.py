@@ -36,17 +36,23 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--source-manifest', type=Path, required=True)
     parser.add_argument('--source-sha256', required=True)
-    parser.add_argument('--limit', type=int, choices=(30, 1020), default=30)
+    parser.add_argument('--limit', type=int, default=30, help='Balanced smoke30 or the exact full source size')
     parser.add_argument('--check-only', action='store_true')
     args = parser.parse_args()
     from lhotse import CutSet
     from transformers import AutoTokenizer
     from prepare_conversation import teacher_messages
     assert sha(args.source_manifest) == args.source_sha256, 'Source manifest changed'
-    source = {c.id:c for c in CutSet.from_file(args.source_manifest)}
+    cuts = list(CutSet.from_file(args.source_manifest))
+    source = {c.id:c for c in cuts}
     items = [json.loads(line) for line in args.input.read_text().splitlines()]
-    assert len(items) == len(source) == len({x['idx'] for x in items}) == 1020
+    assert len(items) == len(source) == len(cuts) == len({x['idx'] for x in items}) > 0
     assert {x['idx'] for x in items} == set(source)
+    assert args.limit in (30, len(source)), 'Only smoke30 or the complete source is supported'
+    quarantined = set(json.loads(QUARANTINE.read_text())['case_ids'])
+    quarantined.update(c.id for c in source.values() if re.search('[A-Za-z]', c.supervisions[0].text)
+                       and not re.search('[А-Яа-яЁё]', c.supervisions[0].text))
+    assert not quarantined.intersection(source), 'Apply source quarantine before teacher export'
     tokenizer = AutoTokenizer.from_pretrained(TOKENIZER, local_files_only=True)
     prepared = {}
     for item in items:
@@ -60,17 +66,13 @@ def main():
         assert tokenizer(prompt).input_ids == encoded, f'Actual native tokenizer input differs: {idx}'
         assert len(encoded) + 256 <= 8192, idx
         prepared[idx] = (item, prompt, hashlib.sha256(prompt.encode()).hexdigest())
-    # Fixed before inference: 15 first-turn and 15 contextual turns; all1020 is a separate opt-in.
+    # Fixed before inference: 15 first-turn and 15 contextual turns; the full source is a separate opt-in.
     selected = items
     if args.limit == 30:
         order = lambda item: hashlib.sha256(f"{SEED}:{item['idx']}".encode()).hexdigest()
         selected = sum((sorted([x for x in items if bool(source[x['idx']].custom['history']) == history], key=order)[:15]
                         for history in (False, True)), [])
     assert len(selected) == args.limit
-    quarantined = set(json.loads(QUARANTINE.read_text())['case_ids'])
-    quarantined.update(c.id for c in source.values() if re.search('[A-Za-z]', c.supervisions[0].text)
-                       and not re.search('[А-Яа-яЁё]', c.supervisions[0].text))
-    assert len(quarantined) == 8 and quarantined <= set(source)
     files = [p for p in MODEL.iterdir() if p.is_file()]
     files += [TOKENIZER/name for name in ('tokenizer.json', 'tokenizer_config.json', 'special_tokens_map.json', 'chat_template.jinja')]
     provenance = dict(source_manifest=str(args.source_manifest), source_sha256=args.source_sha256,
@@ -80,7 +82,7 @@ def main():
         generation=dict(do_sample=False, max_new_tokens=256, dtype='bfloat16'),
         quarantine_sha256=sha(QUARANTINE), quarantined_ids=sorted(quarantined),
         seed_for_sample_selection=SEED, training_admitted=False,
-        note='Same native runner generation; all data staging, including four suffix and four English cases. No source history/transcript edits.')
+        note='Same native runner generation; all data staging. Source quarantine applied before teacher export. No source history/transcript edits.')
     ledger = args.output/'provenance.json'
     if ledger.exists():
         assert json.loads(ledger.read_text()) == provenance, 'Source/model/adapter provenance cache conflict'
@@ -97,7 +99,7 @@ def main():
         cache_matches(json.loads(path.read_text()), item, prompt_sha256)
     pending = [item for item in selected if not (args.output/(item['idx']+'.json')).exists()]
     if args.check_only:
-        print(json.dumps(dict(status='CPU_only', source_cuts=1020, selected=len(selected), pending=len(pending),
+        print(json.dumps(dict(status='CPU_only', source_cuts=len(source), selected=len(selected), pending=len(pending),
             selected_ids=[x['idx'] for x in selected], provenance=provenance, training_admitted=False), indent=2))
         return
     import torch
