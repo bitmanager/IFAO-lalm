@@ -13,6 +13,7 @@ Usage::
 """
 
 import logging
+import json
 import os
 import re
 import string
@@ -85,7 +86,8 @@ def prepare_model_dir(cfg: DictConfig) -> tuple[str, str]:
 
     with no_init_weights():
         model = LALMForConditionalGeneration(LALMConfig.from_pretrained(hf_dir))
-    checkpoint = torch.load(checkpoint_path, map_location="cpu")
+    model = model.to({"bf16": torch.bfloat16, "fp16": torch.float16, "fp32": torch.float32}[cfg.get("dtype", "fp16")])
+    checkpoint = torch.load(checkpoint_path, map_location="cpu", mmap=True, weights_only=False)
     state_dict = checkpoint["model"]
     if any(k.startswith("module.") for k in state_dict):
         state_dict = {k[len("module.") :]: v for k, v in state_dict.items()}
@@ -231,7 +233,9 @@ def main(cfg: DictConfig):
                 padding=True,
             ).to(device)
 
-            output_ids = model.generate(**inputs, **generate_config)
+            if cfg.get("asr", False) and any(getattr(c, "task", None) != "asr" for c in cuts):
+                raise ValueError("ASR evaluation requires transcript-task cuts")
+            output_ids = model.generate(**inputs, asr=cfg.get("asr", False), **generate_config)
             hyps = processor.batch_decode(output_ids, skip_special_tokens=True)
             refs = [
                 cut.supervisions[0].custom.get("answer", cut.supervisions[0].text)
@@ -252,6 +256,21 @@ def main(cfg: DictConfig):
             for cut_id, hyp, ref in sorted(all_results):
                 f.write(f"{cut_id} | {hyp} | {ref}\n")
         logging.info(f"[evaluate_qa] Results saved to {results_path}")
+
+        if cfg.get("asr", False):
+            import jiwer
+
+            refs = [ref for _, _, ref in all_results]
+            hyps = [hyp for _, hyp, _ in all_results]
+            normalizer = jiwer.Compose([jiwer.ToLowerCase(), jiwer.RemovePunctuation(),
+                                        jiwer.RemoveMultipleSpaces(), jiwer.Strip()])
+            metrics = {"cuts": len(refs), "wer_raw": jiwer.wer(refs, hyps),
+                       "wer_normalized": jiwer.wer(normalizer(refs), normalizer(hyps)),
+                       "cer_normalized": jiwer.cer(normalizer(refs), normalizer(hyps))}
+            path = res_dir / f"asr_metrics-{test_set['name']}{suffix_str}.json"
+            path.write_text(json.dumps(metrics, indent=2))
+            logging.info(f"[evaluate_qa] ASR: {metrics}")
+            continue
 
         # --- Compute accuracy ---
         correct = sum(1 for _, hyp, ref in all_results if _match(hyp, ref))

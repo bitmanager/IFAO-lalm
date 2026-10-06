@@ -1,8 +1,11 @@
+import copy
+
 import torch
 import torch.nn as nn
 from transformers import AutoModel, AutoModelForCausalLM, PreTrainedModel
 
 from .configuration_lalm import LALMConfig
+from ..task_loss import separate_task_ce
 
 
 class LALMProjector(nn.Module):
@@ -69,11 +72,47 @@ class LALMForConditionalGeneration(PreTrainedModel):
         self.projector = LALMProjector(
             config.audio_dim, config.text_dim, config.projector_downsample_rate
         )
+        if config.asr_layer is not None:
+            self.enable_asr(config.asr_layer)
+
+    def enable_asr(self, layer: int):
+        """Initialize an independent ASR readout from Qwen; backbone stays shared."""
+        if self.config.text_config.model_type != "qwen3":
+            raise ValueError("The intermediate ASR readout currently supports Qwen3 only")
+        if not 0 < layer < self.config.text_config.num_hidden_layers:
+            raise ValueError("ASR layer must be strictly inside the Qwen backbone")
+        if hasattr(self, "asr_head"):
+            raise ValueError("ASR readout already exists; do not overwrite trained weights")
+        self.config.asr_layer = layer
+        self.asr_norm = copy.deepcopy(self.language_model.model.norm).requires_grad_(True)
+        self.asr_head = copy.deepcopy(self.language_model.lm_head).requires_grad_(True)
+
+    def _asr_language_model(self):
+        """A native HF generation view; shares layers without mutating the agent."""
+        if self.config.asr_layer is None:
+            raise ValueError("This checkpoint has no ASR readout")
+        view = copy.copy(self.language_model)
+        view._modules = view._modules.copy()
+        view.model = copy.copy(self.language_model.model)
+        view.model._modules = view.model._modules.copy()
+        view.config = copy.deepcopy(view.config)
+        view.config.num_hidden_layers = self.config.asr_layer
+        view.config.layer_types = view.config.layer_types[:self.config.asr_layer]
+        view.model.config = view.config
+        view.model.layers = nn.ModuleList(list(view.model.layers[:self.config.asr_layer]))
+        view.model.norm = self.asr_norm
+        view.lm_head = self.asr_head
+        return view
 
     @staticmethod
     def _build_audio_tower(audio_config):
         """Build encoder explicitly to avoid relying on AutoModel registration."""
         model_type = getattr(audio_config, "model_type", "")
+
+        if model_type == "gigaam":
+            from .gigaam_adapter import GigaAMAudioTower
+
+            return GigaAMAudioTower(audio_config)
 
         if model_type == "whisper":
             from transformers.models.whisper.modeling_whisper import WhisperEncoder
@@ -109,6 +148,7 @@ class LALMForConditionalGeneration(PreTrainedModel):
         attention_mask: torch.Tensor | None = None,
         input_features: torch.Tensor | None = None,
         feature_lens: torch.Tensor | None = None,
+        asr: bool = False,
         **generate_kwargs,
     ) -> torch.Tensor:
         """Generate text auto-regressively, optionally conditioned on audio.
@@ -129,12 +169,13 @@ class LALMForConditionalGeneration(PreTrainedModel):
         inputs_embeds = self.language_model.get_input_embeddings()(input_ids)
         if input_features is not None:
             audio_param = next(self.audio_tower.parameters(), None)
-            if audio_param is not None and input_features.dtype != audio_param.dtype:
+            if self.config.audio_config.model_type != "gigaam" and audio_param is not None and input_features.dtype != audio_param.dtype:
                 input_features = input_features.to(dtype=audio_param.dtype)
             inputs_embeds = self._merge_input_ids_with_audio_features(
                 input_ids, inputs_embeds, input_features, feature_lens=feature_lens
             )
-        return self.language_model.generate(
+        language_model = self._asr_language_model() if asr else self.language_model
+        return language_model.generate(
             inputs_embeds=inputs_embeds,
             attention_mask=attention_mask,
             **generate_kwargs,
@@ -148,6 +189,9 @@ class LALMForConditionalGeneration(PreTrainedModel):
         attention_mask: torch.Tensor = None,
         position_ids: torch.Tensor = None,
         labels: torch.Tensor = None,
+        asr_mask: torch.Tensor = None,
+        answer_loss_weight: float = None,
+        sync_task_counts: bool = False,
         **kwargs,
     ):
         inputs_embeds = self.language_model.get_input_embeddings()(input_ids)
@@ -162,7 +206,8 @@ class LALMForConditionalGeneration(PreTrainedModel):
 
         if labels is not None and attention_mask is not None:
             outputs, packed_labels = self._forward_packed(
-                inputs_embeds, attention_mask, labels, **kwargs
+                inputs_embeds, attention_mask, labels, asr_mask=asr_mask,
+                answer_loss_weight=answer_loss_weight, sync_task_counts=sync_task_counts, **kwargs
             )
             outputs.packed_labels = packed_labels
             return outputs
@@ -186,6 +231,9 @@ class LALMForConditionalGeneration(PreTrainedModel):
             raise ValueError("Packed-only LALM requires feature_lens.")
 
         feature_lens = feature_lens.to(device=audio_features.device, dtype=torch.long)
+        if model_type == "gigaam":
+            return self.audio_tower(audio_features, feature_lens).to(self.projector.linear1.weight.dtype)
+
         if model_type == "qwen2_5_omni_audio_encoder":
             aftercnn_lens = (feature_lens - 1) // 2 + 1
             encoded = self.audio_tower(
@@ -212,6 +260,11 @@ class LALMForConditionalGeneration(PreTrainedModel):
 
     def _get_audio_output_lengths(self, feature_lens: torch.Tensor) -> torch.Tensor:
         model_type = getattr(self.config.audio_config, "model_type", "")
+
+        if model_type == "gigaam":
+            from .gigaam_adapter import gigaam_output_length
+
+            return gigaam_output_length(feature_lens)
 
         if model_type == "whisper":
             return (feature_lens - 1) // 2 + 1
@@ -246,6 +299,9 @@ class LALMForConditionalGeneration(PreTrainedModel):
         inputs_embeds: torch.Tensor,
         attention_mask: torch.Tensor,
         labels: torch.Tensor,
+        asr_mask: torch.Tensor = None,
+        answer_loss_weight: float = None,
+        sync_task_counts: bool = False,
         **kwargs,
     ):
         device = inputs_embeds.device
@@ -256,6 +312,12 @@ class LALMForConditionalGeneration(PreTrainedModel):
         valid = attention_mask.bool()
         packed_embeds = inputs_embeds[valid].unsqueeze(0)
         packed_labels = labels[valid].unsqueeze(0)
+        if answer_loss_weight is not None:
+            if asr_mask is None:
+                raise ValueError("Separate task CE requires explicit task routing")
+            # No sequence's first token may be predicted by the previous sequence.
+            packed_labels = packed_labels.clone()
+            packed_labels[:, torch.cat((seq_lens.new_zeros(1), seq_lens.cumsum(0)[:-1]))] = -100
 
         T_total = packed_embeds.size(1)
         ones = torch.ones(T_total, device=device, dtype=torch.long)
@@ -267,13 +329,40 @@ class LALMForConditionalGeneration(PreTrainedModel):
         attn_mask = _block_diagonal_causal_mask(
             segment_lens, device=device, dtype=inputs_embeds.dtype
         )
+        if asr_mask is not None and (asr_mask.shape != seq_lens.shape or asr_mask.dtype != torch.bool):
+            raise ValueError("asr_mask must contain one boolean per packed example")
+        if self.config.asr_layer is None and asr_mask is not None and asr_mask.any():
+            raise ValueError("ASR examples require an ASR readout")
         outputs = self.language_model(
             inputs_embeds=packed_embeds,
             attention_mask=attn_mask,
             position_ids=position_ids,
-            labels=packed_labels,
+            labels=packed_labels if self.config.asr_layer is None and answer_loss_weight is None else None,
+            output_hidden_states=self.config.asr_layer is not None,
             **kwargs,
         )
+        if self.config.asr_layer is not None:
+            if asr_mask is None:
+                raise ValueError("Training an ASR readout requires explicit task routing")
+            asr_positions = torch.repeat_interleave(asr_mask, seq_lens)
+            hidden = outputs.hidden_states[self.config.asr_layer]
+            # Route each entire isolated sequence, including the position before
+            # its first target. Native causal CE performs the one-token shift.
+            asr_logits = self.asr_head(self.asr_norm(hidden[:, asr_positions]))
+            outputs.logits = outputs.logits.index_copy(
+                1, asr_positions.nonzero().flatten(), asr_logits.to(outputs.logits.dtype)
+            )
+            if answer_loss_weight is None:
+                outputs.loss = self.language_model.loss_function(
+                    logits=outputs.logits, labels=packed_labels,
+                    vocab_size=self.config.text_config.vocab_size,
+                )
+            outputs.hidden_states = None
+        if answer_loss_weight is not None:
+            asr_positions = torch.repeat_interleave(asr_mask, seq_lens)
+            outputs.loss, outputs.task_nll_sums, outputs.task_token_counts = separate_task_ce(
+                outputs.logits, packed_labels, asr_positions, answer_loss_weight,
+                sync_counts=sync_task_counts)
         return outputs, packed_labels
 
     def _merge_input_ids_with_audio_features(
@@ -291,6 +380,9 @@ class LALMForConditionalGeneration(PreTrainedModel):
             )
         )
         mask = input_ids == self.config.audio_token_id
+        expected = self._get_audio_output_lengths(feature_lens) // self.projector.downsample_rate
+        if not torch.equal(mask.sum(dim=1), expected):
+            raise ValueError("Audio placeholders must match each cut's projected frame count")
         if not mask.any():
             return inputs_embeds
 

@@ -7,7 +7,6 @@ Output: output/<idx>.json
 """
 
 import os
-os.environ['VLLM_USE_V1'] = '0'
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 import json
 import sys
@@ -16,6 +15,7 @@ import psutil
 import torch
 import warnings
 import argparse
+from queue import Empty
 from pathlib import Path
 from tqdm import tqdm
 from vllm import LLM, SamplingParams
@@ -78,25 +78,25 @@ def persistent_worker_fn(rank, task_q, result_q, model_path):
             break
         
         try:
-            text_input = item.get("caption", "")
-            processed_text = truncate_prompt(text_input)
-            
-            # add system prompt
-            system_prompt = "You are an AI assistant directly hearing this audio. Respond as if you heard it yourself."
-            messages = [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": processed_text}
-            ]
+            if "messages" in item:
+                messages = item["messages"]
+            else:
+                processed_text = truncate_prompt(item["caption"])
+                messages = [
+                    {"role": "system", "content": "You are an AI assistant directly hearing this audio. Respond as if you heard it yourself."},
+                    {"role": "user", "content": processed_text}
+                ]
 
             prompt = tokenizer.apply_chat_template(
                 messages,
                 tokenize=False,
                 add_generation_prompt=True
             )
+            if len(tokenizer.encode(prompt, add_special_tokens=False)) + 256 > 8192:
+                raise ValueError("History plus response exceeds the teacher context budget")
             result_q.put((item, prompt))
         except Exception as e:
-            print(f'[Worker-{rank}] Error processing {item.get("idx", "?")}: {e}')
-            result_q.put((item, None))
+            result_q.put((item, {"error": str(e)}))
 
 
 
@@ -126,6 +126,7 @@ def main():
     parser.add_argument('--num_workers', type=int, default=196)
     parser.add_argument('--queue_max', type=int, default=4096)
     parser.add_argument('--max_seqs', type=int, default=8)
+    parser.add_argument('--tensor_parallel_size', type=int, default=1)
     
     args = parser.parse_args()
     
@@ -163,7 +164,7 @@ def main():
         model=MODEL_PATH,
         trust_remote_code=True,
         gpu_memory_utilization=0.9,
-        tensor_parallel_size=4, 
+        tensor_parallel_size=args.tensor_parallel_size,
         max_num_seqs=max_seqs,
         max_model_len=8192,
         seed=1234,
@@ -188,10 +189,13 @@ def main():
             while processed < len(batch) and len(cache) < max_seqs * 2: 
                 try:
                     item, vllm_input = result_q.get_nowait()  
+                    if isinstance(vllm_input, dict):
+                        kill_all_children()
+                        raise RuntimeError(f"Teacher preparation failed for {item['idx']}: {vllm_input['error']}")
                     if item is not None and vllm_input is not None:
                         cache.append((item, vllm_input))
                     processed += 1
-                except:
+                except Empty:
                     break  
             
             if len(cache) >= max_seqs:

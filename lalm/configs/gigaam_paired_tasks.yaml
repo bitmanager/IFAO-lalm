@@ -1,0 +1,9 @@
+defaults:
+  - gigaam_context
+  - _self_
+
+# Opt-in only. Does not change frozen_modules, optimizer or inference.
+trainer:
+  answer_loss_weight: 1.0
+data:
+  paired_tasks: true

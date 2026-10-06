@@ -1,0 +1,110 @@
+{
+  "name": "asr-readout-expanded-v1",
+  "output": "/runs/dev-storage/ifao-data/runs/asr-readout-expanded-v1",
+  "model": "/runs/dev-storage/ifao-data/runs/asr-short-context-v1/export/iter-26000",
+  "model_file_sha256": {
+    "/runs/dev-storage/ifao-data/runs/asr-short-context-v1/export/iter-26000/added_tokens.json": "35257708ad734fa9b228a081a95dce5234479a1872a058513d5e1218880993c2",
+    "/runs/dev-storage/ifao-data/runs/asr-short-context-v1/export/iter-26000/chat_template.jinja": "64f85b198065d0fba2a81f37e10ed68161ce2c19a754c7100e67e0ca2ee9c326",
+    "/runs/dev-storage/ifao-data/runs/asr-short-context-v1/export/iter-26000/config.json": "da0a3c2b2d84269c98bc4b5c0d479a759b55f54c758bd252387391dbf3e8564f",
+    "/runs/dev-storage/ifao-data/runs/asr-short-context-v1/export/iter-26000/merges.txt": "8831e4f1a044471340f7c0a83d7bd71306a5b867e95fd870f74d0c5308a904d5",
+    "/runs/dev-storage/ifao-data/runs/asr-short-context-v1/export/iter-26000/model-00001-of-00003.safetensors": "faf3a51ce50ce106edc8f96cd6c7194a5f47e82db92a6955d9f78b1459ec1d56",
+    "/runs/dev-storage/ifao-data/runs/asr-short-context-v1/export/iter-26000/model-00002-of-00003.safetensors": "5dbc1fea4cae96ffe4337ada7ef83a755f084ce552383c2a7e2b4714ad5575af",
+    "/runs/dev-storage/ifao-data/runs/asr-short-context-v1/export/iter-26000/model-00003-of-00003.safetensors": "d1ffcc531973dcb0267cb4ceed4b242b8bb420107319e14f3da7bce57e7b9f01",
+    "/runs/dev-storage/ifao-data/runs/asr-short-context-v1/export/iter-26000/model.safetensors.index.json": "a29a29ce70cd9135ee6c206a265b4a6fe2b8c0a61995d778ec4c700fdfa38367",
+    "/runs/dev-storage/ifao-data/runs/asr-short-context-v1/export/iter-26000/preprocessor_config.json": "5dc444a05dcd035fba27de065683c3212a85234b49437612ac126bfa587245f6",
+    "/runs/dev-storage/ifao-data/runs/asr-short-context-v1/export/iter-26000/processor_config.json": "25e5aae2f0ea769c20c609df7f6d1dcd35ff4a869095b9e846b400a29b8d92d0",
+    "/runs/dev-storage/ifao-data/runs/asr-short-context-v1/export/iter-26000/special_tokens_map.json": "82b0f9febc062cd969432a927600c4d718a5509f6d49bfa4fa49221f5f868212",
+    "/runs/dev-storage/ifao-data/runs/asr-short-context-v1/export/iter-26000/tokenizer.json": "0422f49acb9b2b8861f8a8c9fc5883758d7be3e805fdc014ade10478ea8fb1c9",
+    "/runs/dev-storage/ifao-data/runs/asr-short-context-v1/export/iter-26000/tokenizer_config.json": "0482d3a21d4fb7e353b55a833833d0abfa0bac30ebdee25a5297cee2b46ad70c",
+    "/runs/dev-storage/ifao-data/runs/asr-short-context-v1/export/iter-26000/vocab.json": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+  },
+  "validation": "/runs/dev-storage/ifao-data/short-context-stage4/validation.yaml",
+  "validation_sha256": "e7322428ce50ba4d6b76c50625b0cccd844ba3fcccd0e4caf3b816419bbbdafc",
+  "updates": 1000,
+  "lr": 1e-05,
+  "valid_interval": 1001,
+  "expected_cuts": 205634,
+  "completion_marker": null,
+  "exit_marker": "/runs/ifao-asr-readout-expanded.exit",
+  "sources": [
+    {
+      "name": "rnnt-shard00",
+      "manifest": "/runs/dev-storage/ifao-data/phone1-remaining-rnnt-v2/shard-00/native/train.jsonl.gz",
+      "sha256": "94ad883827fd81a8f0ba1bca0ff266c592901b2fb163a28f618f88197f4b0713",
+      "input_cuts": 29947,
+      "cuts": 29947,
+      "readiness": "/runs/dev-storage/ifao-data/phone1-remaining-rnnt-v2/shard-00/native/readiness.json",
+      "readiness_sha256": "535cc114bf4a28dc539f221e9c554a465f361f29097a4beecac7500c8c0010d5"
+    },
+    {
+      "name": "rnnt-shard01",
+      "manifest": "/runs/dev-storage/ifao-data/phone1-remaining-rnnt-v2/shard-01/native/train.jsonl.gz",
+      "sha256": "fb749077754d831680e834d5b9b5058b292363dff5b4aa7016de569d8d9b4548",
+      "input_cuts": 29944,
+      "cuts": 29944,
+      "readiness": "/runs/dev-storage/ifao-data/phone1-remaining-rnnt-v2/shard-01/native/readiness.json",
+      "readiness_sha256": "8cf42e57b468d01e9831ab44da8c50c23440290906b6823497cdaaec1757046f"
+    },
+    {
+      "name": "rnnt-shard02",
+      "manifest": "/runs/dev-storage/ifao-data/phone1-remaining-rnnt-v2/shard-02/native/train.jsonl.gz",
+      "sha256": "3ff4f69cb18652209cedccdec11bb6c7bd56739914a1dce2d0543c2ef7147427",
+      "input_cuts": 29939,
+      "cuts": 29939,
+      "readiness": "/runs/dev-storage/ifao-data/phone1-remaining-rnnt-v2/shard-02/native/readiness.json",
+      "readiness_sha256": "f4515c2d9cf8e181d10df97832696fd92ba65b92277dabf94324275b803d25b8"
+    },
+    {
+      "name": "rnnt-shard03",
+      "manifest": "/runs/dev-storage/ifao-data/phone1-remaining-rnnt-v2/shard-03/native/train.jsonl.gz",
+      "sha256": "36350eda6f2314315858510c192d094a01f305b1c7dcd7f7abab83db4da91fc2",
+      "input_cuts": 29943,
+      "cuts": 29943,
+      "readiness": "/runs/dev-storage/ifao-data/phone1-remaining-rnnt-v2/shard-03/native/readiness.json",
+      "readiness_sha256": "c7918f907c00d4ed96372f475badce93cb99b1992f2cbc3e44d73cbf5685b0c3"
+    },
+    {
+      "name": "rnnt-shard04",
+      "manifest": "/runs/dev-storage/ifao-data/phone1-remaining-rnnt-v2/shard-04/native/train.jsonl.gz",
+      "sha256": "111b5c67bee7f95cf58e7d628beb1230cb9759b5ead375b38f921ab7019ee1dc",
+      "input_cuts": 29945,
+      "cuts": 29945,
+      "readiness": "/runs/dev-storage/ifao-data/phone1-remaining-rnnt-v2/shard-04/native/readiness.json",
+      "readiness_sha256": "6ffdb995094eeb646def6e02cb8b564f64c8d639ca6c13f1a64dbce8e8a21261"
+    },
+    {
+      "name": "rnnt-shard05",
+      "manifest": "/runs/dev-storage/ifao-data/phone1-remaining-rnnt-v2/shard-05/native/train.jsonl.gz",
+      "sha256": "6332ea13497e0a1d85cd34feb0bf1c13bd5bf42288428fc8d40d5eee9d3580c9",
+      "input_cuts": 29941,
+      "cuts": 29941,
+      "readiness": "/runs/dev-storage/ifao-data/phone1-remaining-rnnt-v2/shard-05/native/readiness.json",
+      "readiness_sha256": "be28c6573708f2d51001132b1964fb924cd097635386ea8f8ebf6a63b509f4f2"
+    },
+    {
+      "name": "rnnt-shard06",
+      "manifest": "/runs/dev-storage/ifao-data/phone1-remaining-rnnt-v2/shard-06/native/train.jsonl.gz",
+      "sha256": "eebe3c62f47859b0dea66612876af956557a0306b0e516f09755ff28f7dee4a2",
+      "input_cuts": 19975,
+      "cuts": 19975,
+      "readiness": "/runs/dev-storage/ifao-data/phone1-remaining-rnnt-v2/shard-06/native/readiness.json",
+      "readiness_sha256": "8c110e8eaabae06f15afd2406ea04727ff47238188dd38d82601ec635e80e902"
+    },
+    {
+      "name": "sova-fixed6000",
+      "manifest": "/runs/dev-storage/ifao-data/sova-asr-v1/prepared/train-audited.jsonl.gz",
+      "sha256": "98ed55ea04c2638d89341e0888a5d285a3e5f64352d56f6e35fe5faba0a13d20",
+      "input_cuts": 78628,
+      "cuts": 6000,
+      "take": 6000,
+      "selection_seed": 20261006,
+      "selected_ids_sha256": "00696666bd77ba45106cae9d17fdbf54f8da9df3b044d985af2050d4180e6311"
+    }
+  ],
+  "notes": [
+    "Expanded corrected-label pool, not unseen audio: 5986 admitted phone IDs occur in stage4 source pool; all exclude previous6000 replay IDs.",
+    "Automatic RNNT pseudo labels, not gold; no agreement filter;382 empty predictions remain quarantined.",
+    "Only ASR readout/norm train; no embedding/projector improvement claim.",
+    "186.68119015625h is available pool exposure, not audio consumed in1000 updates."
+  ]
+}

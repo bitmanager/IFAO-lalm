@@ -1,0 +1,28 @@
+defaults:
+  - train
+  - _self_
+
+exp_dir: ${oc.env:IFAO_RUN_DIR}
+
+model:
+  pretrained_model: ${oc.env:IFAO_MODEL_PATH}
+
+trainer:
+  mixed_precision: bf16
+  num_epochs: 3
+  save_every_n: 1
+  keep_last_k: 2
+  log_interval: 5
+
+data:
+  train_data_config: ${oc.env:IFAO_TRAIN_CONFIG}
+  valid_data_config: ${oc.env:IFAO_VALID_CONFIG}
+  feature: wav
+  data_augmentation:
+    enable_spec_aug: false
+  use_infinite_dataset: false
+  num_workers: 2
+  sampler:
+    max_tokens: 2000
+    num_buckets: 5
+    drop_last: false

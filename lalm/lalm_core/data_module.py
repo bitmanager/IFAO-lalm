@@ -11,9 +11,10 @@ from lhotse.workarounds import Hdf5MemoryIssueFix
 from torch.utils.data import DataLoader
 
 from auden.data.lhotse_datamodule import BaseLhotseDatamodule, _SeedWorkers
+from .paired_tasks import expand_task_views, task_views
 
 
-def estimate_cut_tokens(cut, audio_token_rate: float):
+def estimate_cut_tokens(cut, audio_token_rate: float, paired_tasks: bool = False):
     """Estimate total tokens from duration and prepared num_text_tokens."""
     num_text_tokens = getattr(cut, "num_text_tokens", None)
     if num_text_tokens is None:
@@ -22,7 +23,13 @@ def estimate_cut_tokens(cut, audio_token_rate: float):
             "Please run prepare_conversation.py first."
         )
 
+    views = task_views(cut)
+    if views is not None:
+        if not paired_tasks:
+            raise ValueError("Task-view manifests require data.paired_tasks=true")
+        num_text_tokens = sum(v["num_text_tokens"] for v in views)
     num_audio_tokens = int(round(float(cut.duration) * float(audio_token_rate)))
+    num_audio_tokens *= len(views) if views is not None else 1
     num_tokens = num_audio_tokens + int(num_text_tokens)
     cut.num_tokens = num_tokens
     return cut
@@ -36,12 +43,14 @@ class LALMDataset(torch.utils.data.Dataset):
         cut_transforms=None,
         input_transforms=None,
         return_cuts: bool = False,
+        paired_tasks: bool = False,
     ):
         self.input_strategy = input_strategy
         self.processor = processor
         self.cut_transforms = cut_transforms
         self.input_transforms = input_transforms
         self.return_cuts = return_cuts
+        self.paired_tasks = paired_tasks
         self.hdf5_fix = Hdf5MemoryIssueFix(reset_interval=100)
 
     def __getitem__(self, cuts) -> dict:
@@ -50,16 +59,25 @@ class LALMDataset(torch.utils.data.Dataset):
         if self.cut_transforms is not None:
             for transform in self.cut_transforms:
                 cuts = transform(cuts)
+        if self.paired_tasks:
+            cuts = expand_task_views(cuts)
+        elif any(task_views(c) is not None for c in cuts):
+            raise ValueError("Task-view manifests require data.paired_tasks=true")
         cuts = cuts.sort_by_duration(ascending=False)
+        expected_ids = set(cuts.ids)
 
         input_tpl = self.input_strategy(cuts)
         if len(input_tpl) == 3:
             features, _, cuts = input_tpl
         else:
             features, _ = input_tpl
+        if self.paired_tasks and set(cuts.ids) != expected_ids:
+            raise ValueError("Input loading dropped a linked task view")
 
         supervision_intervals = self.input_strategy.supervision_intervals(cuts)
-        feature_lens = supervision_intervals["num_frames"]
+        feature_lens = supervision_intervals[
+            "num_samples" if self.processor.encoder_name == "gigaam" else "num_frames"
+        ]
         feature_lens = feature_lens.to(dtype=torch.long)
 
         # lhotse returns (N, T, C); processor expects padded (N, C, T_max)
@@ -68,6 +86,8 @@ class LALMDataset(torch.utils.data.Dataset):
 
         rendered_texts = []
         for cut in cuts:
+            if getattr(cut, "task", "answer") not in ("answer", "asr"):
+                raise ValueError(f"Cut {cut.id}: unsupported training task")
             rendered_text = getattr(cut, "rendered_conversation", None)
             if rendered_text is None:
                 raise ValueError(
@@ -91,6 +111,7 @@ class LALMDataset(torch.utils.data.Dataset):
             "feature_lens": inputs["feature_lens"],
             "labels": inputs["labels"],
             "batch_size": inputs["input_ids"].size(0),
+            "asr_mask": torch.tensor([getattr(c, "task", "answer") == "asr" for c in cuts]),
         }
 
         flat_cuts = [cut for cut in cuts for _ in cut.supervisions]
@@ -117,7 +138,8 @@ class LALMDataModule(BaseLhotseDatamodule):
 
         audio_token_rate = float(self.cfg.get("audio_token_rate", 12.5))
         return cutset.filter(keep).map(
-            lambda cut: estimate_cut_tokens(cut, audio_token_rate=audio_token_rate)
+            lambda cut: estimate_cut_tokens(cut, audio_token_rate=audio_token_rate,
+                paired_tasks=self.cfg.get("paired_tasks", False))
         )
 
     def setup_train(self):
@@ -129,6 +151,8 @@ class LALMDataModule(BaseLhotseDatamodule):
 
         max_tokens = self.cfg.sampler.get("max_tokens", None)
         max_duration = self.cfg.sampler.get("max_duration", None)
+        if self.cfg.get("paired_tasks", False) and max_tokens is None:
+            raise ValueError("Linked task views require a summed max_tokens budget")
         num_buckets = self.cfg.sampler.get("num_buckets", 30)
         common = dict(
             shuffle=self.cfg.sampler.shuffle,
@@ -163,6 +187,7 @@ class LALMDataModule(BaseLhotseDatamodule):
             cut_transforms=self.transforms,
             input_transforms=self.input_transforms,
             return_cuts=True,
+            paired_tasks=self.cfg.get("paired_tasks", False),
         )
         seed = torch.randint(0, 100_000, ()).item()
         worker_init_fn = _SeedWorkers(seed)
@@ -200,17 +225,20 @@ class LALMDataModule(BaseLhotseDatamodule):
                 valid_sampler = DynamicBucketingSampler(
                     cutset,
                     constraint=TokenConstraint(max_tokens=max_tokens),
+                    num_buckets=self.cfg.sampler.get("num_buckets", 30),
                     shuffle=False,
                 )
             else:
                 valid_sampler = DynamicBucketingSampler(
-                    cutset, max_duration=max_duration, shuffle=False
+                    cutset, max_duration=max_duration,
+                    num_buckets=self.cfg.sampler.get("num_buckets", 30), shuffle=False
                 )
 
             valid_dataset = LALMDataset(
                 input_strategy=self.input_strategy,
                 processor=self.processor,
                 return_cuts=True,
+                paired_tasks=self.cfg.get("paired_tasks", False),
             )
             valid_dl = DataLoader(
                 valid_dataset,
