@@ -21,6 +21,8 @@ if os.environ.get("IFAO_DEMO_EXAMPLES"):
         with st.expander("Весь звонок — человек на записи, новые ответы Qwen", expanded=True):
             st.caption(replay["description"])
             st.caption(f'Чекпойнт: {replay["checkpoint"]}. Готово шагов: {len(replay["steps"])}.')
+            with st.expander("Системный промпт этого перепрогона"):
+                st.write(replay["system"])
             step = st.selectbox("Шаг перепрогона", replay["steps"],
                                 format_func=lambda item: f'{item["step"]:02d} · {item["end"]:.1f} с')
             for audio_path in step["audio_paths"]:
