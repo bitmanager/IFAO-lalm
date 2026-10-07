@@ -356,3 +356,56 @@ epoch uses its in-memory configuration and is unaffected. Auden has no native
 on-demand save signal or live config reload; killing/restarting this run would
 discard progress since epoch 2. A fresh step checkpoint can be evaluated using
 the existing evaluator on a separate GPU without changing the training loop.
+
+## Interactive ASR/history demo
+
+`lalm/demo_streamlit.py` provides recording or WAV/FLAC upload, ordinary RNNT
+transcription before an explicit commit, then the existing Qwen ASR readout and
+native agent answer. An optional text-only answer uses the same frozen Qwen and
+identical history/system prompt. The audio path does not receive the current
+RNNT transcript. History is per browser session, editable before acceptance,
+and contains only previous accepted user/assistant turns. It can be disabled or
+cleared. Exported comparison JSON includes the exact history, prompt and model
+path. The default Russian system prompt is the one used for training.
+
+This is a recording/commit demo, not streaming partial ASR: `st.audio_input`
+returns audio only after Stop. Clips must be 0.5–30 seconds. Stereo uploads use
+the explicitly selected channel; resampling uses scipy, with no enhancement or
+automatic channel mixing. Long histories exceeding the 8192-token budget fail
+visibly rather than being silently discarded. Generated outputs are capped at
+256 tokens and the UI marks a reached limit. Silence hallucination and target
+speaker selection remain model-quality limitations.
+
+`demo_engine.py` is an inference adapter. It restores only the official GigaAM
+RNNT head (1,192,354 parameters) and decoder configuration from the original
+checkpoint and shares the frozen encoder already loaded by IFAO. It uses native
+GigaAM forward/decoding and IFAO `generate`; no separate decoder algorithm or
+training changes. A lock serializes access to the shared GPU model. The process
+requires exactly one visible GPU. RNNT and projector requests currently repeat
+encoder computation; no claim of encoder-output caching is made.
+
+```bash
+cd lalm
+CUDA_VISIBLE_DEVICES=3 \
+IFAO_DEMO_MODEL=/runs/ifao-balalaika-export/epoch-2 \
+IFAO_DEMO_RNNT=/model.ckpt \
+IFAO_DEMO_LABEL='Balalaika, global step 6578' \
+python -m streamlit run demo_streamlit.py --global.developmentMode=false \
+  --server.address=0.0.0.0 --server.port=8507 --server.headless=true \
+  --server.fileWatcherType=none --browser.gatherUsageStats=false
+```
+
+Install `requirements-demo.txt` in the serving environment, without changing
+the running trainer environment. The current deployment uses isolated
+`/demo-ui` packages prepended to the existing GPU PYTHONPATH. On exp, the service
+runs in `nemo-asr-ru-20261005`; local `ifao-demo-tunnel.service` forwards 8507 to
+the container's bridge address. Existing Tailscale Serve exposes the local
+listener at `https://minipc.tail683b27.ts.net/`. No public port was published.
+
+Verification: a real CUDA smoke test produced RNNT and Qwen ASR transcripts of
+the same held-out recording, plus an audio-conditioned answer. Playwright over
+the actual HTTPS route verified upload → RNNT → commit → Qwen ASR/audio answer
+and text-path comparison → accepted history. A second browser run used a fake
+microphone supplied with that WAV and verified the recording path reaches RNNT.
+These are runtime checks, not evidence that background voices are suppressed.
+The demo initially serves epoch 2; training on GPUs 0,2 continues independently.

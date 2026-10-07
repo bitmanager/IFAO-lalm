@@ -1,0 +1,16 @@
+[Unit]
+Description=IFAO ASR and history demo
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/docker exec -u 0:26403 --env-file=/etc/ifao-demo.env -w /ifao-context-review/lalm nemo-asr-ru-20261005 python -m streamlit run demo_streamlit.py --global.developmentMode=false --server.address=0.0.0.0 --server.port=8507 --server.headless=true --server.fileWatcherType=none --browser.gatherUsageStats=false
+ExecStop=/usr/bin/docker exec nemo-asr-ru-20261005 pkill -TERM -f "^python -m streamlit run demo_streamlit[.]py "
+ExecStopPost=/usr/bin/timeout 30 /usr/bin/docker exec nemo-asr-ru-20261005 sh -c "while pgrep -f '^python -m streamlit run demo_streamlit[.]py ' >/dev/null; do sleep 1; done"
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=35
+
+[Install]
+WantedBy=multi-user.target
