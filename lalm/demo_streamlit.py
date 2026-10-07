@@ -28,6 +28,8 @@ if os.environ.get("IFAO_DEMO_EXAMPLES"):
             st.write("**GigaAM — только сравнение**", step["gigaam"]["text"])
             st.write("**Qwen по аудио с аудиоисторией**", step["audio_answer"]["text"])
             st.write("**Каскад GigaAM → Qwen с собственной текстовой историей**", step["text_answer"]["text"])
+            if step["audio_answer"]["limit_reached"] or step["text_answer"]["limit_reached"]:
+                st.warning("Ответ на этом шаге достиг ограничения 256 токенов и мог оборваться.")
             st.caption(f'Аудиореплик в контексте: {step["audio_answer"]["audio_turns"]}; '
                        f'токенов контекста: {step["audio_answer"]["input_tokens"]}.')
             with st.expander("Все новые ответы по порядку"):
