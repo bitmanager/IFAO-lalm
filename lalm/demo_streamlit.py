@@ -35,6 +35,12 @@ def load_example_context(item):
     st.session_state.pop("pending", None)
 
 
+def load_selected_example(key):
+    item = st.session_state[key]
+    if item is not None and item.get("auto_context", False):
+        load_example_context(item)
+
+
 with st.sidebar:
     st.write("**Чекпойнт**", Path(checkpoint).name)
     st.caption(os.environ.get("IFAO_DEMO_LABEL", checkpoint))
@@ -52,6 +58,14 @@ with st.sidebar:
     st.caption("Реплики 0,5–30 секунд. Распознавание начинается после остановки записи; это пока не потоковый ASR.")
     st.caption("Подавление чужого голоса ещё проверяется. Ошибки и выдуманные слова возможны.")
 
+history = list(st.session_state.history) if use_history else []
+with st.expander(f"История, передаваемая Qwen — {len(history)} сообщений", expanded=True):
+    for turn in history:
+        with st.chat_message(turn["role"]):
+            st.write(turn["content"])
+    if not history:
+        st.caption("Qwen получит текущую реплику без истории разговора.")
+
 recording = st.audio_input("Записать реплику", sample_rate=16000, key=f"mic-{st.session_state.recording_id}")
 uploaded = st.file_uploader("Или загрузить WAV / FLAC", type=["wav", "flac"], key=f"file-{st.session_state.recording_id}")
 source = uploaded if uploaded is not None else recording
@@ -62,6 +76,7 @@ if os.environ.get("IFAO_DEMO_EXAMPLES"):
         "Готовая проверка — вместо микрофона или файла", [None, *examples],
         format_func=lambda item: "Использовать микрофон / файл" if item is None else item["name"],
         key=f"example-{st.session_state.recording_id}",
+        on_change=load_selected_example, args=(f"example-{st.session_state.recording_id}",),
     )
     if example is not None:
         st.caption(example["description"])
@@ -128,10 +143,3 @@ if source is not None or example is not None:
             pending["committed"] = True
             st.rerun()
         st.download_button("Скачать сравнение JSON", json.dumps(result, ensure_ascii=False, indent=2), "comparison.json", "application/json")
-
-with st.expander("История, которую получит следующая реплика", expanded=True):
-    for turn in st.session_state.history:
-        with st.chat_message(turn["role"]):
-            st.write(turn["content"])
-    if not st.session_state.history:
-        st.caption("История пока пустая.")
