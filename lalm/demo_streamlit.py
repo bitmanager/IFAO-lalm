@@ -14,6 +14,27 @@ st.title("🎙️ Русская речь: ASR → коммит → Qwen")
 st.caption("Запишите реплику: сначала обычная расшифровка, после коммита — аудиовход Qwen с историей.")
 checkpoint = os.environ["IFAO_DEMO_MODEL"]
 
+if os.environ.get("IFAO_DEMO_EXAMPLES"):
+    replay_path = Path(os.environ["IFAO_DEMO_EXAMPLES"]).with_name("audio-history-rollout.json")
+    if replay_path.is_file():
+        replay = json.loads(replay_path.read_text())
+        with st.expander("Весь звонок — человек на записи, новые ответы Qwen", expanded=True):
+            st.caption(replay["description"])
+            st.caption(f'Чекпойнт: {replay["checkpoint"]}. Готово шагов: {len(replay["steps"])}.')
+            step = st.selectbox("Шаг перепрогона", replay["steps"],
+                                format_func=lambda item: f'{item["step"]:02d} · {item["end"]:.1f} с')
+            for audio_path in step["audio_paths"]:
+                st.audio(Path(audio_path).read_bytes(), format="audio/wav")
+            st.write("**GigaAM — только сравнение**", step["gigaam"]["text"])
+            st.write("**Qwen по аудио с аудиоисторией**", step["audio_answer"]["text"])
+            st.write("**Каскад GigaAM → Qwen с собственной текстовой историей**", step["text_answer"]["text"])
+            st.caption(f'Аудиореплик в контексте: {step["audio_answer"]["audio_turns"]}; '
+                       f'токенов контекста: {step["audio_answer"]["input_tokens"]}.')
+            with st.expander("Все новые ответы по порядку"):
+                for item in replay["steps"]:
+                    st.write(f'**Шаг {item["step"]}** · GigaAM для сравнения: {item["gigaam"]["text"]}')
+                    st.write(item["audio_answer"]["text"])
+
 
 @st.cache_resource
 def engine():
