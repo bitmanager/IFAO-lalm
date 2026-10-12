@@ -15,6 +15,8 @@ import time
 from pathlib import Path
 from typing import Any
 
+_LOGGER = logging.getLogger(__name__)
+
 
 def _get(obj: Any, path: str, default: Any = None) -> Any:
     value = obj
@@ -90,7 +92,7 @@ def _amd_smi_metrics(executable: str) -> tuple[dict[str, float], dict[str, str]]
         )
         cards = json.loads(result.stdout).get("gpu_data", [])
     except (OSError, ValueError, subprocess.SubprocessError) as exc:
-        logging.warning("Could not query AMD SMI GPU metrics: %s", exc)
+        _LOGGER.warning("Could not query AMD SMI GPU metrics: %s", exc)
         return {}, {}
 
     metrics: dict[str, float] = {}
@@ -190,7 +192,7 @@ def _nvidia_gpu_metrics(executable: str) -> tuple[dict[str, float], dict[str, st
             timeout=5,
         )
     except (OSError, subprocess.SubprocessError) as exc:
-        logging.warning("Could not query NVIDIA GPU metrics: %s", exc)
+        _LOGGER.warning("Could not query NVIDIA GPU metrics: %s", exc)
         return {}, {}
 
     return _parse_nvidia_gpu_metrics(result.stdout)
@@ -242,7 +244,7 @@ def _amd_gpu_metrics(executable: str) -> tuple[dict[str, float], dict[str, str]]
         )
         cards = json.loads(result.stdout)
     except (OSError, ValueError, subprocess.SubprocessError) as exc:
-        logging.warning("Could not query AMD GPU metrics: %s", exc)
+        _LOGGER.warning("Could not query AMD GPU metrics: %s", exc)
         return {}, {}
 
     metrics: dict[str, float] = {}
@@ -358,7 +360,7 @@ class MLflowMonitor:
                 daemon=True,
             )
             self._hardware_thread.start()
-        logging.info(
+        _LOGGER.info(
             "MLflow run %s is recording to %s (experiment %s)",
             self.run_id,
             tracking_uri,
@@ -431,7 +433,7 @@ class MLflowMonitor:
                 {"git.commit": revision, "git.dirty": str(dirty).lower()}
             )
         except (OSError, subprocess.SubprocessError):
-            logging.debug("Could not record Git revision for MLflow run", exc_info=True)
+            _LOGGER.debug("Could not record Git revision for MLflow run", exc_info=True)
 
     def add_batch(self, samples: float, target_tokens: float) -> None:
         if not self.enabled:
@@ -494,14 +496,14 @@ class MLflowMonitor:
                 )
                 torch_module.cuda.reset_peak_memory_stats(device)
         except (AttributeError, RuntimeError) as exc:
-            logging.debug("Could not read PyTorch CUDA memory metrics: %s", exc)
+            _LOGGER.debug("Could not read PyTorch CUDA memory metrics: %s", exc)
 
         metrics = {key: value for key, value in metrics.items() if math.isfinite(value)}
         with self._log_lock:
             try:
                 self.mlflow.log_metrics(metrics, step=step)
             except Exception:
-                logging.warning(
+                _LOGGER.warning(
                     "MLflow metric delivery failed at step %s", step, exc_info=True
                 )
 
@@ -517,7 +519,7 @@ class MLflowMonitor:
             try:
                 self.mlflow.log_metrics(metrics, step=step)
             except Exception:
-                logging.warning(
+                _LOGGER.warning(
                     "MLflow metric delivery failed at step %s", step, exc_info=True
                 )
 
@@ -552,7 +554,7 @@ class MLflowMonitor:
                     self._client.set_tag(self.run_id, key, value)
                     self._gpu_tags_logged.add(key)
         except Exception:
-            logging.debug("Could not record MLflow hardware metrics", exc_info=True)
+            _LOGGER.debug("Could not record MLflow hardware metrics", exc_info=True)
 
     def close(self, status: str = "FINISHED") -> None:
         if self.mlflow is None:
@@ -563,6 +565,6 @@ class MLflowMonitor:
         try:
             self.mlflow.end_run(status=status)
         except Exception:
-            logging.warning("Could not finalize MLflow run", exc_info=True)
+            _LOGGER.warning("Could not finalize MLflow run", exc_info=True)
         finally:
             self.mlflow = None

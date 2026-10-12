@@ -19,6 +19,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "lalm" / "lalm_core"))
 from mlflow_monitoring import _gpu_metrics, _parse_nvidia_gpu_metrics
 
+_LOGGER = logging.getLogger(__name__)
+
 
 def numeric(value):
     if isinstance(value, bool):
@@ -197,7 +199,7 @@ def collect(client, config, state, state_path):
         client.log(saved["run_id"], metrics)
         saved["cursor"] = cursor  # Advance only after successful delivery.
         save_state(state_path, state)
-        logging.info("%s: delivered %d metrics", source["name"], len(metrics))
+        _LOGGER.info("%s: delivered %d metrics", source["name"], len(metrics))
     if config.get("hardware") or config.get("prometheus") or config.get("gpu_command"):
         saved = state.setdefault("_host", {})
         if not saved.get("run_id"):
@@ -264,7 +266,7 @@ def main():
         try:
             collect(client, config, state, args.state)
         except Exception:
-            logging.exception(
+            _LOGGER.exception(
                 "Collection failed; retrying without advancing unsent cursors"
             )
             if args.once:
