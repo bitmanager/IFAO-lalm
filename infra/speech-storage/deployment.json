@@ -1,0 +1,26 @@
+{
+  "host": "dev-1",
+  "hostname": "exp-srv-rtx6000x4-02",
+  "root": "/mnt/local/drive2/speech-data-storage-20261012",
+  "endpoint": "http://100.119.47.17:19000",
+  "console": "http://127.0.0.1:19001",
+  "network": "Tailnet S3 listener; loopback console; authenticated private buckets",
+  "service": "speech-data-minio.service",
+  "storage_mode": "Single disk R&D; no replication or high-availability claim",
+  "minio": {
+    "version": "RELEASE.2025-09-07T16-13-09Z",
+    "commit": "07c3a429bfed433e49018cb0f78a52145d4bedeb",
+    "sha256": "7c5bd8512c6e966455b1d198209358b2d191c77a83ab377c4073281065fb855f",
+    "source": "Unmodified /usr/bin/minio copied from the existing bm-langfuse-minio container; no credentials or volumes copied"
+  },
+  "mc": {
+    "version": "RELEASE.2025-08-13T08-35-41Z",
+    "commit": "7394ce0dd2a80935aded936b09fa12cbb3cb8096",
+    "sha256": "01f866e9c5f9b87c2b09116fa5d7c06695b106242d829a8bb32990c00312e891"
+  },
+  "upstream_service_commit": "97cce5207f3836fae366ba51e44d479f3c31e088",
+  "buckets": ["speech-corpora", "speech-annotations", "speech-datasets", "speech-benchmarks", "speech-evaluation"],
+  "credentials": "Generated on host; config/*.env mode0600; never committed",
+  "corpus_import_status": "Awaiting authoritative corpus paths; no audio moved",
+  "benchmark_status": "Access isolation configured; final holdout cohort and hash-exclusion registry not yet defined"
+}

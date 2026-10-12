@@ -1,0 +1,31 @@
+# Adapted deployment configuration from minio/minio-service, commit
+# 97cce5207f3836fae366ba51e44d479f3c31e088. Original retained under upstream/.
+[Unit]
+Description=SpeechLLM R&D S3 storage
+Documentation=https://github.com/minio/minio-service
+Wants=network-online.target
+After=network-online.target
+RequiresMountsFor=/mnt/local/drive2/speech-data-storage-20261012
+AssertPathIsMountPoint=/mnt/local/drive2
+AssertFileIsExecutable=/mnt/local/drive2/speech-data-storage-20261012/bin/minio
+AssertFileNotEmpty=/mnt/local/drive2/speech-data-storage-20261012/config/server.env
+
+[Service]
+Type=notify
+WorkingDirectory=/mnt/local/drive2/speech-data-storage-20261012
+User=2026
+Group=2026
+ProtectProc=invisible
+EnvironmentFile=/mnt/local/drive2/speech-data-storage-20261012/config/server.env
+ExecStart=/mnt/local/drive2/speech-data-storage-20261012/bin/minio server $MINIO_OPTS $MINIO_VOLUMES
+ExecReload=/bin/kill -SIGHUP $MAINPID
+Restart=always
+RestartSec=5
+LimitNOFILE=1048576
+TasksMax=infinity
+TimeoutSec=120
+MemoryMax=4G
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

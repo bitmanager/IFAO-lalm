@@ -1,0 +1,17 @@
+{
+  "status": "Inventory from user report; paths and exact source manifests pending verification",
+  "training_target_note": "Qwen27B generated responses are separate targets from verbatim transcripts; an answer-target corpus does not implement transcript CE",
+  "corpora": [
+    {"id": "golos", "transcript_source": "Human procedure of original authors, used through a downloaded copy", "copy_matches_original_verified": false},
+    {"id": "sova-rudevices", "transcript_source": "Human, according to dataset card; original downloaded labels", "copy_matches_original_verified": false},
+    {"id": "phone1", "transcript_source": "Automatic GigaAM-RNNT", "human_gold": false},
+    {"id": "phone2", "transcript_source": "Automatic OpenSTT; exact model unconfirmed", "human_gold": false},
+    {"id": "balalaika", "transcript_source": "Automatic ASR plus text processing; punct/rover creation details not fully established", "human_gold": false},
+    {"id": "gemini-tts-eqvanta", "transcript_source": "Written synthetic source from Qwen, checked and synthesized by Gemini; not human ASR annotation", "human_gold": false},
+    {"id": "bitmanager-sessions", "transcript_source": "Client transcript from GigaAM-RNNT; agent history text origin unconfirmed", "human_gold": false}
+  ],
+  "artifact_layers": ["raw_audio", "source_transcripts", "qwen_generated_responses", "api_annotations", "human_review", "text_histories", "dataset_manifests"],
+  "history": "Text only; no saved embeddings of past turns",
+  "schema_requirements": ["conversation_id", "sample_id", "audio_sha256", "audio_uri", "annotation_source", "annotation_version", "split", "verbatim_text", "history_source"],
+  "publication": "Versioned dataset prefixes and recorded checksums; final holdout must be excluded by conversation and audio hash before training publication"
+}
