@@ -16,7 +16,12 @@
     "balalaika/src/to_webdataset.py",
     "balalaika/src/punctuation/punctuation.py",
     "balalaika/src/transcription/README.md",
-    "balalaika/src/punctuation/README.md"
+    "balalaika/src/punctuation/README.md",
+    "balalaika/cluster_admin/node_delivery.py",
+    "balalaika/cluster_admin/partition_upload.py",
+    "bitmanager-datapipeline/airflow/README.md",
+    "bitmanager-datapipeline/docs/reports/dataset-schema-integration-20261001.md",
+    "bitmanager-datapipeline/airflow/src/pii_pipeline/datasets.py"
   ],
   "reuse": [
     {
@@ -46,6 +51,14 @@
     {
       "component": "Existing data platform",
       "finding": "bitmanager-datapipeline already has Airflow stages and source/annotation/release separation; examine its existing dataset-schema integration before proposing any new canonical schema"
+    },
+    {
+      "component": "Existing canonical codec",
+      "finding": "The implemented opt-in bitmanager.dataset/1 codec comes from bitmanager-dataset-schema at platform revision 616d877ecbe357707b19e9b785b1014b43bc21f7. JSONL and its .context.json sidecar must travel together. Reuse the existing codec after adapter approval rather than treating the older call-dataset/1.0 proposal as an implemented format"
+    },
+    {
+      "component": "Native archive import",
+      "finding": "11 completed local Russian partitions were copied unchanged with native mc: 88 WebDataset tar files, 12,196 audio/JSON pairs, 9,304,399,271 producer export bytes. All original files passed full S3 SHA256 readback. This is source staging with no training split or final holdout exclusion claim"
     }
   ],
   "no_pipeline_process_or_state_changes": true,
