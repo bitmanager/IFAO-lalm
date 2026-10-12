@@ -1,0 +1,124 @@
+# Russian production/test ASR benchmark
+
+`benchmark_langfuse_asr.py` is an orchestration/format adapter. It uses the native
+Langfuse CLI for API requests, ready FFmpeg for channel extraction, our existing
+SIP preparation runner for native GigaAM RNNT decoding, and native AGY `view_file`
+for Gemini. It does not implement ASR, model inference, forced alignment, or API
+pagination. It does not change training or deploy models.
+
+The fixed cohort is 12 September–11 October 2026, Europe/Moscow:
+`2026-09-11T21:00:00Z <= call_start < 2026-10-11T21:00:00Z`.
+Production and test remain separate. Russian is selected by explicit language
+metadata or the trace's `ru` tag. All raw exports remain available for audit.
+
+Audio, model outputs and review files belong on dev/exp, outside this repository.
+The current data roots on dev are:
+
+```
+/mnt/local/drive2/prod-asr-benchmark-20260912-20261011-v1
+/mnt/local/drive2/test-asr-benchmark-20260912-20261011-v1
+```
+
+## Source exports
+
+Use official `@langfuse/cli@1.2.4 api observations list --all --json`. It returns
+an envelope with `body.data`; observation IO/metadata can be JSON strings.
+The adapter rejects truncated exports and duplicate observation IDs.
+
+Recording spans start at upload, not call start. Export recordings with adjacent
+date padding, then join root observations by `traceId`. For roots, combine native
+filter conditions: `tags any of [call]`, `isRootObservation = true`, and both
+explicit date bounds. Native `--filter` takes precedence over basic query fields.
+Use `core,basic,time,metadata,trace_context` for roots: broad HTTP/LLM IO is large
+and unnecessary. Recording export needs IO to retain media and online turns.
+Export `speech.asr` separately with model/provider/phase/status/timing metadata.
+
+Credentials are supplied to the native CLI container from the existing service
+environment in memory. Never put keys or signed media URLs in the repository,
+review CSV, terminal output, or prompts.
+
+```
+python lalm/benchmark_langfuse_asr.py prepare \
+  --root "$DATA_ROOT" --environment prod \
+  --recordings "$DATA_ROOT/raw/recording-observations-boundary.json" \
+  --roots "$DATA_ROOT/raw/call-root-observations.json"
+```
+
+Prepare retains missing recordings and empty online results in `calls.jsonl` and
+`cohort.json`. Audio assets are deduplicated; distinct calls are not. Playground,
+campaign, copied and simulated provenance remains visible. The initial synthetic
+transport trigger `Начни разговор` is not transcribed user speech.
+
+## Ready ASR runners
+
+```
+python lalm/benchmark_langfuse_asr.py download --root "$DATA_ROOT" \
+  --api-container prod-asr-benchmark-api-20261012
+```
+
+For the current self-hosted MinIO URL, explicitly supply `--media-proxy` pointing
+to an SSH loopback forward. The original signed Host header is preserved. This
+does not change the Langfuse/MinIO services. `--ffmpeg` can specify the ready
+FFmpeg in our existing container. Existing originals and derived audio must all
+match their stored hashes before a download is reused.
+
+The adapter emits `$DATA_ROOT/giga/data/calls.raw.jsonl` and an empty
+`control_truth.jsonl` for the unchanged existing `prepare_sip.py` runner:
+
+```
+python /path/to/existing/prepare_sip.py --root "$DATA_ROOT/giga" \
+  --model /path/to/gigaam-sip-readable.ckpt --device cpu --threads 8 --batch-size 8
+```
+
+Pinned SIP weights SHA256:
+`607e71d4d9fa87fadbdd779357fc3d1d064e1c273e7080cafd325ce474ba591e`.
+Pinned existing runner SHA256:
+`5a1d2023f130278f4c1b8205409ba7a47df94bf4011b5f0cf43fcffafb7828f8`.
+The runner calls native GigaAM forward/RNNT decoding. Its native word emissions
+are approximate boundaries, not original online commits. Empty ASR failures
+remain in the coverage ledger. Stereo CH0 is the recorder-declared user channel;
+geometry alone does not verify that role. Mono fallback remains explicitly
+unverified. Native model/script/audio cache provenance must be checked on resume.
+
+```
+python lalm/benchmark_langfuse_asr.py gemini --root "$DATA_ROOT" \
+  --workspace /path/to/empty/agy-workspace --variant blind
+python lalm/benchmark_langfuse_asr.py gemini --root "$DATA_ROOT" \
+  --workspace /path/to/empty/agy-workspace --variant trace_assisted
+python lalm/benchmark_langfuse_asr.py report --root "$DATA_ROOT"
+```
+
+AGY uses a fresh process per recording and pins `gemini-3.8-flash-low`. Never use
+`--continue` or share a conversation across calls. Blind transcription sees only
+user-channel WAV. Trace-assisted transcription separately sees online context,
+which may contain errors or leak answers. These are two information conditions
+of the same model, not independent recognizers. Blind jobs reuse identical audio;
+context jobs are per call. Both compare offline full-call information, not a fair
+equal-context online commit test.
+
+Accept an AGY result only with native success, one turn, a matching model, a
+successful `view_file` of the exact allowed audio and validated structured output.
+External ASR/commands/extra file reads invalidate the result. Preserve failed
+attempts and stderr; bounded retry is only for explicit transient errors.
+
+## Review and metrics
+
+Reports are timestamped snapshots so manual edits in prior files are preserved.
+Keep reviewed annotations keyed by `call_id`; do not treat a new snapshot as
+carrying earlier manual decisions. Report similarity is a sequence-match diagnostic,
+not WER. Include missing/failed jobs in coverage, not just completed transcripts.
+
+Listen to disagreements and a representative sample of agreements. Review names,
+numbers, negations, hallucinated/omitted words, repetitions and speaker mixups.
+Logical plausibility with the history is useful for triage but is not proof of
+what was spoken. Neither Gemini nor offline GigaAM is human ground truth. WER/CER
+requires independently checked reference transcripts. Original recording clocks,
+onset timestamps, interrupted agent text and channel normalization can differ
+from the original online audio; retain that limitation in comparisons.
+
+Contract checks:
+
+```
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover \
+  -s tests -p test_benchmark_langfuse_asr.py -v
+```
