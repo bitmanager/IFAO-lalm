@@ -29,7 +29,10 @@ Predictions, audio, transcripts and model weights are not uploaded as artifacts.
 artifact directories under `MLFLOW_ROOT`. Install the monitoring dependencies
 in `${MLFLOW_ROOT}/venv`, then run the script in a persistent service/session.
 Set `MLFLOW_ALLOWED_HOSTS` explicitly for the intended dashboard hostnames and
-ports; the default allows loopback only. Storage and dependencies are operator
+ports, and `MLFLOW_CORS_ALLOWED_ORIGINS` to the browser origins including scheme
+and port (for example `http://my-tailnet-host:8445`). Host validation alone can
+let the page load while browser POST requests for charts receive HTTP 403.
+The defaults allow loopback only. Storage and dependencies are operator
 managed; the script is not a production database provisioning tool.
 
 An SSH local forward can expose the tracking port on a workstation. To publish
@@ -85,3 +88,9 @@ boolean settings and SDK delivery failures without a GPU.
 `MLFLOW_TRACKING_URI=... python tests/mlflow_native_smoke.py` verifies native
 metric delivery and run finalization against a real tracking server without a
 GPU training job. Full model training remains a separate integration check.
+
+For training loss and GPU metrics, open **Model training → Runs**. A direct link
+is `/#/experiments/<experiment_id>/runs?workflowType=machine_learning`.
+The GenAI overview queries traces, latency and token usage; training scalars do
+not populate those charts. Browser requests must use an origin configured in
+`MLFLOW_CORS_ALLOWED_ORIGINS`, even when serving the UI through an SSH/TCP proxy.
