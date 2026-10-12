@@ -34,11 +34,6 @@
       "id": "agy-07",
       "concurrency": 2,
       "min_interval_seconds": 1
-    },
-    {
-      "id": "agy-08",
-      "concurrency": 2,
-      "min_interval_seconds": 1
     }
   ]
 }
