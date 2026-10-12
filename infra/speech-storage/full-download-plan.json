@@ -129,7 +129,8 @@
       "status_at_launch": "RUNNING",
       "verified_source_files": 159,
       "verified_s3_readback_files": 159,
-      "native_prefix": "s3://speech-corpora/staging/gemini/hf-e9b13cc20e57aa93a3df50e91a6d62230cc26cac/"
+      "native_prefix": "s3://speech-corpora/staging/gemini/hf-e9b13cc20e57aa93a3df50e91a6d62230cc26cac/",
+      "status": "COPIED_AND_FULL_SHA256_READBACK_VERIFIED"
     },
     {
       "id": "bitmanager-sessions",
@@ -143,11 +144,16 @@
       "service": "speech-data-full-sessions-tls-20261012.service",
       "status_at_launch": "RUNNING",
       "native_prefix": "s3://speech-corpora/staging/bitmanager-sessions/hf-52644a10afb6dd0651ed002809cdd24493f409ec/",
-      "note": "Full source inventory is not a training admission, complete quality assessment, or proof that every catalogued utterance has usable ground truth."
+      "note": "Full source inventory is not a training admission, complete quality assessment, or proof that every catalogued utterance has usable ground truth.",
+      "status": "COPIED_AND_FULL_SHA256_READBACK_VERIFIED",
+      "verified_source_files": 27187,
+      "verified_s3_readback_files": 27187,
+      "compressed_source_catalog": "russian-compressed-sources-20261013.json"
     }
   ],
   "supplemental_archive_catalog": "supplemental-source-archive-20261012.json",
   "corporate_tailnet_source_discovery": "tailscale-source-discovery-20261013.json",
   "research_queue": "Separate local/web source reports and supplemental native archives; additional datasets are not substitutes for the seven requested families.",
-  "publication_gate": "No unified portable training release before an approved format adapter and explicit benchmark exclusion registry; native source staging does not change training_eligible flags."
+  "publication_gate": "No unified portable training release before an approved format adapter and explicit benchmark exclusion registry; native source staging does not change training_eligible flags.",
+  "russian_compressed_source_catalog": "russian-compressed-sources-20261013.json"
 }

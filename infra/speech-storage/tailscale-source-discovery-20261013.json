@@ -146,7 +146,10 @@
         "verification": "Original S3 object bytes decoded by existing ffprobe in patch-gigaam; no GPU inference"
       },
       "private_join_receipt": "/tmp/speech-data-calls-join-20261013.h81agj/receipt.json",
-      "eligibility": "Private source staging candidate; benchmark overlap and verbatim/quality audit unresolved"
+      "eligibility": "Private source staging candidate; benchmark overlap and verbatim/quality audit unresolved",
+      "spoken_language_status": "UNVERIFIED",
+      "strict_russian_acquisition": "NOT_ADMITTED_PENDING_POSITIVE_LANGUAGE_EVIDENCE",
+      "scope_note": "Separate host/source from patch-spark-uz-01; Uzbekistan language findings do not classify this Russian-host candidate"
     },
     {
       "id": "dev-spark-bank-pilot",
@@ -166,7 +169,20 @@
         "hold2": 100
       },
       "labels": "The gold wording refers to Opus agent-field annotations and LLM judging; human word-level ASR gold not established",
-      "eligibility": "Preserve original 100 holdout calls; not automatic train"
+      "eligibility": "Preserve original 100 holdout calls; not automatic train",
+      "spoken_language_status": "UNVERIFIED",
+      "strict_russian_acquisition": "NOT_ADMITTED",
+      "raw_dialogue_calls": 300,
+      "raw_segment_rows": 12708,
+      "segments_with_start_end": 12708,
+      "roles": {
+        "operator": 6357,
+        "client": 6338,
+        "unknown": 13
+      },
+      "native_overlapping_start_events": 3754,
+      "metadata_note": "Original raw vs anon-v9 and PII/check/business entity labels remain separate; field/business gold is not human ASR gold",
+      "resident_asr_probe": "Two speech-rich middle clips produced empty resident GigaAM transcripts. Endpoint language=russian is constant and not independent language identification"
     },
     {
       "id": "dev-spark-downloaded-crm",
@@ -183,7 +199,18 @@
       ],
       "hours_additive": false,
       "labels": "No complete source transcript/gold join verified",
-      "eligibility": "Potential shared source with production benchmarks; cross-hash/source-ID exclusion needed"
+      "eligibility": "Potential shared source with production benchmarks; cross-hash/source-ID exclusion needed",
+      "spoken_language_status": "UNVERIFIED",
+      "strict_russian_acquisition": "NOT_ADMITTED",
+      "declared_unique_manifest_hours": 80.266944,
+      "duration_note": "Deduplicated by existing recorded SHA and native durations; not independently rehashed audio",
+      "metadata_note": "No language, transcript or speech-segment timing fields found; employee ID is not diarization speaker ID",
+      "splits": {
+        "pilot": 20,
+        "history": 330,
+        "reserve": 50,
+        "balanced_explicit_split": "ABSENT"
+      }
     },
     {
       "id": "patch-uz-native-audio-and-pipeline",
@@ -199,7 +226,17 @@
       "per_stage_probabilities_files": 23742,
       "pipeline_id_observed": "local-gigaam-nemotron-qwen4b-pii-gpu-v1",
       "labels": "Local GigaAM transcription plus role/anonymization stages; not an independently verified strong API ASR layer",
-      "note": "Stage bytes include repeated probability matrices and text, not corresponding new waveform bytes or unique new calls. Need source-S3/audio-hash pairing and language coverage audit. Anonymized output must not be treated as verbatim transcript for unchanged original audio."
+      "note": "Stage bytes include repeated probability matrices and text, not corresponding new waveform bytes or unique new calls. Need source-S3/audio-hash pairing and language coverage audit. Anonymized output must not be treated as verbatim transcript for unchanged original audio.",
+      "strict_russian_acquisition": "NOT_ADMITTED_UNVERIFIED_NATIVE_S3_LANGUAGE",
+      "language_audit": {
+        "source_json_rows": 24155,
+        "config_language_uz": 24155,
+        "config_language_ru": 0,
+        "unique_declared_audio_sha256": 24153,
+        "scope": "Only patch-spark-uz-01 native pipeline stages; not patch-spark-ru-01 calls"
+      },
+      "pipeline_stage_language_decision": "EXCLUDED_NON_RUSSIAN_CHECKED_STAGE_JOBS_ONLY",
+      "native_s3_language_status": "UNVERIFIED_NO_COMPLETE_S3_TO_STAGE_JOIN"
     }
   ],
   "duplicate_sources": [
@@ -285,11 +322,12 @@
     "credentials_not_logged": true,
     "raw_transcripts_not_logged_by_root": true,
     "training_release": false,
-    "scope_next": "Native source exports into private staging after source/split provenance and header/coverage checks; no implicit admission"
+    "scope_next": "New acquisition restricted to positively evidenced Russian sources with native metadata and lossless compressed storage; unresolved candidates remain discoveries"
   },
   "research_reports": [
     "/home/alexesn/slam-asr-ru/data-source-research/tailscale-data-discovery-20261012-exp.md",
     "/home/alexesn/slam-asr-ru/data-source-research/tailscale-data-discovery-20261012-history.md",
     "/home/alexesn/slam-asr-ru/data-source-research/tailscale-data-discovery-20261012-workstations.md"
-  ]
+  ],
+  "russian_compressed_source_catalog": "russian-compressed-sources-20261013.json"
 }
