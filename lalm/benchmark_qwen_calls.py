@@ -45,12 +45,13 @@ def main():
         target = args.output / (key + ".json")
         result = json.loads(target.read_text()) if target.exists() else dict(
             key=key, recipe=recipe, call_id=call["call_id"], media_id=call["media_id"],
-            environment=call["environment"], audio_sha256=call["user_sha256"], segments=[], status="running")
+            environment=call["environment"], audio_sha256=call["user_sha256"],
+            provenance={k: v for k, v in call.items() if k != "segments"}, segments=[], status="running")
         assert result["key"] == key
-        if result["status"] == "complete":
-            continue
         audio = Path(call["user_audio_path"])
         assert runtime.digest(audio) == call["user_sha256"]
+        if result["status"] == "complete":
+            continue
         info = sf.info(audio)
         assert info.samplerate == 16000 and info.channels == 1
         for index, segment in enumerate(call["segments"]):
