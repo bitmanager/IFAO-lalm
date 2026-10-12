@@ -26,6 +26,6 @@
   "upstream_service_commit": "97cce5207f3836fae366ba51e44d479f3c31e088",
   "buckets": ["speech-corpora", "speech-annotations", "speech-datasets", "speech-benchmarks", "speech-evaluation"],
   "credentials": "Generated on host; config/*.env mode0600; never committed",
-  "corpus_import_status": "Awaiting authoritative corpus paths; no audio moved",
+  "corpus_import_status": "Native source archives and metadata are being copied with mc and independently checked by full SHA256 readback; see native-corpus-catalog.json. Format conversion and portable training release remain pending adapter approval and holdout exclusion",
   "benchmark_status": "Access isolation configured; final holdout cohort and hash-exclusion registry not yet defined"
 }

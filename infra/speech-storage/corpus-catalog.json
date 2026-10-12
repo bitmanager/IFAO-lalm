@@ -1,5 +1,7 @@
 {
-  "status": "Inventory from user report; paths and exact source manifests pending verification",
+  "status": "User-reported label provenance retained; verified native source locations and exact archival scopes are recorded in native-corpus-catalog.json",
+  "verified_native_inventory": "native-corpus-catalog.json",
+  "s3_native_inventory": "s3://speech-datasets/catalog/native-corpora-20261012/native-corpus-catalog.json",
   "training_target_note": "Qwen27B generated responses are separate targets from verbatim transcripts; an answer-target corpus does not implement transcript CE",
   "corpora": [
     {"id": "golos", "transcript_source": "Human procedure of original authors, used through a downloaded copy", "copy_matches_original_verified": false},
