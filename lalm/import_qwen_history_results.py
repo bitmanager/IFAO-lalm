@@ -301,6 +301,7 @@ def scan(args, token, manifest, calls, planned, cookie_header=None):
                 outcome = import_item(args.api_url, token, summary, item, cookie_header)
                 counts[outcome] += 1
                 if outcome == "imported":
+                    summary.setdefault("data", {}).update(task_fields(item))
                     imported.append({"task_id": summary["id"], "environment": k[0], "media_id": k[1], "status": item["status"]})
                 elif outcome == "conflict":
                     errors.append(f"{path.name}: existing Qwen result conflicts with this result")
