@@ -155,5 +155,6 @@
   "corporate_tailnet_source_discovery": "tailscale-source-discovery-20261013.json",
   "research_queue": "Separate local/web source reports and supplemental native archives; additional datasets are not substitutes for the seven requested families.",
   "publication_gate": "No unified portable training release before an approved format adapter and explicit benchmark exclusion registry; native source staging does not change training_eligible flags.",
-  "russian_compressed_source_catalog": "russian-compressed-sources-20261013.json"
+  "russian_compressed_source_catalog": "russian-compressed-sources-20261013.json",
+  "organization_calls_dedup_catalog": "organization-calls-dedup-20261013.json"
 }
