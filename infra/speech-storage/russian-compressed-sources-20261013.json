@@ -195,7 +195,7 @@
       "source": "https://huggingface.co/datasets/NCSpeech/YO-CPT-ru",
       "revision": "f2f92c5ecf6b0323cf7e7f9599f0e4852f6c536b",
       "status_at_launch": "RUNNING",
-      "service": "speech-data-yo-cpt-ru-pilot-20261013.service",
+      "service": "speech-data-yo-cpt-ru-pilot-http1-20261013.service",
       "language": "ru",
       "language_evidence": "Pinned publisher card language ru; Russian YODAS2 source and inspected native pilot lang=ru",
       "source_type": "YouTube single-speaker cleaned clips, not telephone calls",
@@ -218,7 +218,8 @@
       "license": "Original LICENSE.md retained; upstream and pipeline component terms are not replaced by a blanket license",
       "overlap": "May overlap YODAS2/LEMAS/Balalaika; private source quarantine, no train admission",
       "s3_target": "s3://speech-private-archive/sources/yo-cpt-ru-pilot/hf-f2f92c5ecf6b0323cf7e7f9599f0e4852f6c536b/YO-CPT-ru-pinned-pilot-with-all-metadata.tar.zst",
-      "receipt": "s3://speech-datasets/catalog/compressed-sources-20261013/yo-cpt-ru-pilot/status.json"
+      "receipt": "s3://speech-datasets/catalog/compressed-sources-20261013/yo-cpt-ru-pilot/status.json",
+      "initial_attempt": "Native curl HTTP/2 CANCEL exit92 after241432347B; no S3 upload. Failure receipt retained; new stock curl HTTP/1.1 job resumes the same pinned partial bytes and requires complete source LFS SHA256 before archive/upload"
     }
   ],
   "training_release": false,
