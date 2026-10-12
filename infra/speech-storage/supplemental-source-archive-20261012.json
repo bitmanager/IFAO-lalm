@@ -180,7 +180,9 @@
       "manifest_vod_rows": 8270,
       "manifest_hours": 39.99936,
       "available_paths": 8139,
+      "available_manifest_hours": 39.478488,
       "missing_paths": 131,
+      "missing_manifest_hours": 0.520868,
       "language": "Mixed RU/UZ; Cyrillic labels do not establish Russian-only hours",
       "labels": "Producer build_v3.py uses gigaam_uz_ru_lm, filtered with WER < 0.25 against uzbek_stt_v2",
       "note": "Separate phone pool from GA 53845. Not Gemini/human gold; claimed 327 later Gemini relabels have no locally recovered raw API responses. Preserve native source and existing exclusions."
