@@ -169,9 +169,11 @@ def native_cli(container, *arguments):
     command = ["sudo", "docker", "exec", container, "npx", "--yes",
                "@langfuse/cli@1.2.4", "api", *arguments, "--json"]
     run = subprocess.run(command, capture_output=True, text=True, timeout=120)
-    if run.returncode:
-        raise RuntimeError(f"Native Langfuse CLI failed, exit={run.returncode}")
     result = json.loads(run.stdout)
+    if result["status"] == 404 and result.get("body", {}).get("message") == "Media not yet uploaded":
+        raise LookupError("media_not_uploaded")
+    if run.returncode:
+        raise RuntimeError(f"Native Langfuse CLI failed, exit={run.returncode}, HTTP={result.get('status')}")
     if result["status"] != 200:
         raise RuntimeError(f"Media descriptor HTTP status={result['status']}")
     return result["body"]
@@ -217,9 +219,16 @@ def download(args):
                 raise ValueError("Downloaded media size mismatch")
             with wave.open(str(tmp)) as wav:
                 channels, rate, frames = wav.getnchannels(), wav.getframerate(), wav.getnframes()
-                if channels not in (1, 2) or rate <= 0 or frames <= 0:
+                if channels not in (1, 2) or rate <= 0:
                     raise ValueError("Unexpected source audio geometry")
             tmp.replace(original)
+            if frames == 0:
+                result = dict(row, status="source_empty_audio", audio_path=str(original),
+                              sha256=sha(original), channels=channels, sample_rate=rate,
+                              duration_seconds=0, channel_role_verified=False)
+                save(status_file, result)
+                print(json.dumps({"media_id": media_id, "status": result["status"]}), flush=True)
+                return result
             user = args.root / "user-audio" / (media_id + ".wav")
             user.parent.mkdir(parents=True, exist_ok=True)
             subprocess.run([*shlex.split(args.ffmpeg), "-nostdin", "-v", "error", "-y", "-i", str(original),
@@ -241,6 +250,8 @@ def download(args):
             # Do not disclose presigned URLs or auth-bearing native tool output.
             result = dict(row, status="failed", error_type=type(error).__name__,
                           error=re.sub(r"https?://\S+", "<url>", str(error)))
+            if isinstance(error, LookupError) and str(error) == "media_not_uploaded":
+                result["status"] = "media_not_uploaded"
         save(status_file, result)
         print(json.dumps({"media_id": media_id, "status": result["status"]}), flush=True)
         return result
@@ -256,6 +267,8 @@ def download(args):
     jsonl(args.root / "giga" / "data" / "calls.raw.jsonl", raw)
     (args.root / "giga" / "data" / "control_truth.jsonl").touch()
     save(args.root / "download-summary.json", {"complete": len(ready), "total": len(results),
+                                              "source_empty_audio": sum(r["status"] == "source_empty_audio" for r in results),
+                                              "media_not_uploaded": sum(r["status"] == "media_not_uploaded" for r in results),
                                               "unique_asset_hours": sum(r["duration_seconds"] for r in ready) / 3600})
 
 
@@ -373,7 +386,7 @@ def gemini(args):
 
 
 def report(args):
-    fields = ["source_environment", "call_id", "trace_id", "origin", "cohort_clock", "media_id",
+    fields = ["source_environment", "call_id", "trace_id", "origin", "cohort_clock", "media_id", "audio_status",
               "online_text", "giga_text", "gemini_text", "trace_assisted_text", "giga_status",
               "gemini_status", "sequence_match_similarity", "review_status", "human_transcript", "review_notes"]
     output = args.root / ("review-" + time.strftime("%Y%m%dT%H%M%S", time.gmtime()) + ".csv")
@@ -387,8 +400,10 @@ def report(args):
             row = {k: call[k] for k in fields if k in call}
             result = native.get(call["media_id"])
             asset = assets.get(call["media_id"], {})
+            row["audio_status"] = asset.get("status", "no_recording")
             if result and (result["provenance"].get("audio_sha256") != asset.get("giga_sha256")
-                           or result["provenance"].get("asr_model_sha256") != "607e71d4d9fa87fadbdd779357fc3d1d064e1c273e7080cafd325ce474ba591e"):
+                           or result["provenance"].get("asr_model_sha256") != "607e71d4d9fa87fadbdd779357fc3d1d064e1c273e7080cafd325ce474ba591e"
+                           or result["provenance"].get("asr_preparer_sha256") != "5a1d2023f130278f4c1b8205409ba7a47df94bf4011b5f0cf43fcffafb7828f8"):
                 raise ValueError("Native GigaAM report cache provenance mismatch")
             row["giga_status"] = "complete" if result else "not_completed"
             row["giga_text"] = " ".join(t["text"] for t in result["turns"] if t["speaker"] == "speaker_0") if result else ""
@@ -398,7 +413,9 @@ def report(args):
                 if path.exists():
                     cached = json.loads(path.read_text())
                     if (cached["audio_sha256"] != asset.get("user_sha256") or cached["model"] != MODEL
-                            or cached["variant"] != variant or not cached.get("prompt_sha256")):
+                            or cached["variant"] != variant or not cached.get("prompt_sha256")
+                            or cached.get("status") != "complete"
+                            or cached["native_result"].get("status") != "SUCCESS"):
                         raise ValueError("Gemini report cache provenance mismatch")
                     row[field] = cached["native_result"]["structured_output"]["transcript"]
                 else:
