@@ -27,6 +27,7 @@ from .contract import PREPROCESSING
 from .pilot_source import S3File
 from .store import s3, connect, dataset_bucket
 from .source_labels import original_label
+from .source_identity import production_conversation
 
 STOP = False
 
@@ -166,6 +167,14 @@ def prepare_asset(asset):
             return
     registry = json.loads(client.get_object(Bucket=dataset_bucket(), Key='benchmarks/holdouts.json')['Body'].read())
     protected = set(registry['audio_sha256'])
+    conversation = production_conversation(asset['object_key'])
+    if conversation is not None and conversation in set(registry['conversation_ids']):
+        with connect() as conn:
+            conn.execute("UPDATE source_assets SET state='EXCLUDED_HOLDOUT',"
+                         "cursor_json=cursor_json || %s,updated_at=now() WHERE id=%s",
+                         (Jsonb({'exclusion_reason': 'protected_conversation',
+                                 'conversation_id': conversation}), asset['id']))
+        return
     cursor = asset['cursor_json'].get('rows', 0)
     made = asset['cursor_json'].get('samples', 0)
     errors = asset['cursor_json'].get('errors', 0)
@@ -208,7 +217,7 @@ def prepare_asset(asset):
                     if sha in protected: continue
                     key = f'prepared/annotation-v1/{sha}.wav'
                     client.put_object(Bucket='speech-corpora', Key=key, Body=data)
-                    sample = {'sample_id': sha, 'conversation_id': 'unresolved-'+sha,
+                    sample = {'sample_id': sha, 'conversation_id': conversation or 'unresolved-'+sha,
                         'audio_bucket': 'speech-corpora', 'audio_key': key, 'audio_sha256': sha,
                         'source_audio_sha256': raw_sha, 'split': 'train',
                         'preprocessing_version': PREPROCESSING, 'review_only': True,
@@ -223,7 +232,8 @@ def prepare_asset(asset):
                                 and isinstance(label.get('text'), str) and not label.get('text_conflict') else label),
                             'original_label_metadata': (label if isinstance(label, dict)
                                 and label.get('annotation_source') == 'original_source_index' else None),
-                            'group_identity_verified': False}}
+                            'group_identity_verified': conversation is not None,
+                            'group_identity_source': 'production_session_path' if conversation else 'unresolved'}}
                     for variant in ('verbatim', 'coverage'):
                         rows.append(dict(sample, prompt_variant=variant))
                     made += 1

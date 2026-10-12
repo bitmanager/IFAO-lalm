@@ -1,4 +1,5 @@
 import io
+import json
 import tarfile
 import unittest
 from unittest.mock import patch
@@ -7,7 +8,7 @@ import numpy as np
 import soundfile as sf
 import pyarrow as pa
 
-from lalm.annotation.prepare import segments, tar_audio_rows, parquet_source_kind
+from lalm.annotation.prepare import segments, tar_audio_rows, parquet_source_kind, prepare_asset
 
 
 def wav(values, rate=16000):
@@ -17,6 +18,19 @@ def wav(values, rate=16000):
 
 
 class SourcePreparationTests(unittest.TestCase):
+    def test_protected_session_is_excluded_before_audio_download(self):
+        session = '089e27e9-89b4-4200-9129-db0813970e2a'
+        asset = {'id': 'source', 'codec': 'audio',
+                 'object_key': f'staging/bitmanager-sessions/revision/sessions/2026/04/07/{session}/customer.opus'}
+        registry = {'audio_sha256': [], 'conversation_ids': [session]}
+        with patch('lalm.annotation.prepare.s3') as client, patch('lalm.annotation.prepare.connect') as db:
+            client.return_value.get_object.return_value = {'Body': io.BytesIO(json.dumps(registry).encode())}
+            prepare_asset(asset)
+            client.return_value.get_object.assert_called_once()
+            self.assertEqual(client.return_value.get_object.call_args.kwargs['Key'], 'benchmarks/holdouts.json')
+            statement = db.return_value.__enter__.return_value.execute.call_args.args[0]
+            self.assertIn('EXCLUDED_HOLDOUT', statement)
+
     def test_parquet_metadata_is_not_treated_as_broken_audio(self):
         self.assertEqual(parquet_source_kind(pa.schema([
             ('filepath', pa.string()), ('gigaam-v3-ctc', pa.string())])), 'reference_metadata')
