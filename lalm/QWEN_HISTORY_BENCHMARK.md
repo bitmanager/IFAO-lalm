@@ -1,5 +1,52 @@
 # Qwen transcription with causal self-history
 
+## Ready-made checkpoint response evaluation on exp
+
+The response benchmark uses the existing native `benchmark_next_reply.py` for
+generation and promptfoo's built-in `llm-rubric` assertions for grading. It does
+not evaluate cached Qwen transcripts as a substitute for the audio model.
+`export_response_promptfoo.py` is a format adapter only: it checks checkpoint,
+case coverage and history identity, then emits promptfoo `providerOutput` tests.
+The `echo` provider never loads or invokes another answer model. Two independent
+rubrics assess task fulfilment and unsupported/contradictory claims. Both must
+pass; incomplete generation is retained and explicitly marked as a failure.
+
+All new infrastructure and artifacts live on `exp-srv-rtx6000x4-02`:
+`/mnt/local/drive2/checkpoint-response-bench-v1`. The first run uses the supplied
+KL1532 checkpoint, ten short full user-channel WAVs without history and the
+`учусь` clip with/without recorded history as two separate diagnostic conditions.
+The full WAVs are not guaranteed to be individual online commits. References
+are existing Gemini candidates, not human audio gold. This is a purposive smoke
+set, not a representative estimate or proof of causal memory improvement.
+
+After native inference completes, export and score on exp:
+
+```sh
+python3 lalm/export_response_promptfoo.py manifest.json native-results.json prepared.json
+/mnt/local/drive2/checkpoint-response-bench-v1/tools/run-promptfoo eval \
+  -c prepared.json --no-cache --no-share --max-concurrency 8 \
+  --output results.json --output results.html
+```
+
+Use a new output directory and a verified checkpoint SHA for each checkpoint.
+Reuse the frozen cases, history and decoding settings. Preserve all raw outputs,
+model-completion flags, promptfoo grading errors and individual assertion
+results; verify that all expected cases and branches are present before reporting
+rates. Compare reference-text, offline-Giga, online-text and native-audio branches
+separately. If the reference-text answer already fails, the error cannot simply
+be attributed to ASR. The judge is explicitly GPT-6 Luna through OpenRouter;
+the public alias is recorded rather than claiming an unavailable dated model ID.
+The installed framework and Node versions are pinned in the exp tools directory.
+No prod/test service is changed. The private provider key is not part of the
+configuration or repository.
+
+Promptfoo 0.124.1's exit status 100 indicates failing quality assertions, not
+necessarily a broken evaluation. Inspect `results.stats.errors`, case coverage,
+and component assertion results rather than treating every nonzero exit as an
+API failure. The initial synthetic good/bad smoke must produce one pass and one
+fail with zero evaluation errors. This also checks that `providerOutput` bypasses
+answer generation: the echo provider must not replace native answers.
+
 ## Next-reply impact pilot
 
 Measure the agent response to a single committed utterance while holding all
