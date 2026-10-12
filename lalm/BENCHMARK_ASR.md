@@ -82,6 +82,12 @@ does not change the Langfuse/MinIO services. `--ffmpeg` can specify the ready
 FFmpeg in our existing container. Existing originals and derived audio must all
 match their stored hashes before a download is reused.
 
+After native channel extraction, exact-zero user PCM is excluded before either
+recognizer runs. Empty and zero-user-channel downloaded WAVs are deleted, with
+IDs, hashes and exclusion reasons retained in the download ledger. These entries
+are omitted from review CSVs and the ready ASR manifest. Quiet or noisy audio is
+not classified as empty by this gate: a single nonzero sample preserves it.
+
 The adapter emits `$DATA_ROOT/giga/data/calls.raw.jsonl` and an empty
 `control_truth.jsonl` for the unchanged existing `prepare_sip.py` runner:
 

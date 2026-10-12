@@ -185,6 +185,17 @@ def native_cli(container, *arguments, api_version="auto"):
     return result["body"]
 
 
+def zero_user_audio(path):
+    """Check exact digital silence in the native FFmpeg mono PCM16 output."""
+    with wave.open(str(path)) as audio:
+        if (audio.getnchannels(), audio.getsampwidth(), audio.getframerate()) != (1, 2, 16000):
+            raise ValueError("Expected mono 16 kHz PCM16 user audio")
+        while frames := audio.readframes(65536):
+            if any(frames):
+                return False
+    return True
+
+
 def download(args):
     def one(row):
         media_id = row["media_id"]
@@ -193,11 +204,15 @@ def download(args):
         try:
             if status_file.exists():
                 saved = json.loads(status_file.read_text())
+                if saved.get("status") in ("excluded_no_user_speech", "source_empty_audio"):
+                    saved["call_ids"] = row["call_ids"]
+                    save(status_file, saved)
+                    return saved
                 if saved.get("status") == "complete":
                     intact = all(Path(saved[k]).exists() and sha(saved[k]) == saved[h]
                                  for k, h in (("audio_path", "sha256"), ("user_audio_path", "user_sha256"),
                                               ("giga_audio_path", "giga_sha256")))
-                    if intact:
+                    if intact and not zero_user_audio(Path(saved["user_audio_path"])):
                         saved["call_ids"] = row["call_ids"]
                         save(status_file, saved)
                         return saved
@@ -233,6 +248,8 @@ def download(args):
                 result = dict(row, status="source_empty_audio", audio_path=str(original),
                               sha256=sha(original), channels=channels, sample_rate=rate,
                               duration_seconds=0, channel_role_verified=False)
+                original.unlink()
+                result["audio_deleted"] = True
                 save(status_file, result)
                 print(json.dumps({"media_id": media_id, "status": result["status"]}), flush=True)
                 return result
@@ -241,6 +258,16 @@ def download(args):
             subprocess.run([*shlex.split(args.ffmpeg), "-nostdin", "-v", "error", "-y", "-i", str(original),
                             "-af", "pan=mono|c0=c0", "-ar", "16000", "-c:a", "pcm_s16le", str(user)],
                            check=True, capture_output=True)
+            if zero_user_audio(user):
+                result = dict(row, status="excluded_no_user_speech", sha256=sha(original),
+                              user_sha256=sha(user), channels=channels, sample_rate=rate,
+                              duration_seconds=frames / rate, audio_deleted=True,
+                              exclusion_reason="exact_zero_user_pcm")
+                original.unlink()
+                user.unlink()
+                save(status_file, result)
+                print(json.dumps({"media_id": media_id, "status": result["status"]}), flush=True)
+                return result
             stereo = original
             if channels == 1:
                 stereo = args.root / "giga-input" / (media_id + ".wav")
@@ -275,6 +302,7 @@ def download(args):
     (args.root / "giga" / "data" / "control_truth.jsonl").touch()
     save(args.root / "download-summary.json", {"complete": len(ready), "total": len(results),
                                               "source_empty_audio": sum(r["status"] == "source_empty_audio" for r in results),
+                                              "excluded_no_user_speech": sum(r["status"] == "excluded_no_user_speech" for r in results),
                                               "media_not_uploaded": sum(r["status"] == "media_not_uploaded" for r in results),
                                               "unique_asset_hours": sum(r["duration_seconds"] for r in ready) / 3600})
 
@@ -486,6 +514,8 @@ def report(args):
             row = {k: call[k] for k in fields if k in call}
             result = native.get(call["media_id"])
             asset = assets.get(call["media_id"], {})
+            if asset.get("status") in ("excluded_no_user_speech", "source_empty_audio"):
+                continue
             row["audio_status"] = asset.get("status", "no_recording")
             row["recording_source_status"] = ("media_link_present" if call["media_id"] else
                                               "missing_recording_span" if call.get("recording_start") is None else

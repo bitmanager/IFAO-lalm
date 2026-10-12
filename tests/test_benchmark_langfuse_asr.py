@@ -1,15 +1,34 @@
 import json
 import tempfile
 import unittest
+import wave
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from lalm.benchmark_langfuse_asr import MODEL, agy_result, incomplete_gemini_status, native_cli, prepare
+from lalm.benchmark_langfuse_asr import MODEL, agy_result, incomplete_gemini_status, native_cli, prepare, zero_user_audio
 from lalm.benchmark_gemini_api import MODEL as API_MODEL, billed_cost, validate
 
 
 class BenchmarkContracts(unittest.TestCase):
+    def test_zero_pcm_gate_preserves_any_nonzero_samples(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "user.wav"
+            for samples, expected in ((b"\0\0" * 1000, True), (b"\0\0" * 1000 + b"\1\0", False)):
+                with wave.open(str(p), "wb") as audio:
+                    audio.setparams((1, 2, 16000, 0, "NONE", "not compressed"))
+                    audio.writeframes(samples)
+                self.assertEqual(zero_user_audio(p), expected)
+
+    def test_zero_pcm_gate_rejects_unconverted_geometry(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "user.wav"
+            with wave.open(str(p), "wb") as audio:
+                audio.setparams((2, 2, 8000, 0, "NONE", "not compressed"))
+                audio.writeframes(b"\0" * 4000)
+            with self.assertRaises(ValueError):
+                zero_user_audio(p)
+
     def export(self, path, rows):
         path.write_text(json.dumps({"status": 200, "body": {
             "data": rows, "meta": {"truncated": False}}}))
