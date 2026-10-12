@@ -26,6 +26,7 @@ def main():
     from lalm_core.model.gigaam_adapter import gigaam_output_length
 
     spec = json.loads(args.manifest.read_text())
+    assert spec["history_mode"] == "self_transcripts_and_agent"
     gpu = "GPU-de629798-46d4-ac37-e28e-d73f59094ab7"
     assert os.environ["CUDA_VISIBLE_DEVICES"] == gpu
     runtime.GPUS = [gpu]
@@ -37,7 +38,7 @@ def main():
     model.requires_grad_(False).eval()
     model.language_model.gradient_checkpointing_disable()
     tokenizer = processor.tokenizer
-    recipe = {k: spec[k] for k in ("checkpoint_sha256", "system_prompt", "user_suffix")}
+    recipe = {k: spec[k] for k in ("checkpoint_sha256", "system_prompt", "user_suffix", "history_mode")}
     recipe["adapter_sha256"] = runtime.digest(Path(__file__))
     recipe["native_inference_sha256"] = runtime.digest(Path(__import__("evaluate_kl").__file__))
     recipe["native_runtime_sha256"] = runtime.digest(Path(runtime.__file__))
@@ -61,7 +62,7 @@ def main():
         assert result["key"] == key
         audio = Path(call["user_audio_path"])
         assert runtime.digest(audio) == call["user_sha256"]
-        if result["status"] == "complete":
+        if result["status"] in ("complete", "truncated"):
             continue
         info = sf.info(audio)
         assert info.samplerate == 16000 and info.channels == 1
@@ -78,8 +79,16 @@ def main():
             history = []
             for h in segment["history"]:
                 assert h["source_at_seconds"] < segment["start"]
-                assert h["role"] in ("user", "assistant") and "<|" not in h["content"]
-                history.append({"role": h["role"], "content": h["content"]})
+                assert h["role"] == "assistant" and "<|" not in h["content"]
+                history.append(dict(h))
+            for prior in result["segments"]:
+                assert prior["source"]["end"] <= segment["start"], "Overlapping speech segments"
+                assert prior["output"]["complete"], "Cannot continue history after truncated generation"
+                history.append(dict(role="user", content=prior["output"]["text"],
+                                    source_at_seconds=prior["source"]["end"]))
+            history.sort(key=lambda h: h["source_at_seconds"])
+            history = [{"role": h["role"], "content": h["content"]} for h in history]
+            history_total = len(history)
             user = {"role": "user", "content": "<|audio|>" * count + "\n" + spec["user_suffix"]}
             while True:
                 prefix = tokens(tokenizer, [{"role": "system", "content": spec["system_prompt"]}] + history + [user])
@@ -90,12 +99,16 @@ def main():
             assert prefix.count(tokenizer.convert_tokens_to_ids("<|audio|>")) == count
             answer = generated(model, tokenizer, prefix, wave)
             result["segments"].append(dict(source=segment, output=answer, prompt_tokens=len(prefix),
-                                           history_used=len(history), history_dropped=len(segment["history"]) - len(history)))
+                                           history_used=len(history), history_dropped=history_total - len(history),
+                                           history_sent=history))
             runtime.atomic(target, result)
             print(json.dumps(dict(call=call_index + 1, calls=len(calls), segment=index + 1,
                                   segments=len(call["segments"]), generation_complete=answer["complete"])), flush=True)
+            if not answer["complete"]:
+                break
         assert runtime.digest(audio) == call["user_sha256"]
-        result["status"] = "complete" if all(s["output"]["complete"] for s in result["segments"]) else "truncated"
+        result["status"] = "complete" if len(result["segments"]) == len(call["segments"]) and all(
+            s["output"]["complete"] for s in result["segments"]) else "truncated"
         result["transcript"] = "\n".join(s["output"]["text"] for s in result["segments"])
         result["human_gold"] = False
         runtime.atomic(target, result)
