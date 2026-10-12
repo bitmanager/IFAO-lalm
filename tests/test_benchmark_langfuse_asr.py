@@ -106,6 +106,9 @@ class BenchmarkContracts(unittest.TestCase):
             self.assertEqual(incomplete_gemini_status(p), "attempt_pending_validation")
             (p / "attempt-10.status.json").write_text('{"exit_code": 1}')
             self.assertEqual(incomplete_gemini_status(p), "failed_attempt")
+            (p / "attempt-11.stream.jsonl").write_text(json.dumps({
+                "event": "result", "result": {"error": "Individual quota reached"}}))
+            self.assertEqual(incomplete_gemini_status(p), "quota_blocked_attempt")
 
     def api_response(self, **changes):
         native = {"model": API_MODEL, "choices": [{"finish_reason": "stop", "message": {

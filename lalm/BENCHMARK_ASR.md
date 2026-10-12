@@ -147,7 +147,9 @@ Primary protocol documentation:
 Reports are timestamped snapshots so manual edits in prior files are preserved.
 Both Gemini variants expose completion status. Captured provider filter refusals,
 failed attempts, attempts awaiting validation, unavailable audio and uncompleted
-jobs remain distinct. A native envelope saying `SUCCESS` does not override a
+jobs remain distinct. Quota-blocked attempts retain a separate status; statuses
+describe the latest captured attempt, which can predate an in-flight retry.
+A native envelope saying `SUCCESS` does not override a
 filter refusal or make an invalid multi-turn result acceptable. Status reporting
 does not retry rejected requests or accept their partial transcripts.
 Keep reviewed annotations keyed by `call_id`; do not treat a new snapshot as

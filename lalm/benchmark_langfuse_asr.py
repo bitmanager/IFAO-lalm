@@ -445,6 +445,8 @@ def incomplete_gemini_status(directory):
         result = event.get("result", {}) if event.get("event") == "result" else {}
         if result.get("response", "").startswith("This request was blocked by Gemini's filters."):
             return "provider_filtered"
+        if "individual quota reached" in str(result.get("error", "")).lower():
+            return "quota_blocked_attempt"
     status_path = latest.with_name(latest.name.replace(".stream.jsonl", ".status.json"))
     return "failed_attempt" if status_path.exists() else "attempt_pending_validation"
 
