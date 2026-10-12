@@ -161,7 +161,7 @@
       "source": "https://www.openslr.org/100/",
       "archive_url": "https://www.openslr.org/resources/100/mtedx_ru.tgz",
       "status_at_launch": "RUNNING",
-      "service": "speech-data-mtedx-ru-native-20261013.service",
+      "service": "speech-data-mtedx-ru-official-mirror-20261013.service",
       "language": "rus",
       "language_evidence": "Publisher explicitly identifies Russian speech/transcripts partition; native train.yaml verified in original gzip/TAR prefix",
       "source_type": "Russian TEDx talks; not telephone calls",
@@ -186,7 +186,9 @@
       "license": "CC-BY-NC-ND-4.0",
       "s3_target": "s3://speech-private-archive/sources/mtedx-ru/openslr-100-native-20210510/",
       "receipt": "s3://speech-datasets/catalog/compressed-sources-20261013/mtedx-ru/status.json",
-      "split_policy": "Official splits retained in isolated private source archive; no automatic train admission"
+      "split_policy": "Official splits retained in isolated private source archive; no automatic train admission",
+      "download_url": "https://openslr.magicdatatech.com/resources/100/mtedx_ru.tgz",
+      "transfer_note": "Primary/www and EU/trmal timed out after only 23891 of 65536 bytes in bounded GET; full primary GET stalled at4096B. Published CN mirror returns206/full65536B and HEAD200/expected10201638349B; first23891B SHA256 matches primary. Native job switched explicitly; complete gzip/tar/train-YAML/local-SHA/S3-readback still mandatory"
     },
     {
       "id": "yo-cpt-ru-pilot",
