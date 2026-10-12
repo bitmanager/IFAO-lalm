@@ -104,6 +104,43 @@ class CollectorTests(unittest.TestCase):
             self.assertEqual(values["system/gpu_0/power_draw_watts"], 123.5)
             self.assertNotIn("system/ram_used_mib", values)
 
+    def test_finished_process_status_remains_current_without_new_events(self):
+        with tempfile.TemporaryDirectory() as directory:
+            cursor = {"train/loss": [1000, 1135]}
+            state = {"run": {"run_id": "existing", "cursor": cursor}}
+            state_path = Path(directory) / "state.json"
+            config = {
+                "sources": [
+                    {
+                        "name": "run",
+                        "format": "tensorboard",
+                        "path": "unused",
+                        "pid": -1,
+                    }
+                ]
+            }
+            client = Client()
+            with patch.object(
+                collector,
+                "tensorboard_metrics",
+                side_effect=lambda *args: ([], dict(cursor)),
+            ):
+                collector.collect(client, config, state, state_path)
+                restarted = json.loads(state_path.read_text())
+                collector.collect(client, config, restarted, state_path)
+            statuses = [
+                m
+                for m in client.metrics
+                if m["key"] == "monitor/source_process_running"
+            ]
+            old = {"step": 1135, "timestamp": 1000000, "value": 1.0}
+            latest = max([old] + statuses, key=lambda m: (m["step"], m["timestamp"]))
+            self.assertEqual(latest["value"], 0.0)
+            self.assertGreater(statuses[1]["step"], statuses[0]["step"])
+            self.assertTrue(
+                any(m["key"] == "monitor/heartbeat_timestamp" for m in client.metrics)
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

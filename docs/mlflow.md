@@ -60,7 +60,9 @@ identify a particular job's load. Prometheus counters remain counters; they are
 not treated as losses. Label combinations have distinct metric keys. `--once`
 ends runs when the import finishes; that status describes the import, not a
 verified training outcome. A continuous collector remains RUNNING while its
-service is active. A source's optional PID adds `monitor/source_process_running`.
+service is active. A source's optional PID adds `monitor/source_process_running`
+and a collector heartbeat. These use persistent monitoring steps so process
+status stays current even after the source stops writing training events.
 
 ```json
 {

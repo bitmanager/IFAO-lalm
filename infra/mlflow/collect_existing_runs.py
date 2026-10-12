@@ -188,15 +188,29 @@ def collect(client, config, state, state_path):
         ]
         metrics, cursor = loader(source, saved.get("cursor", {}))
         if source.get("pid"):
-            metrics.append(
-                {
-                    "key": "monitor/source_process_running",
-                    "value": float(Path("/proc", str(source["pid"])).exists()),
-                    "step": max((m["step"] for m in metrics), default=0),
-                    "timestamp": int(time.time() * 1000),
-                }
-            )
+            previous_steps = [saved.get("monitor_step", 0)]
+            if source["format"] == "tensorboard":
+                previous_steps.extend(position[1] for position in cursor.values())
+            monitor_step = max(previous_steps + [m["step"] for m in metrics]) + 1
+            now = time.time()
+            for key, value in (
+                (
+                    "monitor/source_process_running",
+                    float(Path("/proc", str(source["pid"])).exists()),
+                ),
+                ("monitor/heartbeat_timestamp", now),
+            ):
+                metrics.append(
+                    {
+                        "key": key,
+                        "value": value,
+                        "step": monitor_step,
+                        "timestamp": int(now * 1000),
+                    }
+                )
         client.log(saved["run_id"], metrics)
+        if source.get("pid"):
+            saved["monitor_step"] = monitor_step
         saved["cursor"] = cursor  # Advance only after successful delivery.
         save_state(state_path, state)
         _LOGGER.info("%s: delivered %d metrics", source["name"], len(metrics))
