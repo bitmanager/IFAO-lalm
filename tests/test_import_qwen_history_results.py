@@ -54,6 +54,13 @@ class QwenHistoryImportContracts(unittest.TestCase):
         self.assertTrue(fields["qwen_history_display"].startswith("ЧАСТИЧНЫЙ ВЫВОД:"))
         self.assertNotEqual(fields["qwen_history_status"], "complete")
 
+    def test_eos_without_text_is_imported_as_explicit_error(self):
+        result = json.loads(json.dumps(self.result))
+        result["segments"][0]["output"]["text"] = ""
+        fields = task_fields(self._validate(result))
+        self.assertEqual(fields["qwen_history_status"], "error")
+        self.assertIn("ПУСТОЙ ОТВЕТ", fields["qwen_history_display"])
+
     def test_incomplete_segment_cannot_claim_complete(self):
         broken = json.loads(json.dumps(self.result))
         broken["segments"][0]["output"]["complete"] = False

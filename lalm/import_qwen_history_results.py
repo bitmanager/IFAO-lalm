@@ -117,7 +117,8 @@ def validate_result(
         if not segments or any(not s.get("output", {}).get("complete") for s in segments):
             raise ValueError("Complete result contains incomplete segments")
         if not transcript_from_result(result):
-            raise ValueError("Complete result has no transcript")
+            # EOS without text is a model failure, not an unprocessed task.
+            status = "error"
     transcript = transcript_from_result(result)
     digest = sha256_bytes(raw_bytes if raw_bytes is not None else Path(path).read_bytes())
     if result.get("key") and result["key"] != Path(path).stem:
@@ -138,6 +139,7 @@ def validate_result(
         "segment_count": len(segments),
         "audio_sha256": audio_sha,
         "quality_review": result.get("quality_review", {}),
+        "empty_output": status == "error" and not transcript,
     }
 
 
@@ -165,6 +167,8 @@ def task_fields(item):
         display = text
     elif status == "truncated":
         display = "ЧАСТИЧНЫЙ ВЫВОД: генерация оборвалась; не использовать как готовый текст.\n" + text
+    elif item.get("empty_output"):
+        display = "ПУСТОЙ ОТВЕТ: модель завершила генерацию без текста; расшифровки нет."
     else:
         display = f"Генерация завершилась статусом {status}; готового текста нет."
     call, recipe, provenance = item["call"], item["recipe"], item["provenance"]
