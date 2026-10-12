@@ -5,7 +5,7 @@
   "host": "dev-1",
   "storage_root": "/mnt/local/drive2/speech-data-storage-20261012",
   "temporary_download_root": "/mnt/local/drive2/speech-source-downloads-20261012",
-  "copy_engine": "Stock Hugging Face hf download, curl for the original public RuDevices archive, native MinIO mc",
+  "copy_engine": "Stock Hugging Face hf download, curl for public RuDevices archives, native MinIO mc; tar only for unchanged local source snapshots",
   "operational_orchestration": "Shell launches the stock CLIs, checks checksums, routes official test files and records progress; no new Python dataset adapter, uploader or trainer.",
   "bulk_download_concurrency": "Golos and both original Balalaika jobs resume with stock HF download concurrency defaults after initial limited-concurrency startup; GPU jobs are untouched.",
   "new_application_code": false,
@@ -43,6 +43,21 @@
       "service": "speech-data-full-sova-tls-20261012.service",
       "native_prefix": "s3://speech-corpora/staging/sova-rudevices/hf-d9197eacfb0afff29d90a2d4e7d0d98a5dfb54bc/",
       "eval_prefix": "s3://speech-benchmarks/upstream-sova-d9197eacfb0afff29d90a2d4e7d0d98a5dfb54bc/",
+      "working_mirror": {
+        "provider": "Kaggle",
+        "dataset": "alexcumder/russian-asr-sova-ai-rudevices",
+        "dataset_version": 1,
+        "download_url": "https://www.kaggle.com/api/v1/datasets/download/alexcumder/russian-asr-sova-ai-rudevices?datasetVersionNumber=1",
+        "bytes": 8824491971,
+        "wav_members": 93244,
+        "manifest_sha256": "367f1b7609ed8c66b565203f4232d85b31c576d2a24d3c7922f406c2457d0106",
+        "empty_manifest_targets": 3,
+        "service": "speech-data-sova-kaggle-20261012.service",
+        "status_at_launch": "RUNNING",
+        "native_prefix": "s3://speech-private-archive/sources/sova-rudevices/kaggle-alexcumder-v1/",
+        "integrity": "Check complete ZIP byte count, native unzip CRC, original manifest SHA256, and complete S3 readback SHA256 before marking copied.",
+        "note": "Working public mirror verified with actual ZIP and WAV bytes. Repacked ZIP is not byte-identical to the author TAR; coverage equivalence to the HF copy remains unproven."
+      },
       "original_archive": {
         "source": "https://disk.yandex.ru/d/jz3k7pnzTpnTgw",
         "path": "/RuDevices.tar",
@@ -131,6 +146,7 @@
       "note": "Full source inventory is not a training admission, complete quality assessment, or proof that every catalogued utterance has usable ground truth."
     }
   ],
-  "research_queue": "Separate local/web source reports; additional datasets are not substitutes for the seven requested families.",
+  "supplemental_archive_catalog": "supplemental-source-archive-20261012.json",
+  "research_queue": "Separate local/web source reports and supplemental native archives; additional datasets are not substitutes for the seven requested families.",
   "publication_gate": "No unified portable training release before an approved format adapter and explicit benchmark exclusion registry; native source staging does not change training_eligible flags."
 }

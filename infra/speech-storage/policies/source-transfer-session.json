@@ -1,0 +1,44 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetBucketLocation"
+      ],
+      "Resource": [
+        "arn:aws:s3:::speech-private-archive"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:ListBucket"
+      ],
+      "Resource": [
+        "arn:aws:s3:::speech-private-archive"
+      ],
+      "Condition": {
+        "StringLike": {
+          "s3:prefix": [
+            "sources/exp-local-calls159/*",
+            "sources/ga-native-calls53845/*"
+          ]
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:AbortMultipartUpload",
+        "s3:ListMultipartUploadParts"
+      ],
+      "Resource": [
+        "arn:aws:s3:::speech-private-archive/sources/exp-local-calls159/*",
+        "arn:aws:s3:::speech-private-archive/sources/ga-native-calls53845/*"
+      ]
+    }
+  ]
+}
