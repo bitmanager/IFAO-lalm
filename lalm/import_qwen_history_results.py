@@ -298,6 +298,22 @@ def scan(args, token, manifest, calls, planned, cookie_header=None):
                     counts["unmatched"] += 1
                     errors.append(f"{path.name}: no Label Studio task for {k[0]}:{k[1]}")
                     continue
+                # The project task index already contains these fields. Avoid an
+                # extra API round-trip for every unchanged result on every poll.
+                existing_data = summary.get("data", {})
+                existing_status = existing_data.get("qwen_history_status", "not_run")
+                existing_digest = existing_data.get("qwen_history_result_sha256")
+                if existing_status == item["status"] and existing_digest == item["result_sha256"]:
+                    counts["already_imported"] += 1
+                    continue
+                if existing_status == COMPLETE:
+                    counts["conflict"] += 1
+                    errors.append(f"{path.name}: existing Qwen result conflicts with this result")
+                    continue
+                if existing_status in PARTIAL_STATUSES and item["status"] in PARTIAL_STATUSES:
+                    counts["conflict"] += 1
+                    errors.append(f"{path.name}: existing Qwen result conflicts with this result")
+                    continue
                 outcome = import_item(args.api_url, token, summary, item, cookie_header)
                 counts[outcome] += 1
                 if outcome == "imported":
