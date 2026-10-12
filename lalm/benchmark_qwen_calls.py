@@ -2,6 +2,8 @@
 import argparse
 import hashlib
 import json
+import inspect
+import marshal
 import os
 from pathlib import Path
 
@@ -44,8 +46,9 @@ def main():
     recipe["gigaam_checkpoint_sha256"] = runtime.digest(Path(runtime.CKPT))
     recipe["tokenizer_files"] = {p.name: runtime.digest(p) for p in sorted((runtime.ROOT / "data/tokenizer").iterdir())
                                  if p.is_file()}
-    recipe["model_code"] = {str(p.relative_to(runtime.ROOT / "code/lalm")): runtime.digest(p)
-                             for p in sorted((runtime.ROOT / "code/lalm/lalm_core/model").glob("*.py"))}
+    recipe["loaded_model_methods"] = {
+        name: hashlib.sha256(marshal.dumps(inspect.unwrap(getattr(runtime.LALMForConditionalGeneration, name)).__code__)).hexdigest()
+        for name in ("__init__", "forward", "generate")}
     calls = spec["calls"][:args.limit] if args.limit else spec["calls"]
     for call_index, call in enumerate(calls):
         assert call["segments"], "No speech segments: cannot mark a call transcribed"
