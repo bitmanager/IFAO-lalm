@@ -85,6 +85,11 @@ def _resolve_config(
 
 def _resolve_known_config(config: dict, model_type: str) -> PretrainedConfig:
     """Handle HF config classes that exist but are not AutoConfig-registered."""
+    if model_type == "gigaam":
+        from .gigaam_adapter import GigaAMConfig
+
+        return GigaAMConfig.from_dict(config)
+
     if model_type == "whisper":
         from transformers.models.whisper.configuration_whisper import WhisperConfig
 

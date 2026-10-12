@@ -59,7 +59,9 @@ class LALMDataset(torch.utils.data.Dataset):
             features, _ = input_tpl
 
         supervision_intervals = self.input_strategy.supervision_intervals(cuts)
-        feature_lens = supervision_intervals["num_frames"]
+        feature_lens = supervision_intervals[
+            "num_samples" if self.processor.encoder_name == "gigaam" else "num_frames"
+        ]
         feature_lens = feature_lens.to(dtype=torch.long)
 
         # lhotse returns (N, T, C); processor expects padded (N, C, T_max)
