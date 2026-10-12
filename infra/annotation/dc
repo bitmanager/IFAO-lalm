@@ -1,4 +1,8 @@
 #!/bin/sh
 set -eu
+if [ "$(hostname)" != "exp-srv-rtx6000x4-02" ]; then
+  echo 'Run this stack only on dev-1 (exp-srv-rtx6000x4-02), never on the access/proxy host.' >&2
+  exit 1
+fi
 annotation_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 exec docker compose --env-file "$annotation_dir/.env" -f "$annotation_dir/compose.generated.json" "$@"

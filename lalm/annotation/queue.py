@@ -9,9 +9,9 @@ from .store import connect
 
 def protected(conn, sample):
     return conn.execute('SELECT 1 FROM holdouts WHERE (kind=%s AND value=%s) '
-                        'OR (kind=%s AND value=%s)',
+                        'OR (kind=%s AND value=ANY(%s))',
                         ('conversation_id', sample['conversation_id'],
-                         'audio_sha256', sample['audio_sha256'])).fetchone() is not None
+                         'audio_sha256', [sample['audio_sha256'], sample.get('source_audio_sha256', '')])).fetchone() is not None
 
 
 def enqueue(conn, sample):

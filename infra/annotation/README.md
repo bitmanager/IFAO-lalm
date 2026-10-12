@@ -33,33 +33,60 @@ Airflow не запускает процесс на каждую фразу и �
 Он регистрирует manifests, проверяет зависшие попытки и публикует партии до 1000
 результатов. Асинхронные AGY workers забирают задания сами.
 
-## Поднять локальный стенд
+## Развёртывание — только dev-1
 
-Из корня репозитория:
+Рабочий сервер: `exp-srv-rtx6000x4-02` (`dev-1`, tailnet `bitmanager.ai`).
+Корень установки: `/mnt/local/drive2/speech-annotation-20261012/code`.
+`minipc` используется только для доступа; `dc` запрещает запуск на нём.
+Новый MinIO не создаётся. Используется существующий S3 на dev-1: TLS,
+CA и учётная запись ingest из `/mnt/local/drive2/speech-data-storage-20261012/config`.
+Тестовые расшифровки в `speech-benchmarks` этой учётной записи недоступны.
+
+На dev-1, из корня репозитория:
 
 ```bash
-python3 infra/annotation/render.py --accounts infra/annotation/accounts.example.json
-infra/annotation/dc build init airflow-api minio
+python3 infra/annotation/render.py \
+  --agy /mnt/local/drive2/speech-annotation-20261012/bin/agy \
+  --storage-env /mnt/local/drive2/speech-data-storage-20261012/config/ingest.env \
+  --storage-ca /mnt/local/drive2/speech-data-storage-20261012/config/ca.pem
+infra/annotation/dc build init airflow-api
 infra/annotation/dc up -d
-infra/annotation/dc ps
 infra/annotation/dc run --rm control status
 ```
 
-`render.py` создаёт `.env` со случайными паролями, конфиги закрытых proxy и отдельные
-volumes для login-state каждого аккаунта. Повторный запуск не меняет секреты.
-Runtime и секреты исключены из Git и Docker build context. Не публикуйте вывод
+Секреты находятся в исключённых из Git `.env` и `runtime/`. Не выводите
 `docker compose config` без `--quiet`: он раскрывает environment.
+UI привязан к `127.0.0.1:18080` сервера; доступ — через SSH tunnel.
+Пароль admin: `runtime/airflow-auth/passwords.json` на сервере.
+DAG первоначально paused: до включения должен существовать реестр
+`speech-datasets/benchmarks/holdouts.json`.
 
-Airflow UI: `http://127.0.0.1:18080`, пользователь `admin`. Пароль хранится локально
-в `runtime/airflow-auth/passwords.json`. Для другого компьютера используйте SSH
-forward; внешнего публичного порта нет. DAG первоначально paused до установки
-реестра benchmark. Базы и S3 доступны только внутри Docker-сетей.
+## Подготовка корпусов и независимые проходы
 
-Образ AGY использует установленный бинарник (проверен 1.3.3), только бинарник
-монтируется read-only. Домашняя директория и авторизация текущего пользователя
-не копируются. MinIO собирается из официального release tarball с проверкой
-SHA256, поскольку публичный prebuilt image недоступен. Базовые версии закреплены;
-после проверки на целевом хосте сохраняйте image digests для воспроизведения.
+DAG регистрирует native audio/Parquet/tar из `speech-corpora/staging/` в
+PostgreSQL `source_assets`. Внешний CPU worker `source-preparer` готовит
+каналы отдельно, приводит их к PCM16/16 kHz и режет длинные записи возле пауз
+с перекрытием до 0,5 с. Курсор обработки сохраняется после принятия партии
+Airflow; повторный запуск использует те же идентификаторы.
+
+```bash
+infra/annotation/dc up -d source-preparer
+```
+
+Подготовка ограничена размером очереди и ждёт импорта каждой партии manifests.
+Исходники остаются в `staging/`, подготовленные WAV — в
+`speech-corpora/prepared/`, manifests — в `speech-datasets/incoming/`,
+сырые ответы и сравнительные отчёты — в `speech-annotations`.
+
+Два отдельных диалога AGY используют `verbatim` и `coverage`. При расхождении
+нормализованных слов Airflow добавляет третий `literal_audit`; предыдущие
+ответы и исходная метка в промпт не передаются. Согласие моделей не считается
+эталоном. Все новые корпусные примеры имеют `review_only=true`: публикация
+обучающего датасета ожидает проверки групп разговоров, PCM-дубликатов и аудита.
+Сбой декодирования или неподдерживаемая схема сохраняются для проверки.
+
+Лимиты четырёх подключённых аккаунтов: 5 + 5 + 10 + 10 = 30 одновременных
+запросов. Каждый аккаунт имеет отдельный home, proxy и внутреннюю сеть.
 
 ## Один аккаунт + один VLESS
 

@@ -51,3 +51,23 @@ CREATE TABLE IF NOT EXISTS source_manifests (
   row_count integer NOT NULL,
   imported_at timestamptz NOT NULL DEFAULT now()
 );
+CREATE TABLE IF NOT EXISTS source_assets (
+  id text PRIMARY KEY,
+  bucket text NOT NULL,
+  object_key text NOT NULL,
+  etag text NOT NULL,
+  bytes bigint NOT NULL,
+  codec text NOT NULL,
+  state text NOT NULL DEFAULT 'DISCOVERED',
+  cursor_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE(bucket,object_key,etag)
+);
+CREATE INDEX IF NOT EXISTS source_assets_queue ON source_assets(state,codec,created_at);
+
+CREATE TABLE IF NOT EXISTS annotation_review_cursors (
+  pilot_id text PRIMARY KEY,
+  checked_at timestamptz NOT NULL
+);
+CREATE INDEX IF NOT EXISTS jobs_review_group ON jobs ((sample->>'pilot_id'),updated_at);

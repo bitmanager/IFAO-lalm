@@ -9,13 +9,13 @@ import pyarrow.parquet as pq
 
 from .contract import CONTRACT_SHA
 from .queue import enqueue, protected, recover_expired
-from .store import bucket, connect, s3
+from .store import bucket, dataset_bucket, connect, s3
 
 
 def ingest():
     client = s3()
     # Required even when empty: operator explicitly establishes the benchmark registry.
-    holdout = client.get_object(Bucket=bucket(), Key='benchmarks/holdouts.json')
+    holdout = client.get_object(Bucket=dataset_bucket(), Key='benchmarks/holdouts.json')
     registry = json.loads(holdout['Body'].read())
     if set(registry) != {'conversation_ids', 'audio_sha256'}:
         raise ValueError('invalid_holdout_registry')
@@ -27,11 +27,11 @@ def ingest():
             for value in registry[field]:
                 conn.execute('INSERT INTO holdouts(kind,value) VALUES (%s,%s) ON CONFLICT DO NOTHING', (kind, value))
     count = 0
-    for page in client.get_paginator('list_objects_v2').paginate(Bucket=bucket(), Prefix='incoming/'):
+    for page in client.get_paginator('list_objects_v2').paginate(Bucket=dataset_bucket(), Prefix='incoming/'):
         for item in page.get('Contents', []):
             if not item['Key'].endswith('.jsonl'):
                 continue
-            body = client.get_object(Bucket=bucket(), Key=item['Key'])['Body'].read()
+            body = client.get_object(Bucket=dataset_bucket(), Key=item['Key'])['Body'].read()
             manifest_sha = hashlib.sha256(body).hexdigest()
             with connect() as conn:
                 conn.execute('SELECT pg_advisory_xact_lock(173921)')
@@ -63,6 +63,9 @@ def publish():
         rows, ids = [], []
         for job in jobs:
             sample = job['sample']
+            if sample.get('review_only'):
+                conn.execute("UPDATE jobs SET state='NEEDS_REVIEW',error_code='pilot_review_only' WHERE id=%s", (job['id'],))
+                continue
             if protected(conn, sample):
                 conn.execute("UPDATE jobs SET state='NEEDS_REVIEW',error_code='holdout_contamination' WHERE id=%s", (job['id'],))
                 continue
@@ -82,11 +85,11 @@ def publish():
         pq.write_table(pa.Table.from_pylist(rows), buf)
         payload = buf.getvalue()
         try:
-            client.put_object(Bucket=bucket(), Key=key, Body=payload, IfNoneMatch='*')
+            client.put_object(Bucket=dataset_bucket(), Key=key, Body=payload, IfNoneMatch='*')
         except client.exceptions.ClientError as error:
             if error.response['ResponseMetadata']['HTTPStatusCode'] != 412:
                 raise
-            existing = client.get_object(Bucket=bucket(), Key=key)['Body'].read()
+            existing = client.get_object(Bucket=dataset_bucket(), Key=key)['Body'].read()
             if existing != payload:
                 raise ValueError('immutable_manifest_conflict') from error
         conn.execute('INSERT INTO publications(id,manifest_key,count) VALUES (%s,%s,%s) ON CONFLICT DO NOTHING',

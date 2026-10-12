@@ -7,6 +7,16 @@ from airflow.sdk import dag, task
      catchup=False, max_active_runs=1, tags=['speech', 'annotation'])
 def audio_labeling_pipeline():
     @task(retries=2)
+    def discover_source_objects():
+        from lalm.annotation.discovery import discover
+        return discover()
+
+    @task(retries=2)
+    def queue_source_preparation():
+        from lalm.annotation.discovery import queue_sources
+        return queue_sources()
+
+    @task(retries=2)
     def ingest_manifests():
         from lalm.annotation.pipeline import ingest
         return ingest()
@@ -16,7 +26,12 @@ def audio_labeling_pipeline():
         from lalm.annotation.pipeline import publish
         return publish()
 
-    ingest_manifests() >> publish_validated()
+    @task(retries=2)
+    def compare_independent_passes():
+        from lalm.annotation.review import reconcile
+        return reconcile()
+
+    discover_source_objects() >> queue_source_preparation() >> ingest_manifests() >> compare_independent_passes() >> publish_validated()
 
 
 audio_labeling_pipeline()

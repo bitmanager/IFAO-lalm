@@ -6,6 +6,8 @@ import os
 from pathlib import Path
 import re
 import secrets
+import shlex
+import shutil
 
 ROOT = Path(__file__).resolve().parent
 REPO = ROOT.parent.parent
@@ -35,7 +37,7 @@ def build(accounts, agy_path):
           'networks': ['backend'], 'volumes': ['airflow-logs:/opt/airflow/logs',
            './runtime/airflow-auth:/opt/airflow/auth'], 'restart': 'unless-stopped'}
     services = {
-      'postgres': {'image': 'postgres:16-bookworm', 'environment': {'POSTGRES_USER': 'speech',
+      'postgres': {'image': 'postgres:17.10-alpine', 'environment': {'POSTGRES_USER': 'speech',
         'POSTGRES_PASSWORD': '${POSTGRES_PASSWORD}', 'POSTGRES_DB': 'speech'},
         'networks': ['backend'], 'volumes': ['postgres-data:/var/lib/postgresql/data',
         './init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro'],
@@ -46,8 +48,16 @@ def build(accounts, agy_path):
         'command': ['server', '/data', '--console-address', ':9001'],
         'environment': {'MINIO_ROOT_USER': '${S3_ACCESS_KEY}', 'MINIO_ROOT_PASSWORD': '${S3_SECRET_KEY}'},
         'networks': ['backend'], 'volumes': ['s3-data:/data'], 'restart': 'unless-stopped'},
-      'init': {**common, 'command': ['python', '-m', 'lalm.annotation.cli', 'init'], 'restart': 'on-failure'},
-      'control': {**common, 'profiles': ['tools'], 'entrypoint': ['python', '-m', 'lalm.annotation.cli']},
+      'init': {**common, 'image': 'speech-airflow:local',
+          'build': {'context': str(REPO), 'dockerfile': 'infra/annotation/Dockerfile.airflow'},
+          'entrypoint': ['python', '-m', 'lalm.annotation.cli'], 'command': ['init'], 'restart': 'on-failure'},
+      'source-preparer': {**common, 'profiles': ['sources'],
+          'command': ['python', '-m', 'lalm.annotation.prepare'],
+          'restart': 'unless-stopped', 'mem_limit': '4g', 'cpus': 2,
+          'stop_grace_period': '60s'},
+      'control': {**common, 'image': 'speech-airflow:local',
+          'build': {'context': str(REPO), 'dockerfile': 'infra/annotation/Dockerfile.airflow'},
+          'profiles': ['tools'], 'entrypoint': ['python', '-m', 'lalm.annotation.cli']},
       'airflow-init': {**af, 'command': ['db', 'migrate'], 'restart': 'no', 'depends_on': deps},
     }
     afdeps = {**deps, 'airflow-init': {'condition': 'service_completed_successfully'},
@@ -82,20 +92,51 @@ def build(accounts, agy_path):
                                               f'{aid}-home:/home/worker'],
             'tmpfs': ['/work:uid=10001,gid=10001,mode=0700,size=1g', '/tmp:size=256m'],
             'read_only': True, 'cap_drop': ['ALL'], 'security_opt': ['no-new-privileges:true'],
-            'pids_limit': 512, 'mem_limit': '4g', 'cpus': 2, 'stop_grace_period': '360s'}
+            'pids_limit': 1024, 'mem_limit': '8g', 'cpus': 4, 'stop_grace_period': '360s'}
     return {'name': 'speech-data', 'services': services, 'networks': networks, 'volumes': volumes}
+
+
+def use_external_storage(compose, accounts):
+    """Use existing dev-1 S3; TLS passes through a TCP relay unchanged."""
+    services = compose['services']
+    del services['minio']
+    compose['volumes'].pop('s3-data', None)
+    nets = ['backend'] + [a['id'] + '-private' for a in accounts]
+    alias = 'exp-srv-rtx6000x4-02'
+    compose['networks']['storage-egress'] = {}
+    services['s3-relay'] = {
+        'image': 'alpine/socat:1.8.0.3',
+        'command': ['TCP-LISTEN:19000,fork,reuseaddr', 'TCP:100.119.47.17:19000'],
+        'networks': {**{n: {'aliases': [alias]} for n in nets}, 'storage-egress': {}},
+        'read_only': True, 'user': '10001:10001', 'cap_drop': ['ALL'],
+        'security_opt': ['no-new-privileges:true'], 'restart': 'unless-stopped'}
+    for svc in services.values():
+        deps = svc.get('depends_on', {})
+        if 'minio' in deps:
+            del deps['minio']; deps['s3-relay'] = {'condition': 'service_started'}
+        env = svc.get('environment', {})
+        if 'S3_ENDPOINT' in env:
+            env.update(S3_ENDPOINT=f'https://{alias}:19000', S3_BUCKET='speech-annotations',
+                       S3_DATASET_BUCKET='speech-datasets', S3_CA_BUNDLE='/etc/speech/ca.pem')
+            binding = './runtime/storage-ca.pem:/etc/speech/ca.pem:ro'
+            if binding not in svc.setdefault('volumes', []): svc['volumes'].append(binding)
+            if 'NO_PROXY' in env: env['NO_PROXY'] += ',' + alias
+    return compose
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--accounts', type=Path, default=ROOT / 'accounts.example.json')
-    parser.add_argument('--agy', type=Path, default=Path('/home/alexesn/.local/bin/agy'))
+    parser.add_argument('--agy', type=Path, required=True)
+    parser.add_argument('--storage-env', type=Path, required=True)
+    parser.add_argument('--storage-ca', type=Path, required=True)
     args = parser.parse_args()
     accounts = json.loads(args.accounts.read_text())['accounts']
-    compose = build(accounts, str(args.agy.resolve()))
+    compose = use_external_storage(build(accounts, str(args.agy.resolve())), accounts)
     binary_hash = hashlib.sha256(args.agy.read_bytes()).hexdigest()
     for account in accounts:
         compose['services'][account['id']]['environment']['AGY_EXPECTED_SHA256'] = binary_hash
+    (ROOT / 'init-db.sql').chmod(0o644)
     os.umask(0o077)
     (ROOT / 'runtime').mkdir(exist_ok=True)
     for account in accounts:
@@ -114,6 +155,17 @@ def main():
           f'AIRFLOW_DATABASE_URL=postgresql+psycopg2://speech:{password}@postgres/airflow\n'
           f'S3_ACCESS_KEY=speech-admin\nS3_SECRET_KEY={secrets.token_hex(24)}\n'
           f'AIRFLOW_JWT_SECRET={secrets.token_hex(32)}\n')
+    storage = {}
+    for line in args.storage_env.read_text().splitlines():
+        if '=' in line and not line.startswith('#'):
+            key, value = line.split('=', 1); storage[key] = shlex.split(value)[0]
+    values = dict(line.split('=', 1) for line in envpath.read_text().splitlines() if '=' in line)
+    values['S3_ACCESS_KEY'] = storage['AWS_ACCESS_KEY_ID']
+    values['S3_SECRET_KEY'] = storage['AWS_SECRET_ACCESS_KEY']
+    envpath.write_text(''.join(k+'='+v+'\n' for k,v in values.items()))
+    envpath.chmod(0o600)
+    shutil.copyfile(args.storage_ca, ROOT / 'runtime/storage-ca.pem')
+    (ROOT / 'runtime/storage-ca.pem').chmod(0o644)
     auth = ROOT / 'runtime/airflow-auth'
     auth.mkdir(exist_ok=True)
     # Airflow SimpleAuthManager opens the password file a+ even when preseeded.

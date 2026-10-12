@@ -19,11 +19,15 @@ def s3():
     return boto3.client('s3', endpoint_url=os.environ['S3_ENDPOINT'],
                        aws_access_key_id=secret('S3_ACCESS_KEY'),
                        aws_secret_access_key=secret('S3_SECRET_KEY'),
-                       region_name='us-east-1')
+                       region_name='us-east-1', verify=os.environ.get('S3_CA_BUNDLE') or True)
 
 
 def bucket():
     return os.environ.get('S3_BUCKET', 'speech-data')
+
+
+def dataset_bucket():
+    return os.environ.get('S3_DATASET_BUCKET', bucket())
 
 
 def initialize():

@@ -61,6 +61,18 @@ class AnnotationContractTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 convert(invalid)
 
+    def test_server_uses_existing_s3_and_no_minio(self):
+        mod = load_script('render')
+        accounts = [{'id': 'agy-01', 'concurrency': 5}]
+        compose = mod.use_external_storage(mod.build(accounts, '/bin/agy'), accounts)
+        self.assertNotIn('minio', compose['services'])
+        self.assertNotIn('s3-data', compose['volumes'])
+        for name in ('airflow-api', 'airflow-scheduler', 'airflow-dag-processor', 'agy-01'):
+            svc = compose['services'][name]
+            self.assertEqual(svc['environment']['S3_BUCKET'], 'speech-annotations')
+            self.assertEqual(len(svc['volumes']), len(set(svc['volumes'])))
+        self.assertTrue(compose['networks']['agy-01-private']['internal'])
+
     def test_vless_never_adds_direct_fallback(self):
         convert = load_script('configure_vless').convert
         link = 'vless://5783a3e7-e373-51cd-8642-c83782b807c5@example.com:443?security=tls&type=ws&path=%2Fws'
@@ -70,6 +82,18 @@ class AnnotationContractTests(unittest.TestCase):
         for suffix in ('&allowInsecure=1', '&type=grpc', '&unknown=x'):
             with self.assertRaises(ValueError):
                 convert(link + suffix)
+
+
+class MultiPassContractTests(unittest.TestCase):
+    def test_prompt_variants_have_distinct_job_identity(self):
+        from lalm.annotation.contract import contract_sha, prompt
+        sample = AnnotationContractTests().sample()
+        ids = {job_id(dict(sample, prompt_variant=v)) for v in ('verbatim', 'coverage', 'literal_audit')}
+        self.assertEqual(len(ids), 3)
+        self.assertNotEqual(contract_sha('coverage'), contract_sha('literal_audit'))
+        self.assertIn('независимую', prompt('/work/audio.wav', 'literal_audit'))
+        with self.assertRaises(ValueError):
+            job_id(dict(sample, prompt_variant='typo'))
 
 
 if __name__ == '__main__':

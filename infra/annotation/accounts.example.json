@@ -2,18 +2,18 @@
   "accounts": [
     {
       "id": "agy-01",
-      "concurrency": 2,
-      "min_interval_seconds": 1
+      "concurrency": 5,
+      "min_interval_seconds": 0.2
     },
     {
       "id": "agy-02",
-      "concurrency": 2,
-      "min_interval_seconds": 1
+      "concurrency": 5,
+      "min_interval_seconds": 0.2
     },
     {
       "id": "agy-03",
-      "concurrency": 2,
-      "min_interval_seconds": 1
+      "concurrency": 10,
+      "min_interval_seconds": 0.2
     },
     {
       "id": "agy-04",
@@ -32,8 +32,8 @@
     },
     {
       "id": "agy-07",
-      "concurrency": 2,
-      "min_interval_seconds": 1
+      "concurrency": 10,
+      "min_interval_seconds": 0.2
     }
   ]
 }

@@ -103,7 +103,7 @@ class Integration(unittest.TestCase):
         ingest()
         job = queue.claim('test')
 
-        def fake_agy(path, workspace):
+        def fake_agy(path, workspace, variant="verbatim"):
             result = {'status': 'SUCCESS', 'num_turns': 1, 'structured_output': {
                 'audio_heard': True, 'language': 'ru', 'transcript': 'Тестовая расшифровка.',
                 'uncertain_fragments': [], 'context_consistency_notes': []}}
@@ -123,6 +123,26 @@ class Integration(unittest.TestCase):
             conn.execute("UPDATE jobs SET state='VALIDATED'")
         self.assertEqual(publish()['manifest_key'], result['manifest_key'])
         self.assertGreater(client.head_object(Bucket=bucket(), Key=result['manifest_key'])['ContentLength'], 0)
+
+    def test_independent_passes_third_pass_and_no_training_publication(self):
+        from lalm.annotation.review import reconcile, compare
+        from psycopg.types.json import Jsonb
+        sample = dict(self.sample(), pilot_id='test-pilot', review_only=True, adaptive_third_pass=True)
+        with connect() as conn:
+            for variant, text in [('verbatim', 'я не согласен'), ('coverage', 'я согласен')]:
+                ident = queue.enqueue(conn, dict(sample, prompt_variant=variant))
+                conn.execute("UPDATE jobs SET state='VALIDATED',result=%s WHERE id=%s",
+                             (Jsonb({'verbatim_text': text}), ident))
+        self.assertEqual(publish()['published'], 0)
+        first = reconcile()
+        self.assertEqual(first['third_passes_requested'], 1)
+        self.assertEqual(reconcile()['third_passes_requested'], 0)
+        with connect() as conn:
+            self.assertEqual(conn.execute('SELECT count(*) AS n FROM jobs').fetchone()['n'], 3)
+        third = queue.claim('test')
+        self.assertEqual(third['sample']['prompt_variant'], 'literal_audit')
+        self.assertFalse(compare('я не согласен', 'я согласен')['normalized_agreement'])
+        self.assertTrue(compare('Ёлка!', 'елка')['normalized_agreement'])
 
     def test_timeouts_and_authorization_are_not_blind_retries(self):
         self.assertEqual(classify('', True)[0], 'NEEDS_REVIEW')
