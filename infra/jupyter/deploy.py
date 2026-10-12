@@ -10,6 +10,7 @@ repo = Path(__file__).resolve().parents[2]
 for path in (repo / 'lalm/annotation').rglob('*'):
     path.chmod(0o755 if path.is_dir() else 0o644)
 (repo / 'lalm/annotation').chmod(0o755)
+(repo / 'lalm/benchmark_langfuse_asr.py').chmod(0o644)
 for path in (repo / 'notebooks').glob('*.ipynb'):
     path.chmod(0o644)
 (repo / 'notebooks').chmod(0o755)
@@ -33,7 +34,8 @@ compose['services']['jupyterhub'] = {
         str(repo/'lalm/annotation')+':/opt/speech/lalm/annotation:ro']}
 compose['volumes'].update({'jupyter-state': {}, 'jupyter-home': {}})
 # Same read-only source tree is imported by notebooks and all Airflow components.
-for name in ('airflow-api','airflow-scheduler','airflow-dag-processor'):
+for name in ('airflow-api','airflow-scheduler','airflow-dag-processor','source-preparer','control',
+             'agy-01','agy-02','agy-03','agy-04','agy-05','agy-06','agy-07'):
     volumes = compose['services'][name]['volumes']
     mount = str(repo/'lalm/annotation')+':/opt/speech/lalm/annotation:ro'
     if mount not in volumes:
@@ -41,6 +43,6 @@ for name in ('airflow-api','airflow-scheduler','airflow-dag-processor'):
 ports=compose['services']['airflow-api']['ports']
 if '100.119.47.17:18080:8080' not in ports:
     ports.append('100.119.47.17:18080:8080')
-for aid in ('agy-01','agy-02','agy-03','agy-07'):
-    compose['services'][aid]['environment']['WORKER_CONCURRENCY']='20'
+for account in json.loads((root/'accounts.example.json').read_text())['accounts']:
+    compose['services'][account['id']]['environment']['WORKER_CONCURRENCY']=str(account['concurrency'])
 (root/'compose.generated.json').write_text(json.dumps(compose, indent=2)+'\n')

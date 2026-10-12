@@ -77,3 +77,12 @@ CREATE TABLE IF NOT EXISTS prepared_manifests (
   row_count integer NOT NULL CHECK (row_count >= 0),
   created_at timestamptz NOT NULL DEFAULT now()
 );
+
+-- Keep split-contamination checks efficient as annotation history grows.
+CREATE INDEX IF NOT EXISTS jobs_conversation_identity ON jobs ((sample->>'conversation_id'));
+CREATE INDEX IF NOT EXISTS jobs_audio_identity ON jobs ((sample->>'audio_sha256'));
+-- One inference per exact prepared audio and pass in this prompt version,
+-- even when two source manifests reference the same audio under different calls.
+CREATE UNIQUE INDEX IF NOT EXISTS precision_v1_audio_pass_uq
+ON jobs ((sample->>'audio_sha256'), (sample->>'prompt_variant'))
+WHERE sample->>'pilot_id' LIKE 'precision-ru-triad-v1-%';

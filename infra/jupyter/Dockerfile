@@ -5,7 +5,7 @@ RUN pip install --no-cache-dir jupyterhub==5.3.0 jupyterlab==4.4.10 duckdb==1.4.
 COPY infra/annotation/requirements.txt /tmp/speech-requirements.txt
 RUN pip install --no-cache-dir -r /tmp/speech-requirements.txt
 RUN useradd --create-home --uid 10002 analyst
-COPY lalm/benchmark_langfuse_asr.py /opt/speech/lalm/benchmark_langfuse_asr.py
+COPY --chmod=644 lalm/benchmark_langfuse_asr.py /opt/speech/lalm/benchmark_langfuse_asr.py
 COPY lalm/annotation /opt/speech/lalm/annotation
 COPY notebooks /opt/notebooks
 COPY infra/jupyter/config.py /etc/jupyterhub/config.py

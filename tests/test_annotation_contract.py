@@ -117,5 +117,33 @@ class MultiPassContractTests(unittest.TestCase):
             job_id(dict(sample, prompt_variant='typo'))
 
 
+class PrecisionTriadTests(unittest.TestCase):
+    def test_russian_gate_and_strict_consensus(self):
+        from lalm.annotation.contract import triad_decision
+        def result(text='Я умею', language='ru', uncertain=None):
+            return {'verbatim_text': text, 'language': language, 'uncertain_spans': uncertain or []}
+        self.assertEqual(triad_decision({}), 'waiting_first')
+        for first in (result(language='uk'), result(language='und'),
+                      result('[неразборчиво]'), result(uncertain=['сомнение'])):
+            self.assertEqual(triad_decision({'verbatim': first}), 'rejected_first')
+        self.assertEqual(triad_decision({'verbatim': result()}), 'waiting_remaining')
+        passes = {k: result() for k in ('verbatim','coverage','source_correction')}
+        self.assertEqual(triad_decision(passes), 'candidate_3of3')
+        self.assertEqual(triad_decision(passes, ['Ё-моё']), 'rejected_prior_conflict')
+        passes['coverage'] = result('я гуляю')
+        self.assertEqual(triad_decision(passes), 'rejected_disagreement')
+        passes['coverage'] = result(language='uk')
+        self.assertEqual(triad_decision(passes), 'rejected_quality')
+
+    def test_new_seed_does_not_mix_batches(self):
+        from lalm.annotation.contract import triad_seed
+        old = dict(AnnotationContractTests().sample(), pilot_id='corpus-x', prompt_variant='coverage')
+        seed = triad_seed(old)
+        self.assertTrue(seed['review_only'])
+        self.assertEqual(seed['prompt_variant'], 'verbatim')
+        self.assertEqual(triad_seed(seed), seed)
+        self.assertNotEqual(seed['pilot_id'], old['pilot_id'])
+
+
 if __name__ == '__main__':
     unittest.main()

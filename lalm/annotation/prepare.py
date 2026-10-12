@@ -235,7 +235,7 @@ def prepare_asset(asset):
                                 and label.get('annotation_source') == 'original_source_index' else None),
                             'group_identity_verified': conversation is not None,
                             'group_identity_source': 'production_session_path' if conversation else 'unresolved'}}
-                    for variant in ('verbatim', 'coverage'):
+                    for variant in ('verbatim',):
                         rows.append(dict(sample, prompt_variant=variant))
                     made += 1
         except (ValueError, RuntimeError, sf.LibsndfileError, subprocess.SubprocessError):

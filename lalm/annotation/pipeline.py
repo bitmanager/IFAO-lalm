@@ -7,7 +7,7 @@ import os
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from .contract import CONTRACT_SHA
+from .contract import CONTRACT_SHA, triad_seed
 from .queue import enqueue, protected, recover_expired
 from .store import bucket, dataset_bucket, connect, s3
 
@@ -47,7 +47,7 @@ def ingest():
                     sample = json.loads(line)
                     sample['source_manifest_sha256'] = manifest_sha
                     sample['source_manifest_key'] = item['Key']
-                    enqueue(conn, sample)
+                    enqueue(conn, triad_seed(sample))
                     count += 1
                     imported += 1
                 conn.execute('INSERT INTO source_manifests(object_key,sha256,row_count) VALUES (%s,%s,%s)',

@@ -35,7 +35,8 @@ SELECT id AS job_id, sample->>'pilot_id' AS batch_id,
        COALESCE((sample->>'review_only')::boolean,false) AS review_required,
        false AS human_verified,
        sample->'source_provenance' AS source_provenance,
-       created_at, updated_at
+       created_at, updated_at,
+       result->'uncertain_spans' AS uncertain_spans
 FROM jobs;
 
 CREATE OR REPLACE VIEW review_examples AS

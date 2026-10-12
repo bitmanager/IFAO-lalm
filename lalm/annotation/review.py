@@ -4,7 +4,7 @@ import json
 from difflib import SequenceMatcher
 from .store import connect, s3, bucket
 from .queue import enqueue
-from .contract import source_text
+from .contract import source_text, TRIAD_VERSION, triad_decision
 from .inspection import normalized_words
 
 
@@ -23,11 +23,17 @@ def reconcile():
         started = c.execute('SELECT clock_timestamp() AS stamp').fetchone()['stamp']
         changed = c.execute("SELECT j.sample->>'pilot_id' AS pilot_id FROM jobs j "
             "LEFT JOIN annotation_review_cursors r ON r.pilot_id=j.sample->>'pilot_id' "
-            "WHERE j.sample ? 'pilot_id' AND j.updated_at>COALESCE(r.checked_at,'epoch'::timestamptz) "
+            "WHERE j.sample->>'pilot_id' LIKE 'precision-ru-triad-v1-%' AND j.updated_at>COALESCE(r.checked_at,'epoch'::timestamptz) "
             "GROUP BY j.sample->>'pilot_id' ORDER BY min(j.updated_at) LIMIT 25").fetchall()
         pilots = [r['pilot_id'] for r in changed]
         jobs = c.execute("SELECT id,sample,state,result,error_code FROM jobs "
                          "WHERE sample->>'pilot_id'=ANY(%s) ORDER BY id", (pilots,)).fetchall()
+    with connect() as c:
+        historical = c.execute("SELECT sample->>'sample_id' AS sample_id, sample->>'pilot_id' AS pilot_id, "
+            "result->>'verbatim_text' AS text FROM jobs WHERE result IS NOT NULL").fetchall()
+    previous_by_sample = {}
+    for old in historical:
+        previous_by_sample.setdefault(old['sample_id'], []).append(old)
     groups = {}
     for j in jobs:
         s = j['sample']
@@ -40,37 +46,36 @@ def reconcile():
                'audio_bucket': source.get('audio_bucket', bucket()),
                'source_provenance': source.get('source_provenance'), 'passes': {k: {'job_id': v['id'], 'state': v['state'],
                'error_code': v['error_code'], 'result': v['result']} for k, v in passes.items()}}
-        if all(passes.get(k, {}).get('result') for k in ('verbatim', 'coverage')):
-            row.update(compare(passes['verbatim']['result']['verbatim_text'],
-                               passes['coverage']['result']['verbatim_text']))
-            seed = passes['verbatim']['sample']
-            if not row['normalized_agreement'] and seed.get('adaptive_third_pass'):
-                # Retain existing third jobs; never add a fourth pass on upgrade.
-                variant = ('literal_audit' if 'literal_audit' in passes else
-                           'source_correction' if source_text(seed) is not None else 'literal_audit')
-                row['third_pass_variant'] = variant
-                row['third_pass_independent'] = variant != 'source_correction'
-                if variant not in passes:
-                    sample = dict(seed, prompt_variant=variant)
-                    with connect() as c:
-                        enqueue(c, sample)
-                    third_requested += 1
-                    row['third_pass_pending'] = True
-                elif passes[variant].get('result'):
-                    third = passes[variant]['result']['verbatim_text']
-                    row['third_vs_verbatim'] = compare(passes['verbatim']['result']['verbatim_text'], third)
-                    row['third_vs_coverage'] = compare(passes['coverage']['result']['verbatim_text'], third)
-                else:
-                    row['third_pass_pending'] = passes[variant]['state'] in ('PENDING', 'RUNNING', 'RETRYABLE_FAILED')
-        else:
-            row['incomplete'] = True
+        if not pilot.startswith(TRIAD_VERSION + '-'):
+            continue  # Historical prompts are immutable evidence; never schedule old passes.
+        results = {k: v.get('result') for k, v in passes.items()}
+        previous = [r['text'] for r in previous_by_sample.get(sample_id, []) if r['pilot_id'] != pilot]
+        row['decision'] = triad_decision(results, previous)
+        row['human_review_required'] = True
+        row['automatic_publication'] = False
+        if row['decision'] == 'waiting_remaining':
+            if source_text(source) is None:
+                row['decision'] = 'missing_source_annotation'
+            else:
+                for variant in ('coverage', 'source_correction'):
+                    if variant not in passes:
+                        with connect() as c:
+                            enqueue(c, dict(source, prompt_variant=variant, review_only=True))
+                        third_requested += 1
+        if any(v['state'] in ('NEEDS_REVIEW', 'PERMANENT_FAILED') and not v.get('result')
+               for v in passes.values()):
+            row['decision'] = 'rejected_failed_pass'
+        if all(results.get(v) for v in ('verbatim', 'coverage', 'source_correction')):
+            row['normalized_agreement'] = all(compare(results['verbatim']['verbatim_text'],
+                results[v]['verbatim_text'])['normalized_agreement'] for v in ('coverage', 'source_correction'))
         reports.setdefault(pilot, []).append(row)
     summaries = []
     for pilot, rows in reports.items():
         rows.sort(key=lambda r: r['sample_id'])
         summary = {'pilot_id': pilot, 'samples': len(rows),
                    'paired': sum('normalized_agreement' in r for r in rows),
-                   'disagreements': sum(r.get('normalized_agreement') is False for r in rows)}
+                   'disagreements': sum(r.get('normalized_agreement') is False for r in rows),
+                   'candidates_3of3': sum(r.get('decision') == 'candidate_3of3' for r in rows)}
         body = json.dumps({'summary': summary, 'rows': rows}, ensure_ascii=False, sort_keys=True).encode()
         sha = hashlib.sha256(body).hexdigest()
         key = f'reviews/{pilot}/{sha}.json'

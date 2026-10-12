@@ -418,3 +418,37 @@ accepts or publishes training examples. Language consistency compares the primar
 BCP-47 language (pt and pt-BR are consistent), while word agreement uses the shared
 normalizer without stemming or fuzzy matching. A three-way candidate is not a
 human-verified label, and prior conflicts remain visible.
+
+### Overnight Russian-only run: precision-ru-triad-v1
+
+The existing Airflow DAG and queue now run an English, audio-only first pass.
+Only a nonempty Russian answer without uncertainty schedules the Russian blind
+pass and source correction. Missing source annotations stay for review without
+inventing a correction input. All three answers must agree after the shared word
+normalization, be Russian and contain no uncertainty; any conflicting historical
+answer blocks candidacy. Errors do not become votes. Nothing is automatically
+published for training. `triad_decision` is shared by review and the night notebook.
+
+Old responses are retained in their old batches. Previously pending old-prompt
+jobs were quarantined as `superseded_prompt_version`; 3,873 prepared samples got
+one versioned first-pass job. The source preparer now emits only the first pass;
+Airflow schedules the remaining two conditionally every five minutes.
+
+Five authenticated accounts (01,02,03,04,07) are configured at 20 concurrent
+requests each. Empty slots 05/06 remain disabled. Native rate-limit cooldowns and
+quota/auth circuit breakers remain active. Runtime stays on dev-1. All workers,
+Airflow, and Jupyter import the same read-only source directory; no new service
+was added. `notebooks/speech_data_night.ipynb` shows strict candidates and audio.
+
+Night-watch adjustment: paid-tier checks confirmed 01/02 as Pro and 03/07 as
+Ultra; 04 currently reports Free. Limits are 5/5/20/5/20 for 01/02/03/04/07.
+05/06 are intentionally disabled empty slots. If a native quota error includes
+an explicit `Resets in ...` duration, the existing `next_request_at` enforces
+that cooldown plus 60 seconds without retrying the failed audio job. Unknown
+quota/auth errors still block the account. Follow-up passes have queue priority
+over starting new examples so available quota completes triples first.
+
+An ordinary partial unique index on prepared audio SHA256 and pass prevents
+cross-manifest duplicate inference within this prompt version. Source provenance
+remains in the source inventory and immutable manifests. This is exact-byte
+prepared-audio deduplication, not semantic/near-duplicate audio detection.

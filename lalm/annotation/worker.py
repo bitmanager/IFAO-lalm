@@ -3,6 +3,7 @@ import concurrent.futures
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import signal
 import subprocess
@@ -33,8 +34,17 @@ def classify(text, timed_out=False):
     return 'NEEDS_REVIEW', 'native_result_rejected', None
 
 
+def quota_reset_delay(text):
+    match = re.search(r'Resets in ((?:[0-9]+[hms])+)\.', text)
+    if not match:
+        return None
+    seconds = sum(int(n) * {'h': 3600, 'm': 60, 's': 1}[unit]
+                  for n, unit in re.findall(r'([0-9]+)([hms])', match[1]))
+    return seconds + 60 if 0 < seconds <= 7 * 86400 else None
+
+
 def run_agy(audio, workspace, variant="verbatim", reference=None):
-    command = ['agy', '--mode', 'plan', '--model', MODEL, '--disable-slash-commands',
+    command = ['agy', '--model', MODEL, '--disable-slash-commands',
                '--output-format', 'stream-json', '--json-schema', json.dumps(SCHEMA),
                '--print-timeout', '5m', '--add-dir', str(workspace), '-p', prompt(audio, variant, reference)]
     # The model process has its own AGY login but does not inherit DB/S3 credentials.
@@ -91,7 +101,9 @@ def process(job):
             native = agy_result(stdout, audio)
         except (ValueError, KeyError, TypeError):
             state, code, block = classify(stdout + stderr, timed_out)
-            finish(job, state, error_code=code, retry_seconds=300 * job['attempt'], block=block)
+            delay = quota_reset_delay(stdout + stderr) if block == 'quota_exhausted' else None
+            finish(job, state, error_code=code, retry_seconds=delay or 300 * job['attempt'],
+                   block='quota_cooldown' if delay is not None else block)
             return
         out = native['structured_output']
         result = {'verbatim_text': out['transcript'], 'language': normalize_language(out['language']), 'language_raw': out['language'],
