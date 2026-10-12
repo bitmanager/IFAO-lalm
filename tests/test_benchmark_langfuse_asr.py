@@ -1,4 +1,5 @@
 import json
+import csv
 import io
 import shutil
 import struct
@@ -10,11 +11,46 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from lalm.benchmark_langfuse_asr import MODEL, agy_result, download, incomplete_gemini_status, native_cli, prepare, sha, zero_user_audio
+from lalm.benchmark_langfuse_asr import MODEL, agy_result, download, incomplete_gemini_status, native_cli, prepare, report, sha, zero_user_audio
 from lalm.benchmark_gemini_api import MODEL as API_MODEL, billed_cost, validate
 
 
 class BenchmarkContracts(unittest.TestCase):
+    def presence_report_fixture(self, root, changes):
+        calls, assets, checks = [], [], []
+        for i, delta in enumerate(changes):
+            mid = str(i)
+            calls.append({"call_id": "test-" + mid, "trace_id": mid,
+                          "media_id": mid, "source_environment": "test"})
+            assets.append({"media_id": mid, "status": "complete", "user_sha256": "sha-" + mid})
+            checks.append({"source_keys": ["test:" + mid], "audio_sha256": "sha-" + mid,
+                           "model": MODEL, "status": "complete", "native_validated": True,
+                           "vad_speech_detected": True, "speech_status": "speech", "language": "ru", **delta})
+        for name, rows in (("calls", calls), ("assets", assets), ("presence", checks)):
+            (root / (name + ".jsonl")).write_text("".join(json.dumps(x) + "\n" for x in rows))
+        return SimpleNamespace(root=root, presence_index=root / "presence.jsonl")
+
+    def test_review_gate_excludes_empty_unconfirmed_foreign_and_pending_audio(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            args = self.presence_report_fixture(root, [{}, {"vad_speech_detected": False},
+                {"speech_status": "no_speech"}, {"language": "en"},
+                {"status": "not_started"}, {"native_validated": False}])
+            report(args)
+            review = next(root.glob("review-*.csv"))
+            with review.open() as f:
+                self.assertEqual([r["call_id"] for r in csv.DictReader(f)], ["test-0"])
+            metadata = json.loads(review.with_suffix(".meta.json").read_text())
+            self.assertEqual(metadata["presence_index_sha256"], sha(args.presence_index))
+            self.assertEqual(metadata["quality_gate"], "silero_and_gemini_russian_speech")
+
+    def test_review_gate_rejects_stale_audio_and_ambiguous_source_keys(self):
+        for changes in ([{"audio_sha256": "stale"}], [{}, {"source_keys": ["test:0"]}]):
+            with self.subTest(changes=changes), tempfile.TemporaryDirectory() as d:
+                args = self.presence_report_fixture(Path(d), changes)
+                with self.assertRaises(ValueError):
+                    report(args)
+
     def test_zero_pcm_gate_preserves_any_nonzero_samples(self):
         with tempfile.TemporaryDirectory() as d:
             p = Path(d) / "user.wav"

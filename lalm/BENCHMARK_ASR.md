@@ -124,6 +124,16 @@ python lalm/benchmark_langfuse_asr.py gemini --root "$DATA_ROOT" \
 python lalm/benchmark_langfuse_asr.py report --root "$DATA_ROOT"
 ```
 
+For the cleaned annotation/benchmark export, pass the completed or partial native
+presence audit index with `report --presence-index /path/to/presence-index.jsonl`.
+Only matching audio hashes with native-validated Gemini Russian speech and a
+positive Silero speech result enter that CSV. Pending, failed, foreign-language
+and disputed speech-presence cases stay out; the source coverage ledgers remain
+available. Duplicate source keys or changed audio hashes fail explicitly.
+The adjacent `.meta.json` records the exact index snapshot hash and quality gate.
+Without this option the report is a coverage review with only the exact-zero
+exclusion. Presence checks and model transcripts are not human ground truth.
+
 AGY uses a fresh process per recording and pins `gemini-3.8-flash-low`. Never use
 `--continue` or share a conversation across calls. Blind transcription sees only
 user-channel WAV. Trace-assisted transcription separately sees online context,

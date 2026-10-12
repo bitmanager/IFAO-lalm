@@ -519,6 +519,18 @@ def incomplete_gemini_status(directory):
 
 
 def report(args):
+    presence_path = getattr(args, "presence_index", None)
+    presence = None
+    presence_digest = None
+    if presence_path:
+        payload = presence_path.read_bytes()
+        presence_digest = hashlib.sha256(payload).hexdigest()
+        presence = {}
+        for checked in (json.loads(line) for line in payload.splitlines() if line.strip()):
+            for key in checked["source_keys"]:
+                if key in presence:
+                    raise ValueError("Duplicate source key in presence index")
+                presence[key] = checked
     fields = ["source_environment", "call_id", "trace_id", "origin", "cohort_clock", "media_id", "audio_status", "recording_source_status",
               "online_text", "giga_text", "gemini_text", "trace_assisted_text", "giga_status",
               "gemini_status", "trace_assisted_status", "sequence_match_similarity", "online_giga_similarity",
@@ -547,6 +559,15 @@ def report(args):
             asset = assets.get(call["media_id"], {})
             if asset.get("status") in ("excluded_no_user_speech", "source_empty_audio"):
                 continue
+            if presence is not None:
+                checked = presence.get(call["source_environment"] + ":" + str(call["media_id"]))
+                if checked and checked["audio_sha256"] != asset.get("user_sha256"):
+                    raise ValueError("Presence index audio hash mismatch")
+                if not (asset.get("status") == "complete" and checked
+                        and checked["status"] == "complete" and checked["native_validated"] is True
+                        and checked["model"] == MODEL and checked["vad_speech_detected"] is True
+                        and checked["speech_status"] == "speech" and checked["language"] == "ru"):
+                    continue
             row["audio_status"] = asset.get("status", "no_recording")
             row["recording_source_status"] = ("media_link_present" if call["media_id"] else
                                               "missing_recording_span" if call.get("recording_start") is None else
@@ -599,7 +620,12 @@ def report(args):
                                       "agreement_control" if similarities else "inference_missing")
             row["review_status"] = "needs_listening"
             writer.writerow(row)
-    print(json.dumps({"review": str(output), "not_a_gold_wer": True}), flush=True)
+    metadata = {"review": str(output), "not_a_gold_wer": True,
+                "presence_index": str(presence_path) if presence_path else None,
+                "presence_index_sha256": presence_digest,
+                "quality_gate": "silero_and_gemini_russian_speech" if presence is not None else "exact_zero_only"}
+    save(output.with_suffix(".meta.json"), metadata)
+    print(json.dumps(metadata), flush=True)
 
 
 def main():
@@ -626,6 +652,9 @@ def main():
             p.add_argument("--workers", type=int, default=2)
             p.add_argument("--agy", default="agy")
             p.add_argument("--workspace", type=Path, required=True)
+        if action == "report":
+            p.add_argument("--presence-index", type=Path,
+                           help="Restrict review to matching audio confirmed as Russian speech by native Gemini and Silero")
     args = parser.parse_args()
     globals()[args.action](args)
 
