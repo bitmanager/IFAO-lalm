@@ -1,0 +1,7 @@
+FROM apache/airflow:3.3.1
+COPY infra/annotation/requirements.txt /tmp/speech-requirements.txt
+RUN pip install --no-cache-dir 'apache-airflow==3.3.1' -r /tmp/speech-requirements.txt
+COPY lalm/benchmark_langfuse_asr.py /opt/speech/lalm/benchmark_langfuse_asr.py
+COPY lalm/annotation /opt/speech/lalm/annotation
+COPY airflow/dags /opt/airflow/dags
+ENV PYTHONPATH=/opt/speech

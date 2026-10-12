@@ -1,0 +1,12 @@
+# Official source release: public prebuilt MinIO images are no longer available.
+FROM golang:1.24.2-bookworm AS build
+ADD https://codeload.github.com/minio/minio/tar.gz/refs/tags/RELEASE.2025-09-07T16-13-09Z /tmp/minio.tar.gz
+RUN echo 'c9598dcce3440977e79f787f2ba0e7e4d92c8d556bd51e7cef3785bafd6635f3  /tmp/minio.tar.gz' | sha256sum -c - \
+    && mkdir /src && tar -xzf /tmp/minio.tar.gz --strip-components=1 -C /src
+WORKDIR /src
+RUN CGO_ENABLED=0 go build -trimpath -o /minio .
+FROM debian:bookworm-slim
+COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+COPY --from=build /minio /usr/local/bin/minio
+COPY --from=build /src/LICENSE /usr/share/doc/minio/LICENSE
+ENTRYPOINT ["minio"]

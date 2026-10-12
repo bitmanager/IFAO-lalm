@@ -1,0 +1,5 @@
+{
+  "accounts": [
+    {"id": "agy-01", "concurrency": 2, "min_interval_seconds": 1}
+  ]
+}

@@ -1,0 +1,53 @@
+CREATE TABLE IF NOT EXISTS accounts (
+  id text PRIMARY KEY,
+  enabled boolean NOT NULL DEFAULT false,
+  concurrency integer NOT NULL CHECK (concurrency BETWEEN 1 AND 64),
+  min_interval_seconds double precision NOT NULL CHECK (min_interval_seconds >= 0),
+  next_request_at timestamptz NOT NULL DEFAULT now(),
+  blocked_reason text
+);
+CREATE TABLE IF NOT EXISTS holdouts (
+  kind text NOT NULL CHECK (kind IN ('conversation_id','audio_sha256')),
+  value text NOT NULL,
+  PRIMARY KEY (kind,value)
+);
+CREATE TABLE IF NOT EXISTS jobs (
+  id text PRIMARY KEY,
+  sample jsonb NOT NULL,
+  state text NOT NULL DEFAULT 'PENDING' CHECK (state IN
+    ('PENDING','RUNNING','RETRYABLE_FAILED','NEEDS_REVIEW','PERMANENT_FAILED','VALIDATED','PUBLISHED')),
+  account_id text REFERENCES accounts(id),
+  attempt integer NOT NULL DEFAULT 0,
+  lease_token text,
+  lease_until timestamptz,
+  next_attempt_at timestamptz NOT NULL DEFAULT now(),
+  result jsonb,
+  error_code text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS jobs_queue ON jobs(state,next_attempt_at,created_at);
+CREATE TABLE IF NOT EXISTS attempts (
+  job_id text REFERENCES jobs(id),
+  attempt integer NOT NULL,
+  account_id text NOT NULL,
+  lease_token text NOT NULL,
+  started_at timestamptz NOT NULL DEFAULT now(),
+  finished_at timestamptz,
+  state text NOT NULL DEFAULT 'RUNNING',
+  artifact_prefix text,
+  error_code text,
+  PRIMARY KEY(job_id,attempt)
+);
+CREATE TABLE IF NOT EXISTS publications (
+  id text PRIMARY KEY,
+  manifest_key text NOT NULL,
+  count integer NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS source_manifests (
+  object_key text PRIMARY KEY,
+  sha256 text NOT NULL,
+  row_count integer NOT NULL,
+  imported_at timestamptz NOT NULL DEFAULT now()
+);
