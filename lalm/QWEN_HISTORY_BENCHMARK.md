@@ -1,5 +1,24 @@
 # Qwen transcription with causal self-history
 
+## Semantic judge (validation only)
+
+`benchmark_semantic_judge.py` submits the frozen per-recording metric CSV to
+OpenRouter `openai/gpt-6-luna` (not 5.6). It uses Gemini as a user-selected
+pseudo-reference, hides recognizer names, and deterministically shuffles A/B/C
+per audio SHA. All three recognizers receive a rating in the same request.
+The rubric distinguishes preserved meaning (0), minor changes (1), substantial
+meaning changes (2), and potential action-changing/unusable transcription (3).
+These are text-only risk judgments, not observed failures of an actual agent.
+
+Outputs preserve quotes, uncertainty, raw requests/responses, mapping and billed
+cost. Evidence quotes must occur in the input; whitespace differences alone are
+allowed. Unsupported quotes fail validation rather than being counted. Restart
+reuses matching valid results and can revalidate already captured responses;
+`--retry-failed` explicitly resubmits remaining invalid responses, archiving them.
+No alternate model, recognizer, judge vote or automatic pseudo-label selection is
+used. A partial run exits nonzero, and rejected assessments are excluded from
+aggregate rates with coverage reported. Reference doubts require listening.
+
 ## Runtime audit: remaining history contamination
 
 `benchmark_qwen_runtime_audit.py` runs controlled native HF inference without
