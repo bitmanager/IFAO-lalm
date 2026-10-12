@@ -426,7 +426,8 @@ def report(args):
                     row[field] = ""
                 if variant == "blind":
                     row["gemini_status"] = "complete" if path.exists() else "not_completed"
-            row["sequence_match_similarity"] = SequenceMatcher(None, row["giga_text"].split(), row["gemini_text"].split(), autojunk=False).ratio() if result and row["gemini_status"] == "complete" else ""
+            tokens = lambda text: re.sub(r"[^a-zа-я0-9]+", " ", text.lower().replace("ё", "е")).split()
+            row["sequence_match_similarity"] = SequenceMatcher(None, tokens(row["giga_text"]), tokens(row["gemini_text"]), autojunk=False).ratio() if result and row["gemini_status"] == "complete" else ""
             row["review_status"] = "needs_listening"
             writer.writerow(row)
     print(json.dumps({"review": str(output), "not_a_gold_wer": True}), flush=True)
