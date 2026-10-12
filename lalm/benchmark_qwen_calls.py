@@ -13,6 +13,15 @@ def fingerprint(value):
 
 
 def inference_messages(system, history, user, mode):
+    if mode == "no_history":
+        return [{"role": "system", "content": system}, user]
+    if mode == "reference_history_v3":
+        context = "\n".join(h["role"] + ": " + h["content"] for h in history)
+        current = dict(user)
+        if context:
+            current["content"] = ("Справка о прошлых репликах:\n" + context
+                                  + "\nКонец справки. ТЕКУЩЕЕ АУДИО:\n" + user["content"])
+        return [{"role": "system", "content": system}, current]
     if mode == "reference_history_v2":
         # Context is evidence, not a conversation the model should continue.
         if history:
@@ -22,6 +31,14 @@ def inference_messages(system, history, user, mode):
     if mode != "self_transcripts_and_agent":
         raise ValueError("Unknown history format")
     return [{"role": "system", "content": system}] + history + [user]
+
+
+def context_copy_flag(text, history):
+    # A review signal only: genuine repetitions are possible. Never edit output.
+    normalized = " ".join(text.casefold().split()).strip(" .,!?:;—-")
+    return len(normalized) >= 20 and any(
+        normalized == " ".join(h["content"].casefold().split()).strip(" .,!?:;—-")
+        for h in history)
 
 
 def main():
@@ -38,7 +55,7 @@ def main():
     from lalm_core.model.gigaam_adapter import gigaam_output_length
 
     spec = json.loads(args.manifest.read_text())
-    assert spec["history_mode"] in ("self_transcripts_and_agent", "reference_history_v2")
+    assert spec["history_mode"] in ("self_transcripts_and_agent", "reference_history_v2", "reference_history_v3", "no_history")
     gpu = "GPU-de629798-46d4-ac37-e28e-d73f59094ab7"
     assert os.environ["CUDA_VISIBLE_DEVICES"] == gpu
     runtime.GPUS = [gpu]
@@ -100,6 +117,8 @@ def main():
                                     source_at_seconds=prior["source"]["end"]))
             history.sort(key=lambda h: h["source_at_seconds"])
             history = [{"role": h["role"], "content": h["content"]} for h in history]
+            if spec["history_mode"] == "no_history":
+                history = []
             history_total = len(history)
             user = {"role": "user", "content": "<|audio|>" * count + "\n" + spec["user_suffix"]}
             while True:
@@ -112,7 +131,8 @@ def main():
             answer = generated(model, tokenizer, prefix, wave)
             result["segments"].append(dict(source=segment, output=answer, prompt_tokens=len(prefix),
                                            history_used=len(history), history_dropped=history_total - len(history),
-                                           history_sent=history))
+                                           history_sent=history,
+                                           possible_context_copy=context_copy_flag(answer["text"], history)))
             runtime.atomic(target, result)
             print(json.dumps(dict(call=call_index + 1, calls=len(calls), segment=index + 1,
                                   segments=len(call["segments"]), generation_complete=answer["complete"])), flush=True)
@@ -123,6 +143,10 @@ def main():
             s["output"]["complete"] for s in result["segments"]) else "truncated"
         result["transcript"] = "\n".join(s["output"]["text"] for s in result["segments"])
         result["human_gold"] = False
+        result["quality_review"] = dict(
+            possible_context_copy_segments=[s["source"]["id"] for s in result["segments"]
+                                            if s.get("possible_context_copy")],
+            human_verified=False)
         runtime.atomic(target, result)
     assert runtime.digest(checkpoint) == spec["checkpoint_sha256"]
 

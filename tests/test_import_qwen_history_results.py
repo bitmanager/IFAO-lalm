@@ -65,6 +65,11 @@ class QwenHistoryImportContracts(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "identity mismatch"):
             self._validate(broken)
 
+    def test_wrong_runner_version_cannot_overwrite_selected_recipe(self):
+        self.manifest["runner_sha256"] = "f" * 64
+        with self.assertRaisesRegex(ValueError, "Runner version"):
+            self._validate(self.result)
+
     def test_per_call_self_only_policy_overrides_generic_manifest_mode(self):
         call = dict(self.call, history_policy={
             "selection": "Self-only prior completed Qwen transcripts; no original agent/client text",
@@ -115,10 +120,17 @@ class QwenHistoryImportContracts(unittest.TestCase):
     def test_v2_recipe_migration_archives_old_output_and_preserves_labels(self):
         self.check_supersession("reference_history_v2")
 
-    def check_supersession(self, mode):
+    def test_v3_recipe_migration_archives_old_output_and_preserves_labels(self):
+        self.check_supersession("reference_history_v3")
+
+    def test_failed_new_recipe_is_visible_instead_of_stale_old_success(self):
+        self.check_supersession("reference_history_v3", "truncated")
+
+    def check_supersession(self, mode, status="complete"):
         item = self._validate(self.result)
         item["effective_history_mode"] = mode
         item["recipe"]["history_mode"] = mode
+        item["status"] = status
         previous_sha = "b" * 64
         existing = {
             "id": 44,
@@ -153,6 +165,7 @@ class QwenHistoryImportContracts(unittest.TestCase):
         self.assertEqual(archive[0]["text"], "Earlier candidate.")
         self.assertEqual(updated["annotations"], existing["annotations"])
         self.assertEqual(updated["drafts"], existing["drafts"])
+        self.assertEqual(updated["data"]["qwen_history_status"], status)
 
 
 if __name__ == "__main__":

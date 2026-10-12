@@ -1,5 +1,20 @@
 # Qwen transcription with causal self-history
 
+## v3: explicit transcription task and separated reference context
+
+Full-call testing showed v2 could still replace the age statement with an older
+transcript. On identical 181.0–187.4s audio, the no-history control returned
+the age and question correctly. A stricter transcription instruction and an
+explicit reference-context boundary before the audio also returned that content
+correctly, with history retained. v3 uses this latter format uniformly, without
+per-segment fallback, substituting another ASR, or deleting repeated text.
+
+Six complete diagnostic calls were checked. The marketing call still has a
+short mistaken repetition and lexical errors: this is not a claim that the
+checkpoint now has perfect ASR accuracy. Long exact matches to history produce
+a review warning, not an automatic rejection or a rewritten transcript.
+`no_history` is an explicit diagnostic mode; it is not mixed into v3 results.
+
 ## v2: avoid replaying conversation as transcription
 
 The first recipe reproduced a failure on the marketing call: a 53.1–55.8s

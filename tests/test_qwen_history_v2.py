@@ -1,10 +1,27 @@
 import unittest
 
-from lalm.benchmark_qwen_calls import inference_messages
+from lalm.benchmark_qwen_calls import inference_messages, context_copy_flag
 from lalm.prepare_qwen_history import group_speech_segments
 
 
 class HistoryV2Tests(unittest.TestCase):
+    def test_v3_keeps_context_before_audio_and_diagnostic_control_omits_it(self):
+        history = [{"role": "user", "content": "старая реплика"}]
+        user = {"role": "user", "content": "<|audio|>"}
+        messages = inference_messages("ASR", history, user, "reference_history_v3")
+        self.assertEqual([m["role"] for m in messages], ["system", "user"])
+        self.assertTrue(messages[-1]["content"].endswith("<|audio|>"))
+        self.assertIn("Конец справки", messages[-1]["content"])
+        self.assertEqual(user["content"], "<|audio|>")
+        control = inference_messages("ASR", history, user, "no_history")
+        self.assertNotIn("старая реплика", str(control))
+
+    def test_copy_warning_does_not_flag_short_agreements_or_modify_text(self):
+        history = [{"role": "user", "content": "Маркетинг и аналитика в одной роли."}]
+        self.assertTrue(context_copy_flag("маркетинг и аналитика в одной роли", history))
+        self.assertFalse(context_copy_flag("Да", [{"content": "Да"}]))
+        self.assertFalse(context_copy_flag("Мне двадцать один", history))
+
     def test_history_is_not_rendered_as_active_chat_turns(self):
         history = [{"role": "user", "content": "старый текст"},
                    {"role": "assistant", "content": "старый ответ"}]

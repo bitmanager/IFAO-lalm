@@ -71,7 +71,7 @@ def transcript_from_result(result):
 
 
 def effective_history_mode(recipe_mode, history_policy):
-    if recipe_mode == "reference_history_v2":
+    if recipe_mode in {"reference_history_v2", "reference_history_v3", "no_history"}:
         return recipe_mode
     selection = (history_policy or {}).get("selection", "").lower()
     if selection.startswith("self-only prior completed qwen transcripts"):
@@ -94,6 +94,8 @@ def validate_result(
     recipe, provenance = result.get("recipe") or {}, result.get("provenance") or {}
     if recipe.get("checkpoint_sha256") != expected_checkpoint:
         raise ValueError("Checkpoint hash mismatch")
+    if manifest.get("runner_sha256") and recipe.get("adapter_sha256") != manifest["runner_sha256"]:
+        raise ValueError("Runner version differs from the selected benchmark recipe")
     k = key(result.get("environment"), result.get("media_id"))
     call = calls.get(k)
     source = planned.get(k)
@@ -135,10 +137,15 @@ def validate_result(
         "result_key": result.get("key", Path(path).stem),
         "segment_count": len(segments),
         "audio_sha256": audio_sha,
+        "quality_review": result.get("quality_review", {}),
     }
 
 
 def mode_display(mode, policy):
+    if mode == "reference_history_v3":
+        return "v3: прошлая история отделена от текущего аудио; дословная транскрипция; онлайн-текст не подавался"
+    if mode == "no_history":
+        return "Диагностический контроль без истории; только текущее аудио"
     if mode == "reference_history_v2":
         return "v2: история отдельным справочным блоком; близкие VAD-фрагменты объединены; онлайн-текст не подавался"
     if mode == "past_online_history":
@@ -165,6 +172,11 @@ def task_fields(item):
     effective_mode = item["effective_history_mode"]
     return {
         "qwen_history_status": status,
+        "qwen_history_quality_note": (
+            "Нужно прослушать: возможное копирование истории в сегментах "
+            + ", ".join(item.get("quality_review", {}).get("possible_context_copy_segments", []))
+            if item.get("quality_review", {}).get("possible_context_copy_segments")
+            else "Статус генерации не является оценкой точности. Текст требует проверки по аудио."),
         "qwen_history_display": display,
         "qwen_history_text": text if status in {COMPLETE, "truncated"} else "",
         "qwen_history_mode": effective_mode,
@@ -271,10 +283,12 @@ def import_item(api_url, token, task_summary, item, cookie_header=None, supersed
     old_digest = data.get("qwen_history_result_sha256")
     if current_status == item["status"] and old_digest == item["result_sha256"]:
         return "already_imported"
-    migration = (item["effective_history_mode"] == "reference_history_v2"
-                 and data.get("qwen_history_mode") in {"self_transcripts_and_agent", "self_transcripts_only"})
+    migration = ((item["effective_history_mode"] == "reference_history_v2"
+                  and data.get("qwen_history_mode") in {"self_transcripts_and_agent", "self_transcripts_only"})
+                 or (item["effective_history_mode"] == "reference_history_v3"
+                     and data.get("qwen_history_mode") in {"self_transcripts_and_agent", "self_transcripts_only", "reference_history_v2"}))
     if current_status == COMPLETE or (migration and old_digest):
-        if (not supersede_complete or item["status"] != COMPLETE or not old_digest
+        if (not supersede_complete or (item["status"] != COMPLETE and not migration) or not old_digest
                 or data.get("qwen_history_audio_sha256") != item["audio_sha256"]
                 or data.get("qwen_history_call_id") != item["call"]["call_id"]
                 or data.get("qwen_history_checkpoint_sha256") != item["recipe"]["checkpoint_sha256"]
@@ -286,15 +300,13 @@ def import_item(api_url, token, task_summary, item, cookie_header=None, supersed
             if prior:
                 archived.append(prior)
         fields["qwen_history_previous_candidates"] = archived
-        if migration:
-            fields["qwen_history_quality_note"] = "Новый прогон v2 после исправления нарезки и формата истории. Предыдущий вывод сохранён в архиве; complete означает завершение генерации, не проверенную точность."
-    if current_status in {"truncated", "failed", "error"} and item["status"] != COMPLETE:
+    if current_status in {"truncated", "failed", "error"} and item["status"] != COMPLETE and not (migration and supersede_complete):
         if old_digest != item["result_sha256"]:
             return "conflict"
         return "already_imported"
     before = human_work(task)
     if current_status not in {"not_run", "truncated", "failed", "error"} and not (
-        current_status == COMPLETE and supersede_complete and item["status"] == COMPLETE
+        supersede_complete and (migration or (current_status == COMPLETE and item["status"] == COMPLETE))
     ):
         return "conflict"
     old_keys = set(data)
@@ -351,10 +363,6 @@ def scan(args, token, manifest, calls, planned, cookie_header=None):
                 existing_digest = existing_data.get("qwen_history_result_sha256")
                 if existing_status == item["status"] and existing_digest == item["result_sha256"]:
                     counts["already_imported"] += 1
-                    continue
-                if existing_status in PARTIAL_STATUSES and item["status"] in PARTIAL_STATUSES:
-                    counts["conflict"] += 1
-                    errors.append(f"{path.name}: existing Qwen result conflicts with this result")
                     continue
                 outcome = import_item(
                     args.api_url, token, summary, item, cookie_header, args.supersede_complete

@@ -39,8 +39,9 @@ def main():
     result = dict(checkpoint_sha256=spec["checkpoint_sha256"], audio_sha256=spec["audio_sha256"], variants=[])
     for variant in spec["variants"]:
         history = [{"role": h["role"], "content": h["content"]} for h in variant["history"]]
-        messages = [{"role": "system", "content": spec["system_prompt"]}] + history
-        messages.append({"role": "user", "content": "<|audio|>" * count + "\n" + spec["user_suffix"]})
+        messages = [{"role": "system", "content": variant.get("system_prompt", spec["system_prompt"])}] + history
+        messages.append({"role": "user", "content": variant.get("user_prefix", "") + "<|audio|>" * count
+                         + "\n" + variant.get("user_suffix", spec["user_suffix"])})
         prefix = tokens(tokenizer, messages)
         assert prefix.count(tokenizer.convert_tokens_to_ids("<|audio|>")) == count
         answer = generated(model, tokenizer, prefix, wave)

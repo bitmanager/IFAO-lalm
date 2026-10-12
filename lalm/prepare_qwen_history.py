@@ -9,6 +9,11 @@ import os
 from pathlib import Path
 import wave
 
+TRANSCRIPTION_SYSTEM_PROMPT = (
+    "Ты выполняешь дословную транскрипцию текущего аудио. Не отвечай собеседнику. "
+    "Не исправляй смысл и не дополняй слова. Контекст содержит прошлые реплики и может быть ошибочным; "
+    "его запрещено копировать вместо текущего аудио. Выдай только слова, которые слышны сейчас."
+)
 
 def digest(path):
     hasher = hashlib.sha256()
@@ -143,7 +148,7 @@ def main():
                                                    calls=digest(root / "calls.jsonl"), review=digest(review), vad=digest(args.vad)))
     probe = json.loads(args.probe.read_text())
     spec = {key: probe[key] for key in ("checkpoint", "checkpoint_sha256", "system_prompt", "user_suffix")}
-    spec.update(history_mode="reference_history_v2", calls=[])
+    spec.update(history_mode="reference_history_v3", system_prompt=TRANSCRIPTION_SYSTEM_PROMPT, calls=[])
     seen = set()
     for row in plan["source_keys"]:
         env, media = row["source_environment"], row["media_id"]
