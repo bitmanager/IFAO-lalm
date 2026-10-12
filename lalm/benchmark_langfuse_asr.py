@@ -346,6 +346,25 @@ def gemini(args):
                 return old
             raise ValueError("Stale Gemini cache")
         directory.mkdir(parents=True, exist_ok=True)
+        # Revalidate already captured native success after a known validator fix;
+        # no new recognition and no substitution of another model/transcript.
+        for previous in sorted(directory.glob("attempt-*.status.json")):
+            status = json.loads(previous.read_text())
+            if status.get("exit_code") != 0 or status.get("error") != "Unexpected native tool use":
+                continue
+            raw = previous.with_name(previous.name.replace(".status.json", ".stream.jsonl"))
+            try:
+                native = agy_result(raw.read_text(), path)
+            except ValueError:
+                continue
+            result = {"media_id": asset["media_id"], "model": MODEL, "variant": args.variant,
+                      "audio_sha256": asset["user_sha256"], "prompt_sha256": prompt_sha,
+                      "context_call_id": asset.get("context_call_id"), "status": "complete",
+                      "revalidated_native_attempt": raw.name, "native_result": native}
+            save(done, result)
+            return result
+        if args.recover_only:
+            return {"media_id": asset["media_id"], "status": "not_completed"}
         first_attempt = max([int(p.name.split("-")[1].split(".")[0]) for p in directory.glob("attempt-*.stream.jsonl")], default=0) + 1
         for retry in range(3):
             attempt = first_attempt + retry
@@ -398,7 +417,8 @@ def gemini(args):
         ready = [dict(asset, context_call_id=call_id) for asset in ready for call_id in asset["call_ids"]]
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.workers) as pool:
         results = list(pool.map(one, ready))
-    save(args.root / "gemini" / args.variant / "summary.json",
+    summary_name = "recovery-summary.json" if args.recover_only else "summary.json"
+    save(args.root / "gemini" / args.variant / summary_name,
          {"total": len(results), "complete": sum(x["status"] == "complete" for x in results),
           "quota_blocked": quota_blocked.is_set(),
           "not_started_quota": sum(x["status"] == "not_started_quota" for x in results), "model": MODEL})
@@ -466,6 +486,7 @@ def main():
             p.add_argument("--media-proxy", help="Explicit loopback SSH forwarding URL for internal MinIO")
             p.add_argument("--workers", type=int, default=4)
         if action == "gemini":
+            p.add_argument("--recover-only", action="store_true", help="Revalidate captured native results without model calls")
             p.add_argument("--variant", choices=("blind", "trace_assisted"), default="blind")
             p.add_argument("--workers", type=int, default=2)
             p.add_argument("--agy", default="agy")
