@@ -1,0 +1,295 @@
+{
+  "date": "2026-10-13",
+  "scope": "Read-only discovery of audio datasets on Bitmanager managed ML servers; no training admission or production mutations",
+  "discovery_context": {
+    "local_socket": "/run/user/1000/tailscale-gpu/tailscaled.sock",
+    "self": "minipc-gpu-link.tail8f0274.ts.net",
+    "transport": "Existing ssh-gpu SOCKS client with established corporate SSO identity se@bitmanager.ai",
+    "note": "Default local and remote Tailscale sockets show different peer sets; use the existing GPU-link socket for these managed ML peers.",
+    "personal_devices_searched": false
+  },
+  "servers": [
+    {
+      "host": "patch-spark-ru-01",
+      "ip": "100.71.231.47",
+      "ssh": "VERIFIED",
+      "sudo_read": true,
+      "free_tib_reported": 3.2,
+      "role": "Speech analytics and voice platform",
+      "sources": "Original calls in native audio-data S3; read-only PostgreSQL transcription join"
+    },
+    {
+      "host": "patch-spark-uz-01",
+      "ip": "100.101.176.22",
+      "ssh": "VERIFIED",
+      "sudo_read": true,
+      "free_gib_reported": 441,
+      "role": "Datapipeline/Airflow and PII experiments",
+      "sources": "83130 original calls-prefix S3 objects, native pipeline stages and old frozen evaluation"
+    },
+    {
+      "host": "dev-spark-01",
+      "ip": "100.71.192.92",
+      "ssh": "VERIFIED",
+      "sudo_read": true,
+      "free_tib_reported": 2.2,
+      "sources": "Bank pilot, downloaded CRM manifests and local recordings"
+    },
+    {
+      "host": "exp-spark-01",
+      "ip": "100.96.90.20",
+      "ssh": "VERIFIED",
+      "sudo_read": true,
+      "free_tib_reported": 3.1,
+      "sources": "Runtime fixtures; no new large Russian calls confirmed"
+    },
+    {
+      "host": "exp-spark-03",
+      "ip": "100.124.26.57",
+      "ssh": "VERIFIED",
+      "sudo_read": true,
+      "free_tib_reported": 2.5,
+      "sources": "Completed Uzbek incoming snapshot and multilingual worker outputs"
+    },
+    {
+      "host": "exp-spark-04",
+      "ip": "100.67.10.16",
+      "ssh": "VERIFIED",
+      "sudo_read": true,
+      "free_tib_reported": 3.2,
+      "sources": "No new confirmed Russian phone source"
+    },
+    {
+      "host": "exp-spark-05",
+      "ip": "100.82.7.88",
+      "ssh": "VERIFIED",
+      "sudo_read": true,
+      "free_tib_reported": 3.3,
+      "sources": "Arabic YouTube worker artifacts"
+    },
+    {
+      "host": "exp-spark-06",
+      "ip": "100.76.23.89",
+      "ssh": "VERIFIED",
+      "sudo_read": true,
+      "free_tib_reported": 3.4,
+      "sources": "Arabic YouTube worker artifacts"
+    },
+    {
+      "host": "exp-ws-rtx5090x1-01",
+      "ip": "100.116.144.3",
+      "ssh": "VERIFIED",
+      "sudo_read": true,
+      "free_tib_reported": 1.3,
+      "sources": "Balalaika stress staging and clean_sft, byte-identical to existing dev source"
+    },
+    {
+      "host": "exp-ws-rtx5060tix1-01",
+      "ip": "100.93.101.7",
+      "ssh": "VERIFIED",
+      "sudo_read": true,
+      "free_tib_reported": 1.2,
+      "sources": "Multilingual worker artifacts; 907 dangling YouTube symlinks do not establish available audio"
+    },
+    {
+      "host": "test-platform-ws-rtx6000x2-01",
+      "ip": "100.123.251.41",
+      "ssh": "VERIFIED_SSO",
+      "legacy_bitmanager_login": "PUBLICKEY_DENIED",
+      "sudo_read": true,
+      "role": "Test platform",
+      "sources": "Voice MinIO physical store and small WAV fixtures",
+      "data_partition_free_gib_reported": 272,
+      "data_partition_used_percent": 93
+    },
+    {
+      "host": "prod-platform-ws-rtx6000x2-01",
+      "ip": "100.65.6.17",
+      "ssh": "VERIFIED_SSO",
+      "legacy_bitmanager_login": "PUBLICKEY_DENIED",
+      "sudo_read": true,
+      "role": "Production platform",
+      "sources": "Small voice store; larger Langfuse store is not an audio corpus"
+    }
+  ],
+  "new_sources": [
+    {
+      "id": "patch-ru-native-production-calls",
+      "host": "patch-spark-ru-01",
+      "source": "Native MinIO audio-data/calls for two organizations; relations.transcription joined to projects in bitmanager PostgreSQL",
+      "source_instructions": "/opt/calls_export/INSTRUCTIONS.md",
+      "status": "DISCOVERED_AND_NATIVE_DB_S3_KEY_JOIN_VERIFIED_NOT_COPIED",
+      "db_relations_with_text_and_audio_key": 4595,
+      "unique_s3_keys": 4078,
+      "matched_s3_keys": 4078,
+      "missing_s3_keys": 0,
+      "declared_hours_deduplicated_by_object_key": 130.331388889,
+      "relation_duration_sum_hours_before_object_key_dedup": 145.135,
+      "duration_note": "130.33h uses max database duration per unique object key. Not measured across audio headers and not SHA-level audio deduplication.",
+      "original_prefix_objects": [
+        {
+          "objects": 4835,
+          "bytes": 2069616672
+        },
+        {
+          "objects": 8605,
+          "bytes": 2006311140
+        }
+      ],
+      "labels": "Existing automatic transcriptions; current project model is Whisper/openai, per-record historical producer not independently established",
+      "transcript_script": "All 4595 selected relation texts contain Cyrillic; this is not independent spoken-language classification.",
+      "single_source_audio_probe": {
+        "bytes": 342144,
+        "codec": "mp3",
+        "sample_rate_hz": 8000,
+        "channels": 2,
+        "verification": "Original S3 object bytes decoded by existing ffprobe in patch-gigaam; no GPU inference"
+      },
+      "private_join_receipt": "/tmp/speech-data-calls-join-20261013.h81agj/receipt.json",
+      "eligibility": "Private source staging candidate; benchmark overlap and verbatim/quality audit unresolved"
+    },
+    {
+      "id": "dev-spark-bank-pilot",
+      "host": "dev-spark-01",
+      "source_roots": [
+        "/opt/patch/bank-pilot/audio",
+        "/opt/patch/handoff-data/bank/00-source-audio"
+      ],
+      "status": "DISCOVERED_NOT_COPIED",
+      "audio_files_per_copy": 300,
+      "audio_bytes_per_copy": 2149169000,
+      "copies_identical_sha256": true,
+      "stage3_manifest_rows": 289,
+      "stage3_declared_hours": 17.710833,
+      "splits": {
+        "tune": 189,
+        "hold2": 100
+      },
+      "labels": "The gold wording refers to Opus agent-field annotations and LLM judging; human word-level ASR gold not established",
+      "eligibility": "Preserve original 100 holdout calls; not automatic train"
+    },
+    {
+      "id": "dev-spark-downloaded-crm",
+      "host": "dev-spark-01",
+      "source_root": "/home/serega/crm-transfer-20261005",
+      "status": "DISCOVERED_NOT_COPIED",
+      "complete_manifest_entries_across_three_pools": 1160,
+      "unique_audio_sha256": 911,
+      "missing_referenced_complete_files": 0,
+      "declared_pool_hours": [
+        10.721389,
+        51.591111,
+        54.843611
+      ],
+      "hours_additive": false,
+      "labels": "No complete source transcript/gold join verified",
+      "eligibility": "Potential shared source with production benchmarks; cross-hash/source-ID exclusion needed"
+    },
+    {
+      "id": "patch-uz-native-audio-and-pipeline",
+      "host": "patch-spark-uz-01",
+      "status": "DISCOVERED_NOT_COPIED",
+      "native_s3_prefix": "audio-data/calls/",
+      "s3_objects": 83130,
+      "s3_bytes": 13274298240,
+      "pipeline_stage_root": "/opt/patch/datapipeline/data/airflow/stages",
+      "stage_files": 409396,
+      "stage_bytes": 37138572548,
+      "per_stage_result_files": 24155,
+      "per_stage_probabilities_files": 23742,
+      "pipeline_id_observed": "local-gigaam-nemotron-qwen4b-pii-gpu-v1",
+      "labels": "Local GigaAM transcription plus role/anonymization stages; not an independently verified strong API ASR layer",
+      "note": "Stage bytes include repeated probability matrices and text, not corresponding new waveform bytes or unique new calls. Need source-S3/audio-hash pairing and language coverage audit. Anonymized output must not be treated as verbatim transcript for unchanged original audio."
+    }
+  ],
+  "duplicate_sources": [
+    {
+      "id": "spark03-incoming-v7",
+      "host": "exp-spark-03",
+      "source_root": "/srv/balalaika-worker/balalaika/incoming/uz-corpus-20260918-135626",
+      "completed_snapshot_files": 645578,
+      "completed_snapshot_bytes": 242941227561,
+      "metadata_path": "metadata/spark-03.jsonl",
+      "metadata_bytes": 541841943,
+      "metadata_sha256": "abe6dfe0eefb19fdf8ef0a4a4d9a16575365355be768cb44ac971b0df62ef033",
+      "v7_rows": 72196,
+      "all_v7_audio_paths_exist": true,
+      "calls_rows": 8687,
+      "calls_declared_hours": 22.012354,
+      "vod_rows": 1088,
+      "vod_declared_hours": 5.047451,
+      "calls_audio_and_target_sha_match_prior_v5": "8687/8687",
+      "vod_audio_and_target_sha_match_prior_v5": "1088/1088",
+      "new_call_hours_verified": 0,
+      "new_call_targets_verified": 0,
+      "note": "Predominantly Uzbek/unlabelled remainder; not a new Russian/Gemini gold corpus. Full native train_v7 producer manifest not recovered; index source field alone does not prove new relabeling."
+    },
+    {
+      "id": "workstation-clean-sft",
+      "host": "exp-ws-rtx5090x1-01",
+      "source_root": "/home/ni@bitmanager.ai/stress-asr/clean_sft",
+      "same_bytes_as": "/mnt/local/drive1/v36-retrain/hf/balalaika-stress-relabel/clean_sft",
+      "upstream_repo": "bitmanagerai/balalaika-stress-relabel",
+      "upstream_revision": "02d08136ff6f64406cfcae4d01f4acef25001b69",
+      "all_four_artifacts_sha_match_dev": true,
+      "metadata_bytes": 215489492,
+      "rows": 1842295,
+      "declared_hours": 2509.351,
+      "covered_audio_rows": 1837718,
+      "covered_audio_hours": 2504.976914,
+      "missing_audio_rows": 4577,
+      "missing_audio_hours": 4.374443,
+      "missing_audio_shards": 4,
+      "existing_audio_tar_bytes": 93099376640,
+      "audio_archives": 1481,
+      "already_saved_s3": "speech-corpora/staging/balalaika-stress-sft-audio/native-20261012",
+      "labels": "Lexical-agreement-selected machine stress labels, not human gold"
+    },
+    {
+      "id": "spark05-spark06-workers",
+      "languages_verified_in_completed_profiles": [
+        "ar"
+      ],
+      "source_type": "YouTube",
+      "note": "Large working trees include Arabic/Uzbek output, model/cache bytes and incomplete publication attempts; do not count them as new Russian phone data."
+    }
+  ],
+  "platform_stores": [
+    {
+      "host": "prod-platform-ws-rtx6000x2-01",
+      "langfuse_apparent_bytes": 68883321964,
+      "voice_apparent_bytes": 72557054,
+      "voice_physical_files": 926,
+      "voice_xl_meta_files": 741,
+      "voice_part1_files": 185,
+      "local_recording_files": 0,
+      "note": "Opaque native MinIO markers are not complete decoded calls; no production database or live-store copy performed."
+    },
+    {
+      "host": "test-platform-ws-rtx6000x2-01",
+      "voice_apparent_bytes": 3151641695,
+      "voice_xl_meta_files": 12303,
+      "voice_part1_files": 5051,
+      "local_wav_files": 33,
+      "local_done_markers": 11,
+      "local_recording_bytes": 4091052,
+      "langfuse_size_status": "UNMEASURED_BOUNDED_READ_TIMED_OUT",
+      "note": "No ready immutable voice export/manifest established."
+    }
+  ],
+  "collection_rules": {
+    "new_bulk_source_copy_this_discovery": false,
+    "originals_unchanged": true,
+    "gpu_jobs_unchanged": true,
+    "prod_services_unchanged": true,
+    "credentials_not_logged": true,
+    "raw_transcripts_not_logged_by_root": true,
+    "training_release": false,
+    "scope_next": "Native source exports into private staging after source/split provenance and header/coverage checks; no implicit admission"
+  },
+  "research_reports": [
+    "/home/alexesn/slam-asr-ru/data-source-research/tailscale-data-discovery-20261012-exp.md",
+    "/home/alexesn/slam-asr-ru/data-source-research/tailscale-data-discovery-20261012-history.md",
+    "/home/alexesn/slam-asr-ru/data-source-research/tailscale-data-discovery-20261012-workstations.md"
+  ]
+}
