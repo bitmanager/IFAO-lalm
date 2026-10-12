@@ -70,6 +70,17 @@ def transcript_from_result(result):
     ).strip()
 
 
+def effective_history_mode(recipe_mode, history_policy):
+    selection = (history_policy or {}).get("selection", "").lower()
+    if selection.startswith("self-only prior completed qwen transcripts"):
+        return "self_transcripts_only"
+    if selection.startswith("only original agent turns") or selection.startswith(
+        "original past assistant messages"
+    ):
+        return "self_transcripts_and_agent"
+    return recipe_mode
+
+
 def validate_result(path, result, manifest, calls, planned, expected_checkpoint=CHECKPOINT_SHA256):
     status = result.get("status")
     if status == "running":
@@ -79,14 +90,16 @@ def validate_result(path, result, manifest, calls, planned, expected_checkpoint=
     recipe, provenance = result.get("recipe") or {}, result.get("provenance") or {}
     if recipe.get("checkpoint_sha256") != expected_checkpoint:
         raise ValueError("Checkpoint hash mismatch")
-    mode = recipe.get("history_mode")
-    if not mode or (manifest.get("history_mode") and mode != manifest["history_mode"]):
-        raise ValueError("History mode mismatch")
     k = key(result.get("environment"), result.get("media_id"))
     call = calls.get(k)
     source = planned.get(k)
     if not call or not source:
         raise ValueError(f"No canonical call for {k[0]}:{k[1]}")
+    mode = recipe.get("history_mode")
+    history_policy = provenance.get("history_policy", call.get("history_policy"))
+    effective_mode = effective_history_mode(mode, history_policy)
+    if not mode or (manifest.get("history_mode") and mode not in {manifest["history_mode"], effective_mode}):
+        raise ValueError("History mode mismatch")
     audio_sha = result.get("audio_sha256")
     if (result.get("call_id") != call.get("call_id")
             or audio_sha != call.get("user_sha256")
@@ -112,6 +125,8 @@ def validate_result(path, result, manifest, calls, planned, expected_checkpoint=
         "source": source,
         "recipe": recipe,
         "provenance": provenance,
+        "effective_history_mode": effective_mode,
+        "history_policy": history_policy,
         "transcript": transcript,
         "result_sha256": digest,
         "result_key": result.get("key", Path(path).stem),
@@ -126,6 +141,8 @@ def mode_display(mode, policy):
     if mode == "self_transcripts_and_agent":
         return "Предыдущие собственные расшифровки Qwen и история агента; онлайн-текст не подавался"
     if mode == "self_transcripts_only":
+        return "Только предыдущие расшифровки Qwen; исходная история агента не подавалась"
+    if mode == "self_transcripts_only":
         return "Только предыдущие собственные расшифровки Qwen; история агента не подавалась"
     return f"{mode}; политика: {json.dumps(policy, ensure_ascii=False, sort_keys=True)}"
 
@@ -139,14 +156,15 @@ def task_fields(item):
     else:
         display = f"Генерация завершилась статусом {status}; готового текста нет."
     call, recipe, provenance = item["call"], item["recipe"], item["provenance"]
-    history_policy = provenance.get("history_policy", call.get("history_policy"))
+    history_policy = item["history_policy"]
+    effective_mode = item["effective_history_mode"]
     return {
         "qwen_history_status": status,
         "qwen_history_display": display,
         "qwen_history_text": text if status in {COMPLETE, "truncated"} else "",
-        "qwen_history_mode": recipe["history_mode"],
-        "qwen_history_mode_display": mode_display(recipe["history_mode"], history_policy),
-        "qwen_history_variant": recipe["history_mode"],
+        "qwen_history_mode": effective_mode,
+        "qwen_history_mode_display": mode_display(effective_mode, history_policy),
+        "qwen_history_variant": effective_mode,
         "qwen_history_model": "KL1532 Qwen",
         "qwen_history_environment": item["environment"],
         "qwen_history_media_id": item["media_id"],
@@ -159,6 +177,7 @@ def task_fields(item):
         "qwen_history_segment_count": item["segment_count"],
         "qwen_history_provenance": {
             "history_mode": recipe["history_mode"],
+            "effective_history_mode": effective_mode,
             "history_policy": history_policy,
             "segmentation_provenance": provenance.get(
                 "segmentation_provenance", call.get("segmentation_provenance")),

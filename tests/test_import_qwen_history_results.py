@@ -65,6 +65,23 @@ class QwenHistoryImportContracts(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "identity mismatch"):
             self._validate(broken)
 
+    def test_per_call_self_only_policy_overrides_generic_manifest_mode(self):
+        call = dict(self.call, history_policy={
+            "selection": "Self-only prior completed Qwen transcripts; no original agent/client text",
+            "original_agent_history_held": True,
+        })
+        manifest = {"history_mode": "self_transcripts_and_agent", "calls": [call]}
+        item_calls = {("test", "media-1"): call}
+        result = json.loads(json.dumps(self.result))
+        result["provenance"]["history_policy"] = call["history_policy"]
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "result-1.json"
+            path.write_text(json.dumps(result, ensure_ascii=False))
+            item = validate_result(path, result, manifest, item_calls, self.planned)
+        fields = task_fields(item)
+        self.assertEqual(fields["qwen_history_mode"], "self_transcripts_only")
+        self.assertIn("Только предыдущие расшифровки Qwen", fields["qwen_history_mode_display"])
+
     def test_import_patches_only_task_data_and_preserves_human_work(self):
         item = self._validate(self.result)
         existing = {
