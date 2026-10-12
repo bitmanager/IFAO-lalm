@@ -110,7 +110,15 @@ class QwenHistoryImportContracts(unittest.TestCase):
         self.assertEqual(existing["drafts"], updated["drafts"])
 
     def test_same_audio_complete_candidate_is_archived_before_explicit_supersession(self):
+        self.check_supersession("self_transcripts_and_agent")
+
+    def test_v2_recipe_migration_archives_old_output_and_preserves_labels(self):
+        self.check_supersession("reference_history_v2")
+
+    def check_supersession(self, mode):
         item = self._validate(self.result)
+        item["effective_history_mode"] = mode
+        item["recipe"]["history_mode"] = mode
         previous_sha = "b" * 64
         existing = {
             "id": 44,

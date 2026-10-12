@@ -12,6 +12,18 @@ def fingerprint(value):
     return hashlib.sha256(json.dumps(value, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
 
 
+def inference_messages(system, history, user, mode):
+    if mode == "reference_history_v2":
+        # Context is evidence, not a conversation the model should continue.
+        if history:
+            system += ("\nИстория ниже — только справка. Не копируй её; расшифруй новый звук.\n"
+                       + "\n".join(h["role"] + ": " + h["content"] for h in history))
+        return [{"role": "system", "content": system}, user]
+    if mode != "self_transcripts_and_agent":
+        raise ValueError("Unknown history format")
+    return [{"role": "system", "content": system}] + history + [user]
+
+
 def main():
     os.umask(0o077)
     parser = argparse.ArgumentParser(description=__doc__)
@@ -26,7 +38,7 @@ def main():
     from lalm_core.model.gigaam_adapter import gigaam_output_length
 
     spec = json.loads(args.manifest.read_text())
-    assert spec["history_mode"] == "self_transcripts_and_agent"
+    assert spec["history_mode"] in ("self_transcripts_and_agent", "reference_history_v2")
     gpu = "GPU-de629798-46d4-ac37-e28e-d73f59094ab7"
     assert os.environ["CUDA_VISIBLE_DEVICES"] == gpu
     runtime.GPUS = [gpu]
@@ -91,7 +103,7 @@ def main():
             history_total = len(history)
             user = {"role": "user", "content": "<|audio|>" * count + "\n" + spec["user_suffix"]}
             while True:
-                prefix = tokens(tokenizer, [{"role": "system", "content": spec["system_prompt"]}] + history + [user])
+                prefix = tokens(tokenizer, inference_messages(spec["system_prompt"], history, user, spec["history_mode"]))
                 if len(prefix) <= 8192:
                     break
                 assert history, "Audio/system prompt exceeds inference context budget"

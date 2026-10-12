@@ -1,0 +1,70 @@
+# Qwen transcription with causal self-history
+
+## v2: avoid replaying conversation as transcription
+
+The first recipe reproduced a failure on the marketing call: a 53.1–55.8s
+audio clip transcribed correctly alone, but with chat-role history copied
+the previous user transcript. Long outputs also copied agent text verbatim.
+This happened before Label Studio import.
+
+The default recipe now merges adjacent speech spans across gaps of at most
+2s, keeping a 30s maximum and never crossing a change of past agent context.
+History is a reference block in the single system message; the current audio
+is the only user message. Older history is still trimmed to the native 8192
+token prompt budget. No model weights, decoder, or audio encoder change.
+Result identity includes the new history mode and adapter hash. Explicit
+Label Studio supersession archives old candidates and preserves human work.
+`complete` only means generation completed, not that transcription is correct.
+
+`prepare_qwen_history.py` is a format adapter for `benchmark_qwen_calls.py`.
+It reads the exact Label Studio eligibility keys, cached native Silero spans,
+source call/asset manifests and a checkpoint owner's existing probe specification.
+It neither runs a model nor changes ASR, VAD, decoding or training.
+
+```sh
+python3 lalm/prepare_qwen_history.py \
+  --plan /data/labelstudio/native-vad-gemini-ru-import-plan.full.json \
+  --vad /data/labelstudio/silero-full-corpus-audit.json \
+  --probe /data/special/qwen-kl1532-transcription-experiment.json \
+  --source prod /data/prod-asr-benchmark-20260912-20261011-v1 /data/prod-asr-benchmark-20260912-20261011-v1/review-20261012T101026.csv \
+  --source test /data/test-asr-benchmark-20260912-20261011-v1 /data/test-asr-benchmark-20260912-20261011-v1/review-20261012T101512.csv \
+  --output /data/qwen-history/new-manifest.json
+```
+
+Run preparation on the host where the source `user_audio_path` values exist.
+All input hashes are retained, including the native VAD configuration/version.
+The adapter verifies each mono 16 kHz WAV's SHA and duration. Output must be a new
+file: an already submitted inference manifest must not be rewritten.
+
+Native VAD's rounded second boundaries are approximate speech boundaries, not
+word alignment. The adapter adds 100 ms on each edge, clipped at the midpoint
+between adjacent native spans and at file boundaries. Samples do not overlap.
+For the current 640 eligible keys every resulting segment is shorter than 30 s.
+An unexpected longer span fails explicitly and requires ready native segmentation
+before preparation; it is never silently clipped or split from GigaAM text.
+
+Original `client` text is excluded completely. Its recorded timestamp is not a
+verified transcription-commit time and could reveal words in the current or
+future audio. Segment histories contain only earlier original `agent` messages.
+The existing inference runner adds its own previously completed segment
+transcripts, available at the previous segment's end. It records the exact
+history sent and any messages dropped for its context budget.
+
+An ambiguous multi-call audio alias or invalid source clock holds **all original
+agent messages**. These cases still use self-history and carry explicit flags.
+The canonical identity is `(environment, media_id, user_sha256)`; a selected
+`call_id` is only a provenance carrier for an ambiguous alias. Source audio/agent
+clock and channel role remain separately marked as unverified where applicable.
+An agent event timestamp is not independently verified as the completion of its
+spoken message, so this benchmark does not establish strict causal gain from
+agent history without further timing review.
+
+The monthly set has 640 canonical keys but 629 unique audio hashes, including
+11 prod/test duplicate pairs. The 630-key first run excludes 10 within-test
+multi-call aliases; those 10 run with self-only history afterward. The full
+`учусь` control (LS123119) is outside the monthly set and retains separate
+accounting. The earlier LS123118 commit probe used a different history recipe.
+
+These outputs are model candidates, never a human transcript gold. Self-history
+can propagate transcription mistakes. Compare output quality through listening
+and annotation; do not turn agreement between models into a WER claim.

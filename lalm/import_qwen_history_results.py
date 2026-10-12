@@ -71,6 +71,8 @@ def transcript_from_result(result):
 
 
 def effective_history_mode(recipe_mode, history_policy):
+    if recipe_mode == "reference_history_v2":
+        return recipe_mode
     selection = (history_policy or {}).get("selection", "").lower()
     if selection.startswith("self-only prior completed qwen transcripts"):
         return "self_transcripts_only"
@@ -137,6 +139,8 @@ def validate_result(
 
 
 def mode_display(mode, policy):
+    if mode == "reference_history_v2":
+        return "v2: история отдельным справочным блоком; близкие VAD-фрагменты объединены; онлайн-текст не подавался"
     if mode == "past_online_history":
         return "Предыдущие онлайн-распознанные реплики"
     if mode == "self_transcripts_and_agent":
@@ -267,12 +271,14 @@ def import_item(api_url, token, task_summary, item, cookie_header=None, supersed
     old_digest = data.get("qwen_history_result_sha256")
     if current_status == item["status"] and old_digest == item["result_sha256"]:
         return "already_imported"
-    if current_status == COMPLETE:
+    migration = (item["effective_history_mode"] == "reference_history_v2"
+                 and data.get("qwen_history_mode") in {"self_transcripts_and_agent", "self_transcripts_only"})
+    if current_status == COMPLETE or (migration and old_digest):
         if (not supersede_complete or item["status"] != COMPLETE or not old_digest
                 or data.get("qwen_history_audio_sha256") != item["audio_sha256"]
                 or data.get("qwen_history_call_id") != item["call"]["call_id"]
                 or data.get("qwen_history_checkpoint_sha256") != item["recipe"]["checkpoint_sha256"]
-                or data.get("qwen_history_mode") != item["effective_history_mode"]):
+                or (data.get("qwen_history_mode") != item["effective_history_mode"] and not migration)):
             return "conflict"
         archived = list(data.get("qwen_history_previous_candidates", []))
         if not any(entry.get("result_sha256") == old_digest for entry in archived):
@@ -280,6 +286,8 @@ def import_item(api_url, token, task_summary, item, cookie_header=None, supersed
             if prior:
                 archived.append(prior)
         fields["qwen_history_previous_candidates"] = archived
+        if migration:
+            fields["qwen_history_quality_note"] = "Новый прогон v2 после исправления нарезки и формата истории. Предыдущий вывод сохранён в архиве; complete означает завершение генерации, не проверенную точность."
     if current_status in {"truncated", "failed", "error"} and item["status"] != COMPLETE:
         if old_digest != item["result_sha256"]:
             return "conflict"
