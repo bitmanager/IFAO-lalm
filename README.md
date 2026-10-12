@@ -224,3 +224,8 @@ IFAO-lalm/
 └── requirements.txt
 ```
 ---
+
+## Experiment monitoring
+
+See [MLflow monitoring](docs/mlflow.md) for native training/evaluation metrics,
+collection of existing TensorBoard/JSONL runs, and hardware/serving telemetry.

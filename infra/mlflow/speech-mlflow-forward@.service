@@ -1,0 +1,17 @@
+[Unit]
+Description=Server SSH link for SpeechLLM metrics (%i)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+EnvironmentFile=/etc/speech-mlflow/forward-%i.env
+ExecStart=/usr/bin/ssh -N -o BatchMode=yes -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -o ConnectTimeout=10 -o IdentitiesOnly=yes -o UserKnownHostsFile=${SSH_KNOWN_HOSTS} -i ${SSH_KEY} -p ${SSH_PORT} -l ${SSH_USER} ${SSH_FORWARD_OPTION} ${SSH_FORWARD_SPEC} ${SSH_HOST}
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

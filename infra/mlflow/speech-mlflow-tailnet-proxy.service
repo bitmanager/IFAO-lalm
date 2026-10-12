@@ -1,0 +1,22 @@
+[Unit]
+Description=Tailnet-only proxy to the SpeechLLM MLflow dashboard
+After=network-online.target tailscaled.service
+Wants=network-online.target tailscaled.service
+
+[Service]
+Type=simple
+DynamicUser=yes
+EnvironmentFile=/etc/speech-mlflow/tailnet-proxy.env
+ExecStart=/usr/bin/python3 /usr/local/lib/speech-mlflow-tailnet/tailnet_proxy.py --listen-host ${MLFLOW_PROXY_IP} --listen-port ${MLFLOW_PROXY_PORT} --backend-host 127.0.0.1 --backend-port ${MLFLOW_BACKEND_PORT}
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+[Install]
+WantedBy=multi-user.target

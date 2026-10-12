@@ -6,6 +6,15 @@ hydra:
 
 seed: 114514
 
+monitoring:
+  enabled: ${oc.env:MLFLOW_ENABLED,false}
+  tracking_uri: http://127.0.0.1:5000
+  experiment_name: SpeechLLM R&D
+  run_name:
+  log_system_metrics: true
+  system_metrics_sampling_interval: 10
+  system_metrics_samples_before_logging: 1
+
 model:
   # Path to checkpoint assembled by examples/lalm/build_model.py
   pretrained_model:

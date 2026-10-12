@@ -12,15 +12,18 @@ Usage::
         data.test_data_config=configs/test_qa_data_config.yaml
 """
 
+import hashlib
 import logging
 import os
 import re
 import string
+import time
 from pathlib import Path
 
 import hydra
 import torch
 import yaml
+from lalm_core.mlflow_monitoring import monitoring_enabled
 from lalm_core.model import LALMConfig, LALMForConditionalGeneration, LALMProcessor
 from lhotse import CutSet, set_audio_duration_mismatch_tolerance
 from lhotse.dataset import DynamicBucketingSampler
@@ -160,14 +163,19 @@ def _strip_last_assistant(rendered: str) -> str:
     return rendered[: idx + len(_ASST_PREFIX)]
 
 
-@hydra.main(version_base=None, config_path="configs", config_name="evaluate_qa")
+def _file_sha256(path_value):
+    path = Path(str(path_value))
+    if not path.is_file():
+        return "unavailable"
+    digest = hashlib.sha256()
+    with path.open("rb") as source:
+        for chunk in iter(lambda: source.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 @torch.no_grad()
-def main(cfg: DictConfig):
-    logging.info("\n" + OmegaConf.to_yaml(cfg))
-    set_audio_duration_mismatch_tolerance(0.1)
-
-    model_dir, results_file_suffix = prepare_model_dir(cfg)
-
+def _evaluate(cfg, model_dir, results_file_suffix, mlflow_module=None):
     dtype_name = cfg.get("dtype", "fp16")
     dtype = (
         torch.float16
@@ -216,6 +224,8 @@ def main(cfg: DictConfig):
 
         all_results = []  # list of (cut_id, hyp_str, ref_str)
         num_cuts = 0
+        generation_seconds = 0.0
+        batch_generation_seconds = []
 
         for batch_idx, cuts in enumerate(sampler):
             cuts = cuts.sort_by_duration(ascending=False)
@@ -231,7 +241,15 @@ def main(cfg: DictConfig):
                 padding=True,
             ).to(device)
 
+            if device.type == "cuda":
+                torch.cuda.synchronize(device)
+            batch_started = time.perf_counter()
             output_ids = model.generate(**inputs, **generate_config)
+            if device.type == "cuda":
+                torch.cuda.synchronize(device)
+            batch_elapsed = time.perf_counter() - batch_started
+            generation_seconds += batch_elapsed
+            batch_generation_seconds.append(batch_elapsed)
             hyps = processor.batch_decode(output_ids, skip_special_tokens=True)
             refs = [
                 cut.supervisions[0].custom.get("answer", cut.supervisions[0].text)
@@ -264,6 +282,92 @@ def main(cfg: DictConfig):
         logging.info(
             f"[evaluate_qa] {test_set['name']} Accuracy: {acc:.2f}% ({correct}/{total})"
         )
+
+        if mlflow_module is not None:
+            metric_set = re.sub(
+                r"[^A-Za-z0-9_.-]+", "_", str(test_set["name"])
+            ).strip("_")
+            metric_set = metric_set or "unnamed"
+            metrics = {
+                f"eval/{metric_set}/accuracy_percent": acc,
+                f"eval/{metric_set}/correct": float(correct),
+                f"eval/{metric_set}/samples": float(total),
+                f"eval/{metric_set}/generation_seconds": generation_seconds,
+            }
+            if generation_seconds > 0:
+                metrics[f"eval/{metric_set}/examples_per_second"] = (
+                    total / generation_seconds
+                )
+            if batch_generation_seconds:
+                ordered = sorted(batch_generation_seconds)
+                p95_index = min(int(0.95 * len(ordered)), len(ordered) - 1)
+                metrics[f"eval/{metric_set}/batch_latency_p95_seconds"] = (
+                    ordered[p95_index]
+                )
+                metrics[f"eval/{metric_set}/batch_latency_mean_seconds"] = (
+                    generation_seconds / len(ordered)
+                )
+            try:
+                mlflow_module.log_metrics(metrics, step=0)
+            except Exception:
+                logging.warning("MLflow evaluation metric delivery failed", exc_info=True)
+
+
+@hydra.main(version_base=None, config_path="configs", config_name="evaluate_qa")
+def main(cfg: DictConfig):
+    logging.info("\n" + OmegaConf.to_yaml(cfg))
+    set_audio_duration_mismatch_tolerance(0.1)
+    model_dir, results_file_suffix = prepare_model_dir(cfg)
+
+    monitoring = cfg.get("monitoring", {})
+    if not monitoring_enabled(cfg):
+        return _evaluate(cfg, model_dir, results_file_suffix)
+
+    import mlflow
+
+    tracking_uri = os.getenv(
+        "MLFLOW_TRACKING_URI",
+        str(monitoring.get("tracking_uri", "http://127.0.0.1:5000")),
+    )
+    experiment_name = os.getenv(
+        "MLFLOW_EXPERIMENT_NAME",
+        str(monitoring.get("experiment_name", "SpeechLLM R&D")),
+    )
+    sampling_interval = int(monitoring.get("system_metrics_sampling_interval", 10))
+    mlflow.set_tracking_uri(tracking_uri)
+    mlflow.set_experiment(experiment_name)
+    mlflow.set_system_metrics_sampling_interval(sampling_interval)
+    mlflow.set_system_metrics_samples_before_logging(
+        int(monitoring.get("system_metrics_samples_before_logging", 1))
+    )
+    run_name = str(
+        monitoring.get("run_name")
+        or os.getenv("MLFLOW_RUN_NAME")
+        or f"qa-{results_file_suffix}"
+    )
+
+    with mlflow.start_run(
+        run_name=run_name,
+        log_system_metrics=bool(monitoring.get("log_system_metrics", True)),
+        tags={
+            "project": "speechllm-rd",
+            "run_type": "qa-evaluation",
+            "checkpoint": results_file_suffix,
+        },
+    ):
+        mlflow.log_params(
+            {
+                "evaluation.checkpoint": results_file_suffix,
+                "evaluation.decoding_method": str(cfg.decoding_method),
+                "evaluation.dtype": str(cfg.get("dtype", "fp16")),
+                "evaluation.max_new_tokens": int(cfg.get("max_new_tokens", 200)),
+                "evaluation.num_beams": int(cfg.get("num_beams", 1)),
+                "evaluation.test_config_sha256": _file_sha256(
+                    cfg.data.test_data_config
+                ),
+            }
+        )
+        _evaluate(cfg, model_dir, results_file_suffix, mlflow)
 
 
 if __name__ == "__main__":
