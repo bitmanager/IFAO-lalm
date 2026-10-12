@@ -71,6 +71,11 @@ python lalm/benchmark_langfuse_asr.py download --root "$DATA_ROOT" \
   --api-container prod-asr-benchmark-api-20261012
 ```
 
+The upgraded prod/test Langfuse `4.0.0-rc.3` instances require the explicit native
+CLI snapshot `--api-version 4.10.0` for exports and downloads. The default `auto`
+remains available for the earlier v3 deployment. The version is forwarded to
+the native CLI; the adapter does not implement a second API client.
+
 For the current self-hosted MinIO URL, explicitly supply `--media-proxy` pointing
 to an SSH loopback forward. The original signed Host header is preserved. This
 does not change the Langfuse/MinIO services. `--ffmpeg` can specify the ready

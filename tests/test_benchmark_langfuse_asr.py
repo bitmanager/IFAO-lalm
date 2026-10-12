@@ -98,6 +98,13 @@ class BenchmarkContracts(unittest.TestCase):
         self.assertIn("--api-version", command)
         self.assertEqual(command[command.index("--api-version") + 1], "auto")
 
+    def test_native_langfuse_cli_accepts_explicit_api_snapshot(self):
+        response = SimpleNamespace(returncode=0, stdout='{"status":200,"body":{}}', stderr="")
+        with patch("lalm.benchmark_langfuse_asr.subprocess.run", return_value=response) as run:
+            native_cli("langfuse-api", "media", "get", "media-id", api_version="4.10.0")
+        command = run.call_args.args[0]
+        self.assertEqual(command[command.index("--api-version") + 1], "4.10.0")
+
     def events(self, steps):
         result = {"status": "SUCCESS", "num_turns": 1, "structured_output": {
             "audio_heard": True, "language": "ru", "transcript": "я учусь",

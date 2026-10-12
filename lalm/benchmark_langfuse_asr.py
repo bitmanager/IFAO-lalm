@@ -171,9 +171,9 @@ def prepare(args):
     print(json.dumps({"calls": len(calls), "assets": len(assets)}), flush=True)
 
 
-def native_cli(container, *arguments):
+def native_cli(container, *arguments, api_version="auto"):
     command = ["sudo", "docker", "exec", container, "npx", "--yes",
-               "@langfuse/cli@1.2.4", "--api-version", "auto", "api", *arguments, "--json"]
+               "@langfuse/cli@1.2.4", "--api-version", api_version, "api", *arguments, "--json"]
     run = subprocess.run(command, capture_output=True, text=True, timeout=120)
     result = json.loads(run.stdout)
     if result["status"] == 404 and result.get("body", {}).get("message") == "Media not yet uploaded":
@@ -201,7 +201,8 @@ def download(args):
                         saved["call_ids"] = row["call_ids"]
                         save(status_file, saved)
                         return saved
-            descriptor = native_cli(args.api_container, "media", "get", media_id)
+            descriptor = native_cli(args.api_container, "media", "get", media_id,
+                                    api_version=args.api_version)
             if descriptor["mediaId"] != media_id or descriptor["contentType"] != "audio/wav":
                 raise ValueError("Media descriptor identity/type mismatch")
             url = descriptor["url"]
@@ -554,6 +555,7 @@ def main():
             p.add_argument("--end", default=END, help="Exclusive ISO-8601 call-start boundary")
         if action == "download":
             p.add_argument("--api-container", required=True)
+            p.add_argument("--api-version", default="auto", help="Native Langfuse CLI API snapshot")
             p.add_argument("--ffmpeg", default="ffmpeg")
             p.add_argument("--media-proxy", help="Explicit loopback SSH forwarding URL for internal MinIO")
             p.add_argument("--workers", type=int, default=4)
