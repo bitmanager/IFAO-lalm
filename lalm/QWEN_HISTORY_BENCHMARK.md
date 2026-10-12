@@ -1,5 +1,36 @@
 # Qwen transcription with causal self-history
 
+## Runtime audit: remaining history contamination
+
+`benchmark_qwen_runtime_audit.py` runs controlled native HF inference without
+changing weights. It checks audio replacement leaves every non-audio embedding
+unchanged, all embeddings are finite, and audio placeholders are replaced.
+It compares history/no-history/silence and repeats the original generation after
+other inputs. A separate uncached forward receives the same generated prefixes:
+its next-token argmax is compared with cached generation at each position.
+Setting `generate(use_cache=False)` alone is **not** this test: Transformers
+forces caching for decoder-only `inputs_embeds` generation.
+
+On four deliberately selected failing clips, all replacement checks passed,
+repeated generations were identical, and uncached argmax matched all 75 generated
+tokens. This bounds the diagnosis to those clips; it does not certify the full
+runtime. With history the checkpoint still copies earlier conversation, including
+on silence. Without history it recovers the address request and “алло”, largely
+recovers the cryptocurrency payment sentence, but still misrecognizes another
+short clip. Removing history is therefore not a complete ASR fix.
+When independent transcript hypotheses replace the audio in the same prompt,
+the native text path repeats all four hypotheses correctly with and without
+history. This isolates a failure of audio-conditioned transcription under this
+recipe, rather than a general inability to follow the text instruction.
+
+Independent AGY Gemini 3.8 blind listening confirmed speech in all four clips.
+One isolated-clip Gemini transcription disagreed with its full-call transcription
+on the last word, so neither output is human gold. The checkpoint was optimized
+for agent-response KL, not transcription. These results must not be interpreted
+as an ASR accuracy gain or fixed by silently substituting another recognizer.
+Runtime artifacts are stored outside git under
+`qwen-kl1532-history-v3/runtime-audit-v3` and `agy38-blind-debug-v1` on drive2.
+
 ## v3: explicit transcription task and separated reference context
 
 Full-call testing showed v2 could still replace the age statement with an older

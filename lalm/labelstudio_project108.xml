@@ -31,7 +31,7 @@
     <Choice value="Невозможно оценить" />
   </Choices>
 
-  <Header value="Qwen · с историей (режим показан ниже; truncated/failed — неполный результат, не готовый текст; использовать как источник только при complete)" />
+  <Header value="Qwen · эксперимент с историей. Complete означает завершение генерации, а не верную расшифровку. Обнаружено копирование прошлых реплик; выбирайте текст только после проверки по аудио. Truncated/failed/error — не готовая расшифровка." />
   <Text name="qwen_history_status_display" value="Статус: $qwen_history_status" />
   <Text name="qwen_history_mode_display" value="Режим истории: $qwen_history_mode_display" />
   <Text name="qwen_history_quality_note" value="Проверка качества: $qwen_history_quality_note" />
