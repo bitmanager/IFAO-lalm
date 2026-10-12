@@ -3,7 +3,7 @@ import importlib.util
 from pathlib import Path
 import unittest
 
-from lalm.annotation.contract import PREPROCESSING, job_id, validate_sample
+from lalm.annotation.contract import PREPROCESSING, job_id, validate_sample, normalize_language
 
 
 def load_script(name):
@@ -15,6 +15,13 @@ def load_script(name):
 
 
 class AnnotationContractTests(unittest.TestCase):
+    def test_language_aliases_do_not_infer_ambiguous_or_foreign_speech(self):
+        for value in ('ru', 'Russian', ' русский ', 'ru_RU'):
+            self.assertEqual(normalize_language(value), 'ru')
+        self.assertEqual(normalize_language('ar'), 'ar')
+        self.assertEqual(normalize_language('Russian/Ukrainian'), 'russian/ukrainian')
+        self.assertEqual(normalize_language(''), '')
+
     def sample(self):
         return {'sample_id': 'one', 'conversation_id': 'call', 'audio_key': 'audio/one.wav',
                 'audio_sha256': 'a' * 64, 'split': 'train', 'preprocessing_version': PREPROCESSING,

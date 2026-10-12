@@ -1,17 +1,15 @@
 """Compare blind passes and request an explicitly identified third-pass audit."""
 import hashlib
 import json
-import re
 from difflib import SequenceMatcher
 from .store import connect, s3, bucket
 from .queue import enqueue
 from .contract import source_text
+from .inspection import normalized_words
 
 
 def compare(a, b):
-    def words(s):
-        return re.findall(r"[\w]+", s.lower().replace('ё', 'е'))
-    left, right = words(a), words(b)
+    left, right = normalized_words(a), normalized_words(b)
     diffs = [{'kind': tag, 'a_span': [i, j], 'b_span': [k, l],
               'a_text': ' '.join(left[i:j]), 'b_text': ' '.join(right[k:l])}
              for tag, i, j, k, l in SequenceMatcher(None, left, right, autojunk=False).get_opcodes()

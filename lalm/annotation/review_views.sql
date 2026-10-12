@@ -52,7 +52,9 @@ SELECT batch_id, sample_id, min(corpus) AS corpus,
        count(*) FILTER (WHERE processing_state IN ('PENDING','RUNNING','RETRYABLE_FAILED')) AS unfinished_passes,
        count(*) FILTER (WHERE error_code IS NOT NULL AND error_code<>'pilot_review_only') AS flagged_passes,
        bool_or(review_required) AS review_required, false AS human_verified,
-       max(updated_at) AS updated_at
+       max(updated_at) AS updated_at,
+       string_agg(DISTINCT error_code, ', ' ORDER BY error_code) AS error_codes,
+       string_agg(DISTINCT language, ', ' ORDER BY language) AS detected_languages
 FROM review_passes GROUP BY batch_id,sample_id;
 
 CREATE OR REPLACE VIEW review_progress AS

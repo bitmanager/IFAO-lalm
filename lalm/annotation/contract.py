@@ -11,6 +11,13 @@ PREPROCESSING = 'mono-pcm16-16000-v1'
 
 VARIANTS = ("verbatim", "coverage", "literal_audit", "source_correction")
 
+def normalize_language(value):
+    """Normalize explicit names/codes only; never infer language from a transcript."""
+    value = value.strip().lower().replace('_', '-')
+    return {'russian': 'ru', 'русский': 'ru', 'ru-ru': 'ru',
+            'english': 'en', 'portuguese': 'pt'}.get(value, value)
+
+
 def source_text(sample):
     """Only explicitly attached original text; never another model pass."""
     provenance = sample.get('source_provenance') or {}

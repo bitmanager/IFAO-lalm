@@ -12,7 +12,7 @@ import time
 import wave
 
 from lalm.benchmark_langfuse_asr import agy_result, zero_user_audio
-from .contract import CONTRACT_SHA, MODEL, SCHEMA, prompt, contract_sha, source_text, digest
+from .contract import CONTRACT_SHA, MODEL, SCHEMA, prompt, contract_sha, source_text, digest, normalize_language
 from .queue import claim, finish
 from .store import bucket, s3
 
@@ -94,18 +94,19 @@ def process(job):
             finish(job, state, error_code=code, retry_seconds=300 * job['attempt'], block=block)
             return
         out = native['structured_output']
-        result = {'verbatim_text': out['transcript'], 'language': out['language'],
+        result = {'verbatim_text': out['transcript'], 'language': normalize_language(out['language']), 'language_raw': out['language'],
                   'uncertain_spans': out['uncertain_fragments'], 'native_result': native,
                   'annotation_source': 'agy', 'model': MODEL, 'contract_sha256': contract_sha(variant),
                   'raw_prefix': prefix, 'audio_seconds': duration, 'human_gold': False,
                   'prompt_variant': variant, 'inference_seconds': elapsed,
                   'source_conditioned': variant == 'source_correction',
                   'source_text_sha256': digest(reference) if reference is not None else None}
-        state = 'VALIDATED' if out['language'] == 'ru' and out['transcript'].strip() else 'NEEDS_REVIEW'
+        state = 'VALIDATED' if result['language'] == 'ru' and out['transcript'].strip() else 'NEEDS_REVIEW'
         if state == 'VALIDATED' and sample.get('review_only'):
             finish(job, 'NEEDS_REVIEW', result, 'pilot_review_only')
         else:
-            finish(job, state, result, None if state == 'VALIDATED' else 'empty_or_non_russian')
+            finish(job, state, result, None if state == 'VALIDATED' else
+                   'empty_transcript' if not out['transcript'].strip() else 'non_russian')
 
 
 def loop(account):

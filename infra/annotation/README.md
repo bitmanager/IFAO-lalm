@@ -325,3 +325,57 @@ home volume слота `agy-07`; исходная авторизация на х
 внутри home volume `agy-07`. Массовый worker и остальные аккаунты не включены.
 Комбинация транспорта соответствует
 [официальному примеру Xray](https://github.com/XTLS/Xray-examples/blob/main/VLESS-gRPC-REALITY/config_client.jsonc).
+
+## Paused quality audit and prompt experiments (2026-10-13)
+
+Bulk inference is paused: all account rows are disabled and worker containers
+are stopped. Do not resume it as part of a deployment or notebook refresh.
+The configured per-account limit remains 20. Diagnostic calls are separate,
+sequential, explicitly requested and never imported as training annotations.
+
+Five flagged SOVA examples were traced back to their exact Parquet rows. Source
+audio hashes matched, source labels matched, and re-running preprocessing
+reproduced the prepared WAV hashes. This verifies identity, not transcription
+accuracy. No listening-based correctness claim follows from this audit.
+
+The notebook now identifies the selected slice, exposes languages/error codes,
+and has `matched`, `three_matched`, `flagged`, and `latest` views. Agreement uses
+the same normalization as reconciliation: case, punctuation and ё/е. Two equal
+passes are not three; a source-conditioned pass is marked explicitly. The live
+`speech_data_matches.ipynb` is a separate analyst copy, preserving existing work.
+
+Explicit language aliases such as `Russian` are normalized to `ru`; original
+language strings remain in `language_raw`. Old validation metadata was corrected
+without changing transcript strings, historical attempts, or human-review state.
+Empty text and non-Russian text now have separate error codes.
+
+Small prompt tests did not solve the user-identified short Russian clip. The
+RU/reference-RU/EN comparison comprised six calls on two fixed audio files.
+The short clip matched the user's reading only in the reference-conditioned arm;
+that is not evidence against copying. No prompt winner or quality gate was accepted.
+Exact requests and outputs are in private S3 under
+`debug/ru-en-reference-6f53147e6449/`; earlier candidates are under
+`debug/ru-candidates-cc0206dc8f81/` and `debug/prompt-ru-20261013/`.
+
+A bounded experiment CLI is available (dry-run unless `--execute` is passed):
+
+```sh
+python -m lalm.annotation.prompt_ablation --sample-prefix SAMPLE_PREFIX
+```
+
+It accepts 1–4 unambiguous audio prefixes, requires source labels for the reference
+arm, performs three sequential requests per sample, and writes only debug artifacts.
+Use a one-off account container; keep bulk workers disabled.
+
+Research supporting the experimental design:
+- [Google transcription guidance](https://ai.google.dev/gemini-api/docs/transcribe)
+  recommends known-language hints for its transcription endpoint. AGY's text
+  instruction is not proof that its native endpoint exposes equivalent controls.
+- [ClozeGER, ACL 2024](https://aclanthology.org/2024.findings-acl.37/) incorporates
+  source speech into correction to reduce acoustically inconsistent rewrites.
+- [DUST](https://arxiv.org/abs/2011.13439) uses prediction consistency under
+  dropout for uncertainty filtering; it does not validate three prompt paraphrases
+  as independent human-quality annotations.
+- [Interspeech 2025 human-assisted annotation](https://www.isca-archive.org/interspeech_2025/johnson25_interspeech.pdf)
+  reports that naive text correction can worsen WER and evaluates selective human
+  input and acceptance filtering. Its English-domain results are not our benchmark.
