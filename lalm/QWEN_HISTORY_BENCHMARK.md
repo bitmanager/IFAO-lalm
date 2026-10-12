@@ -1,5 +1,31 @@
 # Qwen transcription with causal self-history
 
+## Next-reply impact pilot
+
+Measure the agent response to a single committed utterance while holding all
+previous messages fixed. Generate a reference-input answer first; if it is
+already inappropriate, do not attribute the failure to ASR. Classify candidate
+answers as appropriate, extra clarification, conversation derailment, wrong
+action/commitment, or uncertain. Report counts per 100 turns and paired repair
+versus regression rates, with uncertain-reference/bad-baseline cases separate.
+Do not label answer wording differences as semantic failures.
+
+`benchmark_next_reply.py` reuses native KL1532 generation for text-reference,
+offline GigaAM and audio-embedding inputs, with identical history. It requires
+available GPU memory and leaves colleagues' training untouched.
+`benchmark_prepared_requests.py` is an API transport for explicit, archived
+request manifests; it neither constructs an agent nor trains a model.
+
+The five-case pilot uses API Qwen3.8-27B under a neutral prompt because native
+GPUs are occupied. GPT-6 Luna judges responses with recognizer identities hidden.
+The API pilot compares text-input sensitivity, **not** the trained native audio
+path or the deployed production agent. Candidate Qwen transcripts are earlier
+cached hypotheses; feeding them as text is not an embedding experiment. The
+cases were selected for known failures, so their proportions do not estimate
+production prevalence. Keep the historical observed response separate from a
+new replay's generated response. A full benchmark needs verified commit-level
+alignment and the versioned production prompt/tool schema; no real tools execute.
+
 ## Semantic judge (validation only)
 
 `benchmark_semantic_judge.py` submits the frozen per-recording metric CSV to
