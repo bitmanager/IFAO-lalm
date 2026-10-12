@@ -11,6 +11,7 @@ def fingerprint(value):
 
 
 def main():
+    os.umask(0o077)
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("manifest", type=Path)
     parser.add_argument("output", type=Path)
