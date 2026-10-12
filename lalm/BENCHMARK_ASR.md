@@ -101,12 +101,56 @@ successful `view_file` of the exact allowed audio and validated structured outpu
 External ASR/commands/extra file reads invalidate the result. Preserve failed
 attempts and stderr; bounded retry is only for explicit transient errors.
 
+### Direct Gemini audio API (access blocked in this environment)
+
+`benchmark_gemini_api.py` is a separate transport adapter to the native
+OpenRouter audio API, pinned to `google/gemini-3.8-flash`. It sends the verified
+user-channel WAV as `input_audio`, requests native JSON Schema, records original
+responses/billed usage, and disables provider fallbacks. Results go into
+`gemini-openrouter/<variant>/`, separate from AGY. They are not merged into AGY
+report columns or represented as the same inference condition.
+
+The existing evaluation key was tested in memory. The native smoke request was
+denied with HTTP 403, `Access denied by security policy`; no bulk API job ran.
+The adapter stops on authorization/billing denial. Do not try alternate keys or
+network routes to bypass that policy. AGY independently reports a weekly quota
+reset in approximately 166 hours. Restore permitted provider access before
+continuing Gemini inference.
+
+Once access is restored, test one asset before launching a corpus:
+
+```
+python lalm/benchmark_gemini_api.py --root "$DATA_ROOT" \
+  --media-id "$MEDIA_ID" --max-cost 0.10
+```
+
+Credentials come from `EVAL_OPENROUTER_API_KEY` in the process environment, never
+from repository files. `--max-cost` is a soft stopping threshold per root/variant,
+including previous native responses, not a hard provider spending limit. A single
+request can exceed the remaining threshold, and already in-flight requests can
+finish afterward. Missing/nonfinite/negative billed usage stops new requests and
+restarts until billing is reconciled. Recorded access denial blocks reruns unless
+`--retry-restored-access` is explicitly supplied after access has been restored.
+This API path has contract
+tests, but audio inference has not passed an authorized native smoke test yet.
+
+Primary protocol documentation:
+[audio inputs](https://openrouter.ai/docs/guides/overview/multimodal/audio),
+[structured outputs](https://openrouter.ai/docs/guides/features/structured-outputs).
+
 ## Review and metrics
 
 Reports are timestamped snapshots so manual edits in prior files are preserved.
 Keep reviewed annotations keyed by `call_id`; do not treat a new snapshot as
 carrying earlier manual decisions. Report similarity is a sequence-match diagnostic,
 not WER. Include missing/failed jobs in coverage, not just completed transcripts.
+Reports include both online-vs-GigaAM and GigaAM-vs-Gemini similarity, original
+online model labels when trace telemetry exists, and listening priority. A native
+`Empty ASR` is distinct from an unstarted job; listen before classifying it as a
+recognition error. Model labels such as `v3_rnnt` do not establish an identical
+checkpoint hash to the pinned offline SIP weights. Missing telemetry remains
+visible. Language/script differences can distort text similarity even for the
+same pronunciation. Priority is only triage, never an error or winner label.
 
 Listen to disagreements and a representative sample of agreements. Review names,
 numbers, negations, hallucinated/omitted words, repetitions and speaker mixups.

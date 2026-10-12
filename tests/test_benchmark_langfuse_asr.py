@@ -5,6 +5,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from lalm.benchmark_langfuse_asr import MODEL, agy_result, prepare
+from lalm.benchmark_gemini_api import MODEL as API_MODEL, billed_cost, validate
 
 
 class BenchmarkContracts(unittest.TestCase):
@@ -83,6 +84,39 @@ class BenchmarkContracts(unittest.TestCase):
         for extra in (self.tool(name="run_command"), self.tool(path="/transcript.txt")):
             with self.subTest(extra=extra), self.assertRaises(ValueError):
                 agy_result(self.events([self.tool(), extra]), Path("/audio.wav"))
+
+    def api_response(self, **changes):
+        native = {"model": API_MODEL, "choices": [{"finish_reason": "stop", "message": {
+            "content": json.dumps({"audio_heard": True, "language": "ru", "transcript": "",
+                                   "uncertain_fragments": [], "context_consistency_notes": []})}}]}
+        native.update(changes)
+        return native
+
+    def test_direct_api_silence_is_a_valid_empty_transcript(self):
+        self.assertEqual(validate(self.api_response())["transcript"], "")
+
+    def test_direct_api_model_substitution_and_truncation_rejected(self):
+        for native in (self.api_response(model="other-model"), self.api_response(choices=[])):
+            with self.subTest(native=native), self.assertRaises(ValueError):
+                validate(native)
+        native = self.api_response()
+        native["choices"][0]["finish_reason"] = "length"
+        with self.assertRaises(ValueError):
+            validate(native)
+
+    def test_direct_api_audio_unavailable_is_not_success(self):
+        native = self.api_response()
+        output = json.loads(native["choices"][0]["message"]["content"])
+        output["audio_heard"] = False
+        native["choices"][0]["message"]["content"] = json.dumps(output)
+        with self.assertRaises(ValueError):
+            validate(native)
+
+    def test_unknown_or_nonfinite_api_cost_fails_loud(self):
+        for cost in (None, True, "0.1", -1, float("nan"), float("inf")):
+            with self.subTest(cost=cost), self.assertRaises(ValueError):
+                billed_cost({"usage": {"cost": cost}})
+        self.assertEqual(billed_cost({"usage": {"cost": 0}}), 0)
 
 
 if __name__ == "__main__":

@@ -434,11 +434,22 @@ def gemini(args):
 def report(args):
     fields = ["source_environment", "call_id", "trace_id", "origin", "cohort_clock", "media_id", "audio_status",
               "online_text", "giga_text", "gemini_text", "trace_assisted_text", "giga_status",
-              "gemini_status", "sequence_match_similarity", "review_status", "human_transcript", "review_notes"]
+              "gemini_status", "sequence_match_similarity", "online_giga_similarity",
+              "online_asr_labels", "online_asr_observations", "giga_error", "gemini_language",
+              "review_priority", "user_audio_path", "channel_role_verified",
+              "review_status", "human_transcript", "review_notes"]
     output = args.root / ("review-" + time.strftime("%Y%m%dT%H%M%S", time.gmtime()) + ".csv")
     native_path = args.root / "giga" / "data" / "calls.jsonl"
     native = {x["call_id"]: x for x in jsonl(native_path)} if native_path.exists() else {}
     assets = {x["media_id"]: x for x in jsonl(args.root / "assets.jsonl")}
+    failures_path = args.root / "giga" / "data" / "asr_status.json"
+    failures = {x["call_id"]: x["error"] for x in json.loads(failures_path.read_text()).get("failed", [])} if failures_path.exists() else {}
+    telemetry_path = args.root / "raw" / "speech-asr-observations.json"
+    telemetry = {}
+    if telemetry_path.exists():
+        for observation in export_rows(telemetry_path):
+            metadata = obj(observation.get("metadata") or {})
+            telemetry.setdefault(observation["traceId"], []).append(metadata)
     with output.open("w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fields)
         writer.writeheader()
@@ -451,7 +462,13 @@ def report(args):
                            or result["provenance"].get("asr_model_sha256") != "607e71d4d9fa87fadbdd779357fc3d1d064e1c273e7080cafd325ce474ba591e"
                            or result["provenance"].get("asr_preparer_sha256") != "5a1d2023f130278f4c1b8205409ba7a47df94bf4011b5f0cf43fcffafb7828f8"):
                 raise ValueError("Native GigaAM report cache provenance mismatch")
-            row["giga_status"] = "complete" if result else "not_completed"
+            row["giga_error"] = failures.get(call["media_id"], "")
+            row["giga_status"] = "complete" if result else "empty_asr" if row["giga_error"] == "ValueError: Empty ASR" else "failed" if row["giga_error"] else "not_completed"
+            row["user_audio_path"] = asset.get("user_audio_path", "")
+            row["channel_role_verified"] = asset.get("channel_role_verified", False)
+            observations = telemetry.get(call["trace_id"], [])
+            row["online_asr_observations"] = len(observations)
+            row["online_asr_labels"] = json.dumps(sorted({(str(m.get("provider", "")), str(m.get("model", "")), str(m.get("language", ""))) for m in observations}), ensure_ascii=False)
             row["giga_text"] = " ".join(t["text"] for t in result["turns"] if t["speaker"] == "speaker_0") if result else ""
             for variant, field in (("blind", "gemini_text"), ("trace_assisted", "trace_assisted_text")):
                 job_id = call["call_id"] if variant == "trace_assisted" else str(call["media_id"])
@@ -464,12 +481,21 @@ def report(args):
                             or cached["native_result"].get("status") != "SUCCESS"):
                         raise ValueError("Gemini report cache provenance mismatch")
                     row[field] = cached["native_result"]["structured_output"]["transcript"]
+                    if variant == "blind":
+                        row["gemini_language"] = cached["native_result"]["structured_output"]["language"]
                 else:
                     row[field] = ""
                 if variant == "blind":
                     row["gemini_status"] = "complete" if path.exists() else "not_completed"
-            tokens = lambda text: re.sub(r"[^a-zа-я0-9]+", " ", text.lower().replace("ё", "е")).split()
+            tokens = lambda text: re.sub(r"[\W_]+", " ", text.lower().replace("ё", "е")).split()
             row["sequence_match_similarity"] = SequenceMatcher(None, tokens(row["giga_text"]), tokens(row["gemini_text"]), autojunk=False).ratio() if result and row["gemini_status"] == "complete" else ""
+            row["online_giga_similarity"] = SequenceMatcher(None, tokens(row.get("online_text", "")), tokens(row["giga_text"]), autojunk=False).ratio() if result else ""
+            similarities = [float(row[k]) for k in ("sequence_match_similarity", "online_giga_similarity") if row[k] != ""]
+            row["review_priority"] = ("coverage_missing_audio" if row["audio_status"] != "complete" else
+                                      "listen_empty_asr" if row["giga_status"] == "empty_asr" else
+                                      "high_disagreement" if similarities and min(similarities) < 0.35 else
+                                      "medium_disagreement" if similarities and min(similarities) < 0.7 else
+                                      "agreement_control" if similarities else "inference_missing")
             row["review_status"] = "needs_listening"
             writer.writerow(row)
     print(json.dumps({"review": str(output), "not_a_gold_wer": True}), flush=True)
