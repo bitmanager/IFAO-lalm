@@ -26,6 +26,7 @@ from psycopg.types.json import Jsonb
 from .contract import PREPROCESSING
 from .pilot_source import S3File
 from .store import s3, connect, dataset_bucket
+from .source_labels import original_label
 
 STOP = False
 
@@ -102,7 +103,8 @@ def audio_rows(client, asset):
         if asset['bytes'] > 100*1024*1024:
             yield asset['object_key'], None, None
         else:
-            yield asset['object_key'], client.get_object(Bucket=asset['bucket'], Key=asset['object_key'], IfMatch=asset['etag'])['Body'].read(), None
+            raw = client.get_object(Bucket=asset['bucket'], Key=asset['object_key'], IfMatch=asset['etag'])['Body'].read()
+            yield asset['object_key'], raw, original_label(asset, raw)
 
 
 def segments(raw):
@@ -216,7 +218,12 @@ def prepare_asset(asset):
                         'source_provenance': {'bucket': asset['bucket'], 'key': asset['object_key'],
                             'etag': asset['etag'], 'member': member, 'channel': channel,
                             'start_seconds': start, 'end_seconds': end, 'max_overlap_seconds': 0.5,
-                            'original_label': label, 'group_identity_verified': False}}
+                            'original_label': (label['text'] if isinstance(label, dict)
+                                and label.get('annotation_source') == 'original_source_index'
+                                and isinstance(label.get('text'), str) and not label.get('text_conflict') else label),
+                            'original_label_metadata': (label if isinstance(label, dict)
+                                and label.get('annotation_source') == 'original_source_index' else None),
+                            'group_identity_verified': False}}
                     for variant in ('verbatim', 'coverage'):
                         rows.append(dict(sample, prompt_variant=variant))
                     made += 1
