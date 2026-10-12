@@ -46,3 +46,8 @@ sudo tailscale serve --bg --http=19001 https+insecure://127.0.0.1:19001
 
 Console: `http://exp-srv-rtx6000x4-02.tail8f0274.ts.net:19001/`.
 The HTTPS upstream is loopback with the existing private certificate.
+
+Validated on dev-1 (2026-10-13): tailnet HTTP access, PAM login, analyst server
+spawn and all eight code cells executed in a real Python kernel using read-only
+S3 credentials. MinIO console read-only login returned HTTP 204; Airflow DAG
+imports were clean and shared-code snapshot publication succeeded.
