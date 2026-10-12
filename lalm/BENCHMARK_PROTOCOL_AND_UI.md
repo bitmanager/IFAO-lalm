@@ -2,14 +2,14 @@
 
 ## Открыть результаты
 
-Сервис работает на exp-srv-rtx6000x4-02. Доступ через приватный Tailscale и существующий minipc, который только проксирует HTTP через SSH.
+Сервис работает на exp-srv-rtx6000x4-02. Основной доступ — напрямую через серверный Tailscale: http://exp-srv-rtx6000x4-02.tail8f0274.ts.net:15500/. Minipc для него не нужен. Прежняя HTTPS-ссылка через minipc сохранена как резервная.
 
 Правило хранения: аудио, корпуса, чекпойнты, полные inference/judge outputs, БД и кэши бенчмарка находятся только на серверном exp/dev-контуре. Локально допустимы небольшой код, конфигурация доступа и небольшие отчёты; полные API-выгрузки не сохранять. `/home/alexesn/asr-benchmark-remote` — SSHFS-монтирование `/mnt/local/drive2` сервера, не локальная копия. SSH alias `dev-1` сейчас ведёт на `exp-srv-rtx6000x4-02`.
 
-- [ASR: все 629 записей, три системы рядом](https://minipc.tail683b27.ts.net:8445/eval?evalId=eval-1Wc-2026-10-12T20:50:30).
-- [Ответы: 204 коротких записи, четыре ветки рядом](https://minipc.tail683b27.ts.net:8445/eval?evalId=eval-3Os-2026-10-12T21:06:12).
-- [Содержательные ответы: 38 примеров](https://minipc.tail683b27.ts.net:8445/eval?evalId=eval-HYq-2026-10-12T21:06:12): отдельно от приветствий и автоответчиков, часть эталонов спорная.
-- [Очередь ручной проверки: 109 заданий](https://minipc.tail683b27.ts.net:8445/eval?evalId=eval-LyD-2026-10-12T20:50:30): целевая выборка плюс 30 случайных, не общий рейтинг моделей.
+- [ASR: все 629 записей, три системы рядом](http://exp-srv-rtx6000x4-02.tail8f0274.ts.net:15500/eval?evalId=eval-1Wc-2026-10-12T20:50:30).
+- [Ответы: 204 коротких записи, четыре ветки рядом](http://exp-srv-rtx6000x4-02.tail8f0274.ts.net:15500/eval?evalId=eval-3Os-2026-10-12T21:06:12).
+- [Содержательные ответы: 38 примеров](http://exp-srv-rtx6000x4-02.tail8f0274.ts.net:15500/eval?evalId=eval-HYq-2026-10-12T21:06:12): отдельно от приветствий и автоответчиков, часть эталонов спорная.
+- [Очередь ручной проверки: 109 заданий](http://exp-srv-rtx6000x4-02.tail8f0274.ts.net:15500/eval?evalId=eval-LyD-2026-10-12T20:50:30): целевая выборка плюс 30 случайных, не общий рейтинг моделей.
 
 `Show Charts` включает штатные графики; `Different` показывает различающиеся оценки, `Failures` — непрошедшие проверки. Лупа открывает полный ответ и причины judge. В `Table Settings` можно уменьшить масштаб колонок и скрыть latency: сохранённый providerOutput имеет практически нулевую задержку и не измеряет скорость native inference. Через Columns можно скрыть вспомогательную ветку Gemini, чтобы остальные помещались рядом.
 
@@ -90,7 +90,9 @@ docker exec asr-bench-view /opt/node/bin/node \
 
 Compose-конфигурация: [benchmark-ui/compose.yaml](benchmark-ui/compose.yaml). Для восстановления нужны существующие Node22, node_modules promptfoo0.124.1 и `ui-state`; базовый node:24 image даёт только ОС, запускается явно Node22. Контейнер публикует только localhost:15500. Не запускать второй экземпляр на том же порту/имени.
 
-На minipc: user unit `asr-bench-view-tunnel.service`, SSH forwarding localhost15500→exp15500, Restart=always. Tailscale Serve HTTPS8445→localhost15500, tailnet-only; маршруты 443/8443/8444 не менялись. Вся БД, результаты и viewer находятся на exp. Прод/test инфраструктуру не меняли.
+Основной маршрут на exp: `tailscale serve --bg --http=15500 http://127.0.0.1:15500`, tailnet-only. Существующий маршрут 19001 сохранён. Проверено чтение четырёх eval через корпоративную tailnet.
+
+Резервный маршрут на minipc: user unit `asr-bench-view-tunnel.service`, SSH forwarding localhost15500→exp15500, Restart=always. Tailscale Serve HTTPS8445→localhost15500, tailnet-only; маршруты 443/8443/8444 не менялись. Вся БД, результаты и viewer находятся на exp. Прод/test инфраструктуру не меняли.
 
 Корень данных: `/mnt/local/drive2/checkpoint-response-bench-full-v1/`:
 
