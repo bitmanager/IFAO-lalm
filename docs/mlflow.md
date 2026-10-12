@@ -94,3 +94,41 @@ is `/#/experiments/<experiment_id>/runs?workflowType=machine_learning`.
 The GenAI overview queries traces, latency and token usage; training scalars do
 not populate those charts. Browser requests must use an origin configured in
 `MLFLOW_CORS_ALLOWED_ORIGINS`, even when serving the UI through an SSH/TCP proxy.
+
+## Server-only deployment
+
+Run tracking/storage on an always-on server, independently of the agent
+workstation. The native `speech-mlflow-tracking.service` template uses a dedicated
+`speech-mlflow` system account, `/var/lib/speech-mlflow/tracking` for durable data,
+and `/etc/speech-mlflow/tracking.env` for configuration. `MLFLOW_EXECUTABLE` can
+point to an operator-installed virtualenv separately from `MLFLOW_ROOT`.
+The matching `tracking.env.example`, `forward.env.example`, and
+`tailnet-proxy.env.example` show the operator configuration. Create the system
+account and data directory before enabling tracking. Install the startup and
+collector modules in `/usr/local/lib/speech-mlflow-monitor`, with
+`mlflow_monitoring.py` alongside the collector, and persist each collector's
+state directory. Enable the required systemd services so they survive logout
+and restart after a server reboot.
+The Compose example is an alternative deployment; choose one tracking backend.
+Both bind the tracking port on loopback. The private-interface proxy runs on
+the same server and forwards directly to that local port.
+
+Collectors also run on servers. If a source cannot reach tracking directly,
+`speech-mlflow-forward@.service` can keep a server-to-server SSH link alive; its
+instance environment supplies the key, verified known-hosts file and forwarding
+specification. Use dedicated keys restricted to the required forwarding ports,
+not copied workstation credentials. No runtime forwarding through the agent
+workstation is required.
+
+For a remote GPU, `gpu_command` can be an operator-configured argv list that
+returns the same NVIDIA CSV columns as the local probe. For example, use SSH
+with a key forced to execute only the fixed `nvidia-smi` query. The collector
+runs this argv without a shell and parses numeric GPU fields; it does not mix
+its own host RAM with remote GPU statistics. Prometheus can be scraped through
+a server-side local forward. This avoids installing a persistent monitoring
+process on the remote GPU workload host.
+
+During migration, pause collectors, stop the old tracking process, checkpoint
+SQLite, preserve the database/artifact paths and collector cursors, then start
+the new backend before resuming collectors. Retain a snapshot and verify run IDs,
+metric histories and fresh heartbeats before removing the old connections.

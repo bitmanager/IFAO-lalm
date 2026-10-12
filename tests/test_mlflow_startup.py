@@ -36,6 +36,14 @@ class StartupTests(unittest.TestCase):
                 "http://dashboard.example:8445",
             )
             self.assertNotIn("--disable-security-middleware", args)
+            env["MLFLOW_EXECUTABLE"] = str(exe)
+            self.assertEqual(
+                json.loads(
+                    subprocess.check_output(["bash", str(SCRIPT)], env=env, text=True)
+                ),
+                args,
+            )
+
             env.pop("MLFLOW_CORS_ALLOWED_ORIGINS")
             env.pop("MLFLOW_ALLOWED_HOSTS")
             args = json.loads(

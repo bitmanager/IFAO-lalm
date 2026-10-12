@@ -193,9 +193,14 @@ def _nvidia_gpu_metrics(executable: str) -> tuple[dict[str, float], dict[str, st
         logging.warning("Could not query NVIDIA GPU metrics: %s", exc)
         return {}, {}
 
+    return _parse_nvidia_gpu_metrics(result.stdout)
+
+
+def _parse_nvidia_gpu_metrics(output: str) -> tuple[dict[str, float], dict[str, str]]:
+    """Parse the same fixed NVIDIA SMI CSV schema for local or remote probes."""
     metrics: dict[str, float] = {}
     tags: dict[str, str] = {}
-    for row in csv.reader(result.stdout.splitlines(), skipinitialspace=True):
+    for row in csv.reader(output.splitlines(), skipinitialspace=True):
         if len(row) < 11:
             continue
         index, name = row[0].strip(), row[1].strip()

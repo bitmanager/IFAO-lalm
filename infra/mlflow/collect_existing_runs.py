@@ -10,13 +10,14 @@ import logging
 import math
 import os
 import re
+import subprocess
 import sys
 import time
 import urllib.request
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "lalm" / "lalm_core"))
-from mlflow_monitoring import _gpu_metrics
+from mlflow_monitoring import _gpu_metrics, _parse_nvidia_gpu_metrics
 
 
 def numeric(value):
@@ -197,7 +198,7 @@ def collect(client, config, state, state_path):
         saved["cursor"] = cursor  # Advance only after successful delivery.
         save_state(state_path, state)
         logging.info("%s: delivered %d metrics", source["name"], len(metrics))
-    if config.get("hardware") or config.get("prometheus"):
+    if config.get("hardware") or config.get("prometheus") or config.get("gpu_command"):
         saved = state.setdefault("_host", {})
         if not saved.get("run_id"):
             saved["run_id"] = client.create(
@@ -207,6 +208,15 @@ def collect(client, config, state, state_path):
             )
             save_state(state_path, state)
         values = {"monitor/heartbeat_timestamp": time.time()}
+        if config.get("gpu_command"):
+            probe = subprocess.run(
+                config["gpu_command"],
+                check=True,
+                capture_output=True,
+                text=True,
+                timeout=15,
+            )
+            values.update(_parse_nvidia_gpu_metrics(probe.stdout)[0])
         if config.get("hardware"):
             values.update(_gpu_metrics()[0])
             for index, load in enumerate(os.getloadavg()):

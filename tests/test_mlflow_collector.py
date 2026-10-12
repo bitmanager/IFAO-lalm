@@ -77,6 +77,33 @@ class CollectorTests(unittest.TestCase):
         self.assertEqual(sorted(values.values()), [7, 12])
         self.assertEqual(len(values), 2)
 
+    def test_remote_gpu_probe_does_not_report_collector_host_ram(self):
+        from types import SimpleNamespace
+
+        with tempfile.TemporaryDirectory() as directory:
+            client = Client()
+            state = {}
+            result = SimpleNamespace(
+                stdout="0, RTX, 99, 10, 100, 200, 70, 123.5, 250, 1200, 4000\n"
+            )
+            with patch.object(collector.subprocess, "run", return_value=result) as run:
+                collector.collect(
+                    client,
+                    {"gpu_command": ["ssh", "gpu-probe"]},
+                    state,
+                    Path(directory) / "state.json",
+                )
+            run.assert_called_once_with(
+                ["ssh", "gpu-probe"],
+                check=True,
+                capture_output=True,
+                text=True,
+                timeout=15,
+            )
+            values = {m["key"]: m["value"] for m in client.metrics}
+            self.assertEqual(values["system/gpu_0/power_draw_watts"], 123.5)
+            self.assertNotIn("system/ram_used_mib", values)
+
 
 if __name__ == "__main__":
     unittest.main()
