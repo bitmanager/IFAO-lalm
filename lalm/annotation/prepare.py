@@ -28,6 +28,7 @@ from .pilot_source import S3File
 from .store import s3, connect, dataset_bucket
 from .source_labels import original_label
 from .source_identity import production_conversation
+from .source_scheduling import select_source
 
 STOP = False
 
@@ -262,9 +263,7 @@ def main():
             raise RuntimeError('source_worker_already_running')
         while not STOP:
             with connect() as conn:
-                asset = conn.execute("SELECT * FROM source_assets WHERE state IN ('QUEUED','PREPARING') "
-                     "ORDER BY CASE WHEN object_key LIKE '%sova-rudevices%' THEN 0 ELSE 1 END,created_at "
-                     "FOR UPDATE SKIP LOCKED LIMIT 1").fetchone()
+                asset = select_source(conn)
                 if asset: conn.execute("UPDATE source_assets SET state='PREPARING',updated_at=now() WHERE id=%s", (asset['id'],))
             if not asset:
                 time.sleep(10);continue
