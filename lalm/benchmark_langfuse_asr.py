@@ -437,7 +437,7 @@ def report(args):
     fields = ["source_environment", "call_id", "trace_id", "origin", "cohort_clock", "media_id", "audio_status", "recording_source_status",
               "online_text", "giga_text", "gemini_text", "trace_assisted_text", "giga_status",
               "gemini_status", "sequence_match_similarity", "online_giga_similarity",
-              "online_asr_labels", "online_asr_observations", "giga_error", "gemini_language",
+              "online_asr_labels", "online_asr_observations", "online_text_source", "giga_error", "gemini_language",
               "review_priority", "user_audio_path", "channel_role_verified",
               "source_tags", "copy_provenance", "user_audio_sha256",
               "review_status", "human_transcript", "review_notes"]
@@ -478,6 +478,8 @@ def report(args):
             row["user_audio_sha256"] = asset.get("user_sha256", "")
             observations = telemetry.get(call["trace_id"], [])
             row["online_asr_observations"] = len(observations)
+            row["online_text_source"] = ("recorded_client_history_with_asr_trace" if observations else
+                                         "recorded_client_history_asr_origin_unverified")
             row["online_asr_labels"] = json.dumps(sorted({(str(m.get("provider", "")), str(m.get("model", "")), str(m.get("language", ""))) for m in observations}), ensure_ascii=False)
             row["giga_text"] = " ".join(t["text"] for t in result["turns"] if t["speaker"] == "speaker_0") if result else ""
             for variant, field in (("blind", "gemini_text"), ("trace_assisted", "trace_assisted_text")):

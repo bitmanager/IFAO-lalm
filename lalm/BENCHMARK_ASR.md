@@ -155,6 +155,12 @@ recognition error. Model labels such as `v3_rnnt` do not establish an identical
 checkpoint hash to the pinned offline SIP weights. Missing telemetry remains
 visible. Language/script differences can distort text similarity even for the
 same pronunciation. Priority is only triage, never an error or winner label.
+`online_text` comes from the recorded client history. `online_text_source`
+distinguishes histories with matching ASR observations from those whose ASR
+origin is unverified. Absence of telemetry does not prove typed input; presence
+does not prove a one-to-one match between every history turn and an ASR commit.
+Do not attribute all history/audio mismatches to recognition: input mode, capture
+and commit/drop policy also require checking.
 
 Listen to disagreements and a representative sample of agreements. Review names,
 numbers, negations, hallucinated/omitted words, repetitions and speaker mixups.
