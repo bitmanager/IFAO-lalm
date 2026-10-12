@@ -42,5 +42,5 @@ ports=compose['services']['airflow-api']['ports']
 if '100.119.47.17:18080:8080' not in ports:
     ports.append('100.119.47.17:18080:8080')
 for aid in ('agy-01','agy-02','agy-03','agy-07'):
-    compose['services'][aid]['environment']['WORKER_CONCURRENCY']='30'
+    compose['services'][aid]['environment']['WORKER_CONCURRENCY']='20'
 (root/'compose.generated.json').write_text(json.dumps(compose, indent=2)+'\n')

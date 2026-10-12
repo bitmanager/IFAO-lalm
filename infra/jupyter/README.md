@@ -20,7 +20,7 @@ infra/annotation/dc up -d --no-deps jupyterhub
 
 Run `deploy.py` again after regenerating the annotation Compose file. It adds
 JupyterHub, shared source mounts, tailnet-only Airflow access and the configured
-30-request limits for the four active accounts. Apply Airflow/worker changes
+20-request limits for the four active accounts. Apply Airflow/worker changes
 with a graceful restart, allowing in-flight requests to finish.
 
 JupyterHub: `http://exp-srv-rtx6000x4-02.tail8f0274.ts.net:18888`

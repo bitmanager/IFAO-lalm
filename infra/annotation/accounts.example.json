@@ -2,17 +2,17 @@
   "accounts": [
     {
       "id": "agy-01",
-      "concurrency": 30,
+      "concurrency": 20,
       "min_interval_seconds": 0.2
     },
     {
       "id": "agy-02",
-      "concurrency": 30,
+      "concurrency": 20,
       "min_interval_seconds": 0.2
     },
     {
       "id": "agy-03",
-      "concurrency": 30,
+      "concurrency": 20,
       "min_interval_seconds": 0.2
     },
     {
@@ -32,7 +32,7 @@
     },
     {
       "id": "agy-07",
-      "concurrency": 30,
+      "concurrency": 20,
       "min_interval_seconds": 0.2
     }
   ]
