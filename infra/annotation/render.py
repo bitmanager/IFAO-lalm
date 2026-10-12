@@ -67,7 +67,8 @@ def build(accounts, agy_path):
         services['postgres']['networks'].append(private)
         services['minio']['networks'].append(private)
         services[aid + '-proxy'] = {'image': '${XRAY_IMAGE:-ghcr.io/xtls/xray-core:25.3.6}',
-            'profiles': [aid], 'command': ['run', '-config', '/etc/xray/config.json'],
+            'profiles': [aid], 'user': f'{os.getuid()}:{os.getgid()}',
+            'command': ['run', '-config', '/etc/xray/config.json'],
             'volumes': [f'./runtime/{aid}/xray.json:/etc/xray/config.json:ro'],
             'networks': [private, 'egress'], 'restart': 'unless-stopped',
             'cap_drop': ['ALL'], 'security_opt': ['no-new-privileges:true'], 'read_only': True}

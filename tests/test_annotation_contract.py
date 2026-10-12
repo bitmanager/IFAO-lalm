@@ -48,6 +48,19 @@ class AnnotationContractTests(unittest.TestCase):
             self.assertNotIn('egress', worker['networks'])
             self.assertNotIn('ports', compose['services'][aid + '-proxy'])
 
+    def test_grpc_reality_preserves_transport_and_rejects_vision(self):
+        convert = load_script('configure_vless').convert
+        link = ('vless://5783a3e7-e373-51cd-8642-c83782b807c5@example.com:443'
+                '?security=reality&type=grpc&sni=example.com&pbk=test&sid=1234'
+                '&fp=firefox&alpn=h2&serviceName=audio')
+        stream = convert(link)['outbounds'][0]['streamSettings']
+        self.assertEqual(stream['grpcSettings']['serviceName'], 'audio')
+        self.assertEqual(stream['realitySettings']['fingerprint'], 'firefox')
+        self.assertEqual(stream['realitySettings']['shortId'], '1234')
+        for invalid in (link + '&flow=xtls-rprx-vision', link.replace('type=grpc', 'type=ws')):
+            with self.assertRaises(ValueError):
+                convert(invalid)
+
     def test_vless_never_adds_direct_fallback(self):
         convert = load_script('configure_vless').convert
         link = 'vless://5783a3e7-e373-51cd-8642-c83782b807c5@example.com:443?security=tls&type=ws&path=%2Fws'

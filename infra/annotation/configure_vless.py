@@ -22,11 +22,11 @@ def convert(link):
         raise ValueError('Unsupported VLESS parameters; supply a validated Xray config instead')
     transport, security = p.get('type', 'tcp'), p.get('security', 'tls')
     if transport not in ('tcp', 'ws', 'grpc') or security not in ('tls', 'reality'):
-        raise ValueError('Supported: TCP/WS/gRPC with TLS, TCP with REALITY')
+        raise ValueError('Supported: TCP/WS/gRPC with TLS, TCP/gRPC with REALITY')
     if p.get('encryption', 'none') != 'none' or p.get('headerType', 'none') != 'none':
         raise ValueError('Unsupported encryption/header mode')
-    if security == 'reality' and transport != 'tcp':
-        raise ValueError('REALITY requires TCP in this converter')
+    if security == 'reality' and transport not in ('tcp', 'grpc'):
+        raise ValueError('REALITY requires TCP or gRPC in this converter')
     flow = p.get('flow', '')
     if flow not in ('', 'xtls-rprx-vision') or flow and transport != 'tcp':
         raise ValueError('Unsupported flow')
