@@ -6,6 +6,8 @@
   "storage_root": "/mnt/local/drive2/speech-data-storage-20261012",
   "temporary_download_root": "/mnt/local/drive2/speech-source-downloads-20261012",
   "copy_engine": "Stock Hugging Face hf download, curl for the original public RuDevices archive, native MinIO mc",
+  "operational_orchestration": "Shell launches the stock CLIs, checks checksums, routes official test files and records progress; no new Python dataset adapter, uploader or trainer.",
+  "bulk_download_concurrency": "Golos and both original Balalaika jobs resume with stock HF download concurrency defaults after initial limited-concurrency startup; GPU jobs are untouched.",
   "new_application_code": false,
   "credentials": "Existing authorized HF token is read privately by the operational jobs; never committed or printed. Existing S3 admin environment is supplied by systemd EnvironmentFile.",
   "tls": "HF and MinIO both verify TLS with a bundle containing the OS public CAs and the private MinIO CA; no insecure option",
@@ -47,7 +49,8 @@
         "source_documentation": "https://github.com/sovaai/sova-dataset",
         "bytes": 11195258880,
         "sha256": "ecf46850dd038c2694216ad4778fdcbf788c44c20adcaf6e45c557ac8d8f77bb",
-        "service": "speech-data-full-sova-original-20261012.service",
+        "service": "speech-data-full-sova-original-follow-20261012.service",
+        "initial_archive_attempt": "Native curl initially did not follow the provider redirect, producing an empty temporary file. SHA256 check rejected it before S3 upload. The current job follows redirects with TLS verification; the failed receipt is preserved.",
         "status_at_launch": "RUNNING",
         "note": "Native original enables subsequent coverage comparison; no missing-sample conclusion solely from differing reported hours."
       }
@@ -59,7 +62,7 @@
       "upstream_files": 22,
       "upstream_bytes": 23583116739,
       "selection": "Complete pinned source, both crowd and farfield; original train/test boundaries retained",
-      "service": "speech-data-full-golos-tls-20261012.service",
+      "service": "speech-data-full-golos-default-20261012.service",
       "status_at_launch": "RUNNING",
       "native_prefix": "s3://speech-corpora/staging/golos/hf-931f5c412a8045e0b03b9e5584072f0810c41dcc/",
       "eval_prefix": "s3://speech-benchmarks/upstream-golos-931f5c412a8045e0b03b9e5584072f0810c41dcc/"
@@ -82,7 +85,7 @@
           "exclusion_reason": "Derived speech-codec caches, not original audio/transcripts needed for this ASR data task; complete source inventory retained.",
           "train_audio_shards": 519,
           "train_shard_bytes": 399748761600,
-          "service": "speech-data-full-balalaika-v2-20261012.service",
+          "service": "speech-data-full-balalaika-v2-default-20261012.service",
           "status_at_launch": "RUNNING",
           "native_prefix": "s3://speech-corpora/staging/balalaika-v2/hf-766eebc95f0c0ccef286a9022624a736221e19d3/"
         },
@@ -91,7 +94,7 @@
           "revision": "f847a349ac9cbf2952726c12b5aab1fd70b8a4cf",
           "upstream_files": 967,
           "upstream_bytes": 519349025224,
-          "service": "speech-data-full-balalaika-youtube-20261012.service",
+          "service": "speech-data-full-balalaika-youtube-default-20261012.service",
           "status_at_launch": "RUNNING",
           "native_prefix": "s3://speech-corpora/staging/balalaika-youtube/hf-f847a349ac9cbf2952726c12b5aab1fd70b8a4cf/"
         }
@@ -106,6 +109,8 @@
       "selection": "Complete pinned repository including paired audio, original text variants, samples and question/prosody data; unpaired text remains explicitly unpaired",
       "service": "speech-data-full-gemini-20261012.service",
       "status_at_launch": "RUNNING",
+      "verified_source_files": 159,
+      "verified_s3_readback_files": 159,
       "native_prefix": "s3://speech-corpora/staging/gemini/hf-e9b13cc20e57aa93a3df50e91a6d62230cc26cac/"
     },
     {
