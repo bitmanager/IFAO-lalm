@@ -1,0 +1,131 @@
+{
+  "status": "ARCHIVED_NATIVE_SOURCE_ARTIFACTS",
+  "date": "2026-10-12",
+  "source_host": "dev-1",
+  "corpus": "balalaika",
+  "s3_prefix": "s3://speech-corpora/staging/balalaika/native-20261012/",
+  "partitions": [
+    {
+      "destination": "s3://speech-corpora/staging/balalaika/native-20261012/nodes/gpu-01/runs/808/part-0004/053549005ee04a97a65f3ec8c53b2f98",
+      "rows": 675,
+      "bytes_total": 676420881,
+      "manifest_sha256": "12886eea9375e8c903a61eb1998b562c3ffae48ca66ebd3b6f14f625ee2938ad",
+      "path_in_repo": "nodes/gpu-01/runs/808/part-0004/053549005ee04a97a65f3ec8c53b2f98",
+      "revision": "97e89ea01ff5ca8f436fe79cf6b56de80e06fcce"
+    },
+    {
+      "destination": "s3://speech-corpora/staging/balalaika/native-20261012/nodes/gpu-01/runs/808/part-0000/78e7d09ee899457eaffb741c013b949c",
+      "rows": 6665,
+      "bytes_total": 3941489966,
+      "manifest_sha256": "59abad001d57251c80ed1f98f0eee77a1349a47d464768cf3cc93b288f5b74a9",
+      "path_in_repo": "nodes/gpu-01/runs/808/part-0000/78e7d09ee899457eaffb741c013b949c",
+      "revision": "5e2928a6cf55c7f3195ff93b9999ef3feb0079fc"
+    },
+    {
+      "destination": "s3://speech-corpora/staging/balalaika/native-20261012/nodes/gpu-01/runs/808/part-0003/4ecdb77f1f394aaebca3abb8e57f8a43",
+      "rows": 2287,
+      "bytes_total": 1997513222,
+      "manifest_sha256": "a8fb7e75332bb454f3b62c159f7be8d6b753ecd4d79108adc9d6fc6b6f38b644",
+      "path_in_repo": "nodes/gpu-01/runs/808/part-0003/4ecdb77f1f394aaebca3abb8e57f8a43",
+      "revision": "e4532fd9b4c0f34e4b25aade16ac0f3304627e55"
+    },
+    {
+      "destination": "s3://speech-corpora/staging/balalaika/native-20261012/nodes/gpu-01/runs/solomov/part-0000/6698ce04dd334e4f83d27509547db3c8",
+      "rows": 262,
+      "bytes_total": 283657028,
+      "manifest_sha256": "cd0ca234e653384b42703b6939598470db33dd9327f3265082fe916b9b6cbc06",
+      "path_in_repo": "nodes/gpu-01/runs/solomov/part-0000/6698ce04dd334e4f83d27509547db3c8",
+      "revision": "6760277e66dd6b37990ad727d5d94ef456b76111"
+    },
+    {
+      "destination": "s3://speech-corpora/staging/balalaika/native-20261012/nodes/gpu-01/runs/solomov/part-0002/bf65b76c21bf42a0ae5fa5a7b32e10c3",
+      "rows": 247,
+      "bytes_total": 268204890,
+      "manifest_sha256": "25c5eaca63df1250afe7b5b739596a7fbf0199063a695d88461fab1743b49b81",
+      "path_in_repo": "nodes/gpu-01/runs/solomov/part-0002/bf65b76c21bf42a0ae5fa5a7b32e10c3",
+      "revision": "217ea16b2d925cdf90b8e0bc736373c047c1c4b9"
+    },
+    {
+      "destination": "s3://speech-corpora/staging/balalaika/native-20261012/nodes/gpu-01/runs/solomov/part-0004/12a80801f5dd436cb5cc41fec6382b4e",
+      "rows": 322,
+      "bytes_total": 321770114,
+      "manifest_sha256": "b25ec715bc6993065f2652c83266a54c6dadc6a42dfd0f3dbee608b4f91cb9c2",
+      "path_in_repo": "nodes/gpu-01/runs/solomov/part-0004/12a80801f5dd436cb5cc41fec6382b4e",
+      "revision": "e52ea61d2fb6abd8d7d2d584ae595c019c5aff64"
+    },
+    {
+      "destination": "s3://speech-corpora/staging/balalaika/native-20261012/nodes/gpu-01/runs/solomov/part-0006/ab96bd6f6c584bdd8f563af3040c2cbf",
+      "rows": 262,
+      "bytes_total": 301973259,
+      "manifest_sha256": "9448150f89ab940b64b5a6777663c49e59785affb6e0cda809253a2aa8c3399b",
+      "path_in_repo": "nodes/gpu-01/runs/solomov/part-0006/ab96bd6f6c584bdd8f563af3040c2cbf",
+      "revision": "f26784ec1ec5ea28d897561f579ec26a74dc1560"
+    },
+    {
+      "destination": "s3://speech-corpora/staging/balalaika/native-20261012/nodes/gpu-01/runs/solomov/part-0007/e3231e68c2074e00a70368fb48212c5c",
+      "rows": 358,
+      "bytes_total": 392207294,
+      "manifest_sha256": "8a16ed23ffbc326f91bec2b850eabda071ca6c3784afdef4d1f57ead155ebf0d",
+      "path_in_repo": "nodes/gpu-01/runs/solomov/part-0007/e3231e68c2074e00a70368fb48212c5c",
+      "revision": "8ee48e40eb681173429569372966e44ccc3dbdeb"
+    },
+    {
+      "destination": "s3://speech-corpora/staging/balalaika/native-20261012/nodes/gpu-01/runs/solomov/part-0008/52fe7c931ed04ee1a5cbfc17c9b44283",
+      "rows": 518,
+      "bytes_total": 420165933,
+      "manifest_sha256": "a19edd3971fa8c16d0e3fce63467229560b6647a81fc019196516f419f44e525",
+      "path_in_repo": "nodes/gpu-01/runs/solomov/part-0008/52fe7c931ed04ee1a5cbfc17c9b44283",
+      "revision": "ad4ae37dad497758ad0e17abf69b93804c0a2a6e"
+    },
+    {
+      "destination": "s3://speech-corpora/staging/balalaika/native-20261012/nodes/gpu-01/runs/solomov/part-0009/ea95898b7dbd4957a1c8e934eaa6069a",
+      "rows": 225,
+      "bytes_total": 274244676,
+      "manifest_sha256": "c49269d8e430d9ec99b5174f534e48dbb7b1fdbf37528dcae5472c96bc6b1bc2",
+      "path_in_repo": "nodes/gpu-01/runs/solomov/part-0009/ea95898b7dbd4957a1c8e934eaa6069a",
+      "revision": "e9fc5a29b89b2afd07cb841f6381dc1aa1552ca0"
+    },
+    {
+      "destination": "s3://speech-corpora/staging/balalaika/native-20261012/nodes/gpu-01/runs/solomov/part-0010/a8eb9560fd3d4502af2012ea444cbe23",
+      "rows": 375,
+      "bytes_total": 426752008,
+      "manifest_sha256": "f8dcdc143dee0e086187a9c5030ddebca12e156c21d3939c70c369cfebe1bf75",
+      "path_in_repo": "nodes/gpu-01/runs/solomov/part-0010/a8eb9560fd3d4502af2012ea444cbe23",
+      "revision": "dfd5cfa42e1ff25db7d676e389d2e0b8423cb71e"
+    }
+  ],
+  "partition_count": 11,
+  "reported_rows": 12196,
+  "reported_export_bytes": 9304399271,
+  "native_tar_member_inventory": {
+    "shards": 88,
+    "audio_members": 12196,
+    "json_members": 12196,
+    "member_counts_match_reported_rows": true,
+    "audio_decoding_and_content_quality_audited": false,
+    "receipt": "/mnt/local/drive2/speech-data-storage-20261012/audit/balalaika-native-member-counts.tsv"
+  },
+  "copy_method": "native mc",
+  "all_local_bytes_sha256_verified_before_and_after_copy": true,
+  "all_s3_original_artifacts_read_back_and_sha256_verified": true,
+  "cross_host_training_client_native_read": {
+    "host": "exp-1",
+    "endpoint": "https://172.16.0.234:19000",
+    "tls_ca_verified": true,
+    "role": "speech-train",
+    "object": "nodes/gpu-01/runs/808/part-0004/053549005ee04a97a65f3ec8c53b2f98/control/manifest.json",
+    "sha256": "7ea10e2ba8a7ded2738b06ebb88bde1e045571c1718a4ba32d1f04b7c2ba325c",
+    "matches_local_source": true,
+    "native_mc_path": "/mnt/local/drive1/speech-data-client-20261012/mc",
+    "native_alias": "MC_HOST_speech constructed from the private training AWS environment; credentials never logged"
+  },
+  "upstream_hf_receipts_retained": true,
+  "upstream_hf_manifest_read_back_verified": false,
+  "upstream_hf_access_check": "Official hf CLI could not access the private dataset from this session; publication claims remain local producer receipts",
+  "source_layout_retained": true,
+  "compute_success_marker_preserved_as_provenance_not_training_release": true,
+  "training_split_assigned": false,
+  "benchmark_exclusion_verified": false,
+  "portable_training_release_published": false,
+  "originals_retained": true
+}

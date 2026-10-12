@@ -1,0 +1,31 @@
+{
+  "host": "dev-1",
+  "hostname": "exp-srv-rtx6000x4-02",
+  "root": "/mnt/local/drive2/speech-data-storage-20261012",
+  "endpoint": "https://100.119.47.17:19000",
+  "lan_endpoint": "https://172.16.0.234:19000",
+  "console": "https://127.0.0.1:19001",
+  "network": "Authenticated TLS S3 on tailnet and private LAN; console loopback only",
+  "tls": "Private CA public certificate at config/ca.pem; clients require AWS_CA_BUNDLE or SSL_CERT_FILE; no insecure TLS flag",
+  "lan_service": "Native systemd-socket-proxyd; no custom proxy implementation",
+  "service": "speech-data-minio.service",
+  "service_user": "speech-data-minio; separate from training UID2026",
+  "filesystem_isolation": "MinIO data700 and TLS private key belong to service user; admin/evaluation/server environment files belong to root0600; project root and config parent are root-owned",
+  "storage_mode": "Single disk R&D; no replication or high-availability claim",
+  "minio": {
+    "version": "RELEASE.2025-09-07T16-13-09Z",
+    "commit": "07c3a429bfed433e49018cb0f78a52145d4bedeb",
+    "sha256": "7c5bd8512c6e966455b1d198209358b2d191c77a83ab377c4073281065fb855f",
+    "source": "Unmodified /usr/bin/minio copied from the existing bm-langfuse-minio container; no credentials or volumes copied"
+  },
+  "mc": {
+    "version": "RELEASE.2025-08-13T08-35-41Z",
+    "commit": "7394ce0dd2a80935aded936b09fa12cbb3cb8096",
+    "sha256": "01f866e9c5f9b87c2b09116fa5d7c06695b106242d829a8bb32990c00312e891"
+  },
+  "upstream_service_commit": "97cce5207f3836fae366ba51e44d479f3c31e088",
+  "buckets": ["speech-corpora", "speech-annotations", "speech-datasets", "speech-benchmarks", "speech-evaluation"],
+  "credentials": "Generated on host; config/*.env mode0600; never committed",
+  "corpus_import_status": "Native source archives and metadata are being copied with mc and independently checked by full SHA256 readback; see native-corpus-catalog.json. Format conversion and portable training release remain pending adapter approval and holdout exclusion",
+  "benchmark_status": "Existing Golos/Phone/SVQ research fixtures copied to the closed benchmark bucket with full SHA256 readback and real-object IAM probes. Reference-free encoded-file checksum lists are published for data-building guards. Fresh production cohort and canonical-release exclusion remain pending"
+}

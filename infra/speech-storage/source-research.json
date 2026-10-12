@@ -1,0 +1,66 @@
+{
+  "repositories": [
+    {
+      "repo": "bitmanager/balalaika",
+      "revision": "2521c2d78413f713a821a02513a294f4416bd182"
+    },
+    {
+      "repo": "bitmanager/bitmanager-datapipeline",
+      "revision": "e38ce8bf30dbbcc3f97b1335ce43f8af149b0644"
+    }
+  ],
+  "full_files_read": [
+    "balalaika/AGENTS.md",
+    "balalaika/docs/language-pipelines.md",
+    "balalaika/docs/node-storage-and-lifecycle.md",
+    "balalaika/src/to_webdataset.py",
+    "balalaika/src/punctuation/punctuation.py",
+    "balalaika/src/transcription/README.md",
+    "balalaika/src/punctuation/README.md",
+    "balalaika/cluster_admin/node_delivery.py",
+    "balalaika/cluster_admin/partition_upload.py",
+    "bitmanager-datapipeline/airflow/README.md",
+    "bitmanager-datapipeline/docs/reports/dataset-schema-integration-20261001.md",
+    "bitmanager-datapipeline/airflow/src/pii_pipeline/datasets.py"
+  ],
+  "reuse": [
+    {
+      "component": "WebDataset shards and metadata",
+      "finding": "Existing exporter packages audio plus full JSON sidecars; import completed shards unchanged, retaining namespace/run/partition/attempt identity"
+    },
+    {
+      "component": "Publication manifest and _SUCCESS",
+      "finding": "Node delivery publishes file sizes/checksums and completion marker last; compute and delivery completion are different states"
+    },
+    {
+      "component": "Label provenance",
+      "finding": "Current checked Russian stage9 uses RUPunct on ROVER and writes punct. This establishes checked code behavior, not provenance of every historical dataset copy"
+    },
+    {
+      "component": "Independent ASR outputs",
+      "finding": "Preserve per-model transcripts, rover, asr_consistency and asr_ts when present; consensus is automatic, not human gold"
+    },
+    {
+      "component": "Import integrity",
+      "finding": "Exporter silently skips missing audio; completed pipeline does not prove all planned source audio was exported. Import validates publication bytes/counts against declared output, retaining coverage limitations"
+    },
+    {
+      "component": "Immutable originals",
+      "finding": "Local audio preprocessing creates independent working copies and can delete long originals inside that working copy. Storage import must copy finalized artifacts and retain raw masters"
+    },
+    {
+      "component": "Existing data platform",
+      "finding": "bitmanager-datapipeline already has Airflow stages and source/annotation/release separation; examine its existing dataset-schema integration before proposing any new canonical schema"
+    },
+    {
+      "component": "Existing canonical codec",
+      "finding": "The implemented opt-in bitmanager.dataset/1 codec comes from bitmanager-dataset-schema at platform revision 616d877ecbe357707b19e9b785b1014b43bc21f7. JSONL and its .context.json sidecar must travel together. Reuse the existing codec after adapter approval rather than treating the older call-dataset/1.0 proposal as an implemented format"
+    },
+    {
+      "component": "Native archive import",
+      "finding": "11 completed local Russian partitions were copied unchanged with native mc: 88 WebDataset tar files, 12,196 audio/JSON pairs, 9,304,399,271 producer export bytes. All original files passed full S3 SHA256 readback. This is source staging with no training split or final holdout exclusion claim"
+    }
+  ],
+  "no_pipeline_process_or_state_changes": true,
+  "no_training_implementation_added": true
+}
