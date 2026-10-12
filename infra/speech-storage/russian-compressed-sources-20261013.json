@@ -187,6 +187,36 @@
       "s3_target": "s3://speech-private-archive/sources/mtedx-ru/openslr-100-native-20210510/",
       "receipt": "s3://speech-datasets/catalog/compressed-sources-20261013/mtedx-ru/status.json",
       "split_policy": "Official splits retained in isolated private source archive; no automatic train admission"
+    },
+    {
+      "id": "yo-cpt-ru-pilot",
+      "source": "https://huggingface.co/datasets/NCSpeech/YO-CPT-ru",
+      "revision": "f2f92c5ecf6b0323cf7e7f9599f0e4852f6c536b",
+      "status_at_launch": "RUNNING",
+      "service": "speech-data-yo-cpt-ru-pilot-20261013.service",
+      "language": "ru",
+      "language_evidence": "Pinned publisher card language ru; Russian YODAS2 source and inspected native pilot lang=ru",
+      "source_type": "YouTube single-speaker cleaned clips, not telephone calls",
+      "selection": "data/ru000-000.parquet plus all five native documentation/figure/attributes files and full source index",
+      "pilot_parquet_bytes": 2351842468,
+      "pilot_parquet_sha256": "dddd8f55ed1b8b7c16c17c2ee973d1bb8713cb691d7a70d4dd45170e3a515f70",
+      "pilot_utterances": 3558,
+      "publisher_rounded_pilot_hours": 14.1,
+      "full_source": {
+        "files": 384,
+        "parquet_shards": 379,
+        "bytes": 1008879201440,
+        "downloaded": false
+      },
+      "annotation": "Custom RU Whisper-large-v3-turbo, GigaAM v3 RNNT and Vosk agreement/ROVER; machine labels, not human gold",
+      "text_denorm": "GPT-4.1-mini plus RUAccent; separate from original ensemble text",
+      "alignment": "wav2vec2-BERT CTC automatic word/pause timings",
+      "waveform_provenance": "Publisher denoised/loudness-normalized/cropped waveform, not raw YouTube; transfer does not transcode",
+      "metadata": "All native Parquet columns and embedded waveform retained; local/global speaker/source IDs, text variants, alignment, duration/MOS, original README/LICENSE/shard_map/figure/attributes/full file inventory",
+      "license": "Original LICENSE.md retained; upstream and pipeline component terms are not replaced by a blanket license",
+      "overlap": "May overlap YODAS2/LEMAS/Balalaika; private source quarantine, no train admission",
+      "s3_target": "s3://speech-private-archive/sources/yo-cpt-ru-pilot/hf-f2f92c5ecf6b0323cf7e7f9599f0e4852f6c536b/YO-CPT-ru-pinned-pilot-with-all-metadata.tar.zst",
+      "receipt": "s3://speech-datasets/catalog/compressed-sources-20261013/yo-cpt-ru-pilot/status.json"
     }
   ],
   "training_release": false,
