@@ -233,7 +233,28 @@ def index_tasks(api_url, token, project_id, cookie_header=None):
     return index
 
 
-def import_item(api_url, token, task_summary, item, cookie_header=None):
+def previous_candidate(data):
+    digest = data.get("qwen_history_result_sha256")
+    if not digest:
+        return None
+    return {
+        "status": data.get("qwen_history_status"),
+        "text": data.get("qwen_history_text", ""),
+        "mode": data.get("qwen_history_mode"),
+        "mode_display": data.get("qwen_history_mode_display"),
+        "environment": data.get("qwen_history_environment"),
+        "media_id": data.get("qwen_history_media_id"),
+        "call_id": data.get("qwen_history_call_id"),
+        "audio_sha256": data.get("qwen_history_audio_sha256"),
+        "checkpoint_sha256": data.get("qwen_history_checkpoint_sha256"),
+        "result_key": data.get("qwen_history_result_key"),
+        "result_sha256": digest,
+        "provenance": data.get("qwen_history_provenance"),
+        "archived_utc": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def import_item(api_url, token, task_summary, item, cookie_header=None, supersede_complete=False):
     task_id = task_summary["id"]
     task = request_json(api_url, token, f"/api/tasks/{task_id}", cookie_header=cookie_header)
     data = task["data"]
@@ -247,13 +268,26 @@ def import_item(api_url, token, task_summary, item, cookie_header=None):
     if current_status == item["status"] and old_digest == item["result_sha256"]:
         return "already_imported"
     if current_status == COMPLETE:
-        return "conflict"
+        if (not supersede_complete or item["status"] != COMPLETE or not old_digest
+                or data.get("qwen_history_audio_sha256") != item["audio_sha256"]
+                or data.get("qwen_history_call_id") != item["call"]["call_id"]
+                or data.get("qwen_history_checkpoint_sha256") != item["recipe"]["checkpoint_sha256"]
+                or data.get("qwen_history_mode") != item["effective_history_mode"]):
+            return "conflict"
+        archived = list(data.get("qwen_history_previous_candidates", []))
+        if not any(entry.get("result_sha256") == old_digest for entry in archived):
+            prior = previous_candidate(data)
+            if prior:
+                archived.append(prior)
+        fields["qwen_history_previous_candidates"] = archived
     if current_status in {"truncated", "failed", "error"} and item["status"] != COMPLETE:
         if old_digest != item["result_sha256"]:
             return "conflict"
         return "already_imported"
     before = human_work(task)
-    if current_status not in {"not_run", "truncated", "failed", "error"}:
+    if current_status not in {"not_run", "truncated", "failed", "error"} and not (
+        current_status == COMPLETE and supersede_complete and item["status"] == COMPLETE
+    ):
         return "conflict"
     old_keys = set(data)
     data.update(fields)
@@ -310,15 +344,13 @@ def scan(args, token, manifest, calls, planned, cookie_header=None):
                 if existing_status == item["status"] and existing_digest == item["result_sha256"]:
                     counts["already_imported"] += 1
                     continue
-                if existing_status == COMPLETE:
-                    counts["conflict"] += 1
-                    errors.append(f"{path.name}: existing Qwen result conflicts with this result")
-                    continue
                 if existing_status in PARTIAL_STATUSES and item["status"] in PARTIAL_STATUSES:
                     counts["conflict"] += 1
                     errors.append(f"{path.name}: existing Qwen result conflicts with this result")
                     continue
-                outcome = import_item(args.api_url, token, summary, item, cookie_header)
+                outcome = import_item(
+                    args.api_url, token, summary, item, cookie_header, args.supersede_complete
+                )
                 counts[outcome] += 1
                 if outcome == "imported":
                     summary.setdefault("data", {}).update(task_fields(item))
@@ -362,6 +394,10 @@ def main():
     parser.add_argument("--token-file", type=Path, help="Private file containing a Label Studio API bearer token")
     parser.add_argument("--cookie-file", type=Path, help="Optional private JSON cookie export for deployments behind session auth")
     parser.add_argument("--checkpoint-sha256", default=CHECKPOINT_SHA256)
+    parser.add_argument(
+        "--supersede-complete", action="store_true",
+        help="Replace a complete result only when call/audio/checkpoint/history identities match; archive the prior candidate",
+    )
     parser.add_argument("--status-file", type=Path)
     parser.add_argument("--watch-seconds", type=int, default=0, help="Poll repeatedly; 0 runs once")
     args = parser.parse_args()

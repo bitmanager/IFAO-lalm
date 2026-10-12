@@ -98,6 +98,7 @@ class QwenHistoryImportContracts(unittest.TestCase):
                 return existing if not hasattr(fake_request, "patched") else updated
             if method == "PATCH":
                 self.assertEqual(set(payload), {"data"})
+                updated["data"] = payload["data"]
                 fake_request.patched = True
                 return None
             self.fail(f"Unexpected request: {method} {path}")
@@ -107,6 +108,43 @@ class QwenHistoryImportContracts(unittest.TestCase):
             self.assertEqual(import_item("https://ls", "secret-unused", summary, item), "imported")
         self.assertEqual(existing["annotations"], updated["annotations"])
         self.assertEqual(existing["drafts"], updated["drafts"])
+
+    def test_same_audio_complete_candidate_is_archived_before_explicit_supersession(self):
+        item = self._validate(self.result)
+        previous_sha = "b" * 64
+        existing = {
+            "id": 44,
+            "data": {
+                "source_environment": "test", "media_id": "media-1", "audio_sha256": self.audio_sha,
+                "qwen_history_status": "complete", "qwen_history_text": "Earlier candidate.",
+                "qwen_history_mode": "self_transcripts_and_agent", "qwen_history_call_id": "call-1",
+                "qwen_history_audio_sha256": self.audio_sha,
+                "qwen_history_checkpoint_sha256": CHECKPOINT_SHA256,
+                "qwen_history_result_key": "canary-result", "qwen_history_result_sha256": previous_sha,
+                "qwen_history_provenance": {"history_mode": "self_transcripts_and_agent"},
+            },
+            "annotations": [{"id": 8, "result": []}], "drafts": [{"id": 9, "result": []}],
+        }
+        updated = json.loads(json.dumps(existing))
+
+        def fake_request(api_url, token, path, method="GET", payload=None, cookie_header=None):
+            if method == "GET" and path == "/api/tasks/44":
+                return existing if not hasattr(fake_request, "patched") else updated
+            if method == "PATCH":
+                updated["data"] = payload["data"]
+                fake_request.patched = True
+                return None
+            self.fail(f"Unexpected request: {method} {path}")
+
+        with patch("lalm.import_qwen_history_results.request_json", side_effect=fake_request):
+            self.assertEqual(import_item("https://ls", "unused", {"id": 44}, item), "conflict")
+            self.assertEqual(import_item("https://ls", "unused", {"id": 44}, item, supersede_complete=True), "imported")
+        archive = updated["data"]["qwen_history_previous_candidates"]
+        self.assertEqual(len(archive), 1)
+        self.assertEqual(archive[0]["result_sha256"], previous_sha)
+        self.assertEqual(archive[0]["text"], "Earlier candidate.")
+        self.assertEqual(updated["annotations"], existing["annotations"])
+        self.assertEqual(updated["drafts"], existing["drafts"])
 
 
 if __name__ == "__main__":
