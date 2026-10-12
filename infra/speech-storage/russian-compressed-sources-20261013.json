@@ -154,14 +154,18 @@
       "license": "UNESTABLISHED",
       "s3_target": "s3://speech-private-archive/sources/spokencorpora-ru/native-20261013/spokencorpora-RU-all-original-files.tar.zst",
       "receipt": "s3://speech-datasets/catalog/compressed-sources-20261013/spokencorpora/status.json",
-      "language_evidence": "Publisher Russian spoken-corpora page and native-source-index.json: 17 Siberian + 35 dream + 40 Russian picture narratives with original WAV/ELAN members"
+      "language_evidence": "Publisher Russian spoken-corpora page and native-source-index.json: 17 Siberian + 35 dream + 40 Russian picture narratives with original WAV/ELAN members",
+      "status": "COMPRESSED_AND_FULL_SHA256_READBACK_VERIFIED",
+      "archive_bytes": 438523056,
+      "archive_sha256": "f11bb7c182b30b6de0561e75a24670e13bd045d765f5b668df0a16aa6cc34dcf",
+      "verified_archive_members": 96
     },
     {
       "id": "mtedx-ru",
       "source": "https://www.openslr.org/100/",
       "archive_url": "https://www.openslr.org/resources/100/mtedx_ru.tgz",
       "status_at_launch": "RUNNING",
-      "service": "speech-data-mtedx-ru-official-mirror-20261013.service",
+      "service": "speech-data-mtedx-ru-aria2-native-20261013.service",
       "language": "rus",
       "language_evidence": "Publisher explicitly identifies Russian speech/transcripts partition; native train.yaml verified in original gzip/TAR prefix",
       "source_type": "Russian TEDx talks; not telephone calls",
@@ -188,7 +192,9 @@
       "receipt": "s3://speech-datasets/catalog/compressed-sources-20261013/mtedx-ru/status.json",
       "split_policy": "Official splits retained in isolated private source archive; no automatic train admission",
       "download_url": "https://openslr.magicdatatech.com/resources/100/mtedx_ru.tgz",
-      "transfer_note": "Primary/www and EU/trmal timed out after only 23891 of 65536 bytes in bounded GET; full primary GET stalled at4096B. Published CN mirror returns206/full65536B and HEAD200/expected10201638349B; first23891B SHA256 matches primary. Native job switched explicitly; complete gzip/tar/train-YAML/local-SHA/S3-readback still mandatory"
+      "transfer_note": "Primary/www and EU/trmal timed out after only 23891 of 65536 bytes in bounded GET; full primary GET stalled at4096B. Published CN mirror returns206/full65536B and HEAD200/expected10201638349B; first23891B SHA256 matches primary. Native job switched explicitly; complete gzip/tar/train-YAML/local-SHA/S3-readback still mandatory",
+      "download_engine": "Existing stock aria2c, four connections and native resume; full byte/gzip/tar/YAML/SHA256/S3 checks unchanged",
+      "mirror_curl_attempt": "Connection reset by peer, curl exit56 after3653632B; no S3 source publication. Failed receipt retained before native aria2 resume"
     },
     {
       "id": "yo-cpt-ru-pilot",
