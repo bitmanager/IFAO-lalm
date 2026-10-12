@@ -379,3 +379,26 @@ Research supporting the experimental design:
 - [Interspeech 2025 human-assisted annotation](https://www.isca-archive.org/interspeech_2025/johnson25_interspeech.pdf)
   reports that naive text correction can worsen WER and evaluates selective human
   input and acceptance filtering. Its English-domain results are not our benchmark.
+
+### Mixed-language prompt audit (2026-10-13)
+
+Bulk inference remains paused. A 12-request diagnostic compared Russian weak-prior,
+reference-conditioned Russian, and English weak-prior prompts on four user-listened
+samples. Run: `debug/mixed-language-90bd17c1f3fd/`. User listening notes and a
+consolidated report are saved there; exact text was confirmed only for «я умею».
+Portuguese and Ukrainian language controls remained foreign in all three arms;
+the ambiguous tile sample remained inconsistent. These are not corpus-wide metrics.
+
+Two additional controls on «я умею» are stored under
+`debug/short-russian-control-3e523464f7b0/`. A verified-Russian-language-only prompt
+returned «Ё-моё», matching the incorrect English-prompt output. An intentionally
+wrong draft «я гуляю» instead produced «я умею». This demonstrates instability;
+neither agreement nor empty uncertainty fields establish correctness.
+
+User priority is precision over recall: retain conflicting evidence, abstain on
+unstable examples, and never use draft-conditioned agreement to clear a conflict.
+No automatic acceptance rule or training promotion was enabled. Precision needs a
+separate human-checked evaluation set; these four examples are prompt-development
+controls. The shared diagnostic CLI supports `--profile mixed-language`; its default
+is still dry-run. `notebooks/speech_prompt_review.ipynb` reads the 14 saved results
+and renders the four audio clips without issuing any inference requests.
