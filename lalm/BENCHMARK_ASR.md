@@ -48,6 +48,10 @@ Prepare retains missing recordings and empty online results in `calls.jsonl` and
 `cohort.json`. Audio assets are deduplicated; distinct calls are not. Playground,
 campaign, copied and simulated provenance remains visible. The initial synthetic
 transport trigger `Начни разговор` is not transcribed user speech.
+Report `recording_source_status` distinguishes an absent recording span from an
+existing span with no media link. Neither is a failed download. A nonempty media
+marker in an unsupported format fails preparation loudly instead of silently
+discarding that audio.
 
 ## Ready ASR runners
 

@@ -120,6 +120,8 @@ def prepare(args):
             excluded.append({"id": r["id"], "reason": "unresolved_boundary_call"})
             continue
         marker = MEDIA.fullmatch(output.get("recording") or "")
+        if output.get("recording") and not marker:
+            raise ValueError("Unsupported media marker; classify explicitly before preparing corpus")
         media_id = marker[1] if marker else None
         turns = output.get("transcript") or []
         online = [t for i, t in enumerate(turns)
@@ -432,7 +434,7 @@ def gemini(args):
 
 
 def report(args):
-    fields = ["source_environment", "call_id", "trace_id", "origin", "cohort_clock", "media_id", "audio_status",
+    fields = ["source_environment", "call_id", "trace_id", "origin", "cohort_clock", "media_id", "audio_status", "recording_source_status",
               "online_text", "giga_text", "gemini_text", "trace_assisted_text", "giga_status",
               "gemini_status", "sequence_match_similarity", "online_giga_similarity",
               "online_asr_labels", "online_asr_observations", "giga_error", "gemini_language",
@@ -458,6 +460,9 @@ def report(args):
             result = native.get(call["media_id"])
             asset = assets.get(call["media_id"], {})
             row["audio_status"] = asset.get("status", "no_recording")
+            row["recording_source_status"] = ("media_link_present" if call["media_id"] else
+                                              "missing_recording_span" if call.get("recording_start") is None else
+                                              "recording_span_without_media")
             if result and (result["provenance"].get("audio_sha256") != asset.get("giga_sha256")
                            or result["provenance"].get("asr_model_sha256") != "607e71d4d9fa87fadbdd779357fc3d1d064e1c273e7080cafd325ce474ba591e"
                            or result["provenance"].get("asr_preparer_sha256") != "5a1d2023f130278f4c1b8205409ba7a47df94bf4011b5f0cf43fcffafb7828f8"):

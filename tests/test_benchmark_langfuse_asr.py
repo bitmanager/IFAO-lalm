@@ -50,6 +50,14 @@ class BenchmarkContracts(unittest.TestCase):
         self.assertIsNone(calls[0]["media_id"])
         self.assertEqual(media, [])
 
+    def test_unsupported_nonempty_media_marker_fails_loud(self):
+        recording = self.recording()
+        output = json.loads(recording["output"])
+        output["recording"] = "unrecognized-audio-link"
+        recording["output"] = json.dumps(output)
+        with self.assertRaises(ValueError):
+            self.prepared([recording], [self.root()])
+
     def test_upload_in_window_does_not_admit_earlier_call(self):
         calls, _ = self.prepared([self.recording()], [self.root(start="2026-09-11T20:59:59Z")])
         self.assertEqual(calls, [])
