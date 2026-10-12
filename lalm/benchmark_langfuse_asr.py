@@ -86,6 +86,9 @@ def russian(metadata, tags):
 
 
 def prepare(args):
+    start, end = stamp(args.start), stamp(args.end)
+    if start >= end:
+        raise ValueError("Cohort start must be earlier than exclusive end")
     source_hash = sha(args.recordings)
     roots = export_rows(args.roots) if args.roots else []
     by_trace = {}
@@ -95,7 +98,7 @@ def prepare(args):
     expected_roots = {}
     for trace_id, matches in by_trace.items():
         root = min(matches, key=lambda r: r["startTime"])
-        if (stamp(START) <= stamp(root["startTime"]) < stamp(END)
+        if (start <= stamp(root["startTime"]) < end
                 and russian(obj(root.get("metadata") or {}), root.get("tags") or [])[0]):
             expected_roots[trace_id] = root
     calls, excluded, assets = [], [], {}
@@ -113,10 +116,10 @@ def prepare(args):
             excluded.append({"id": r["id"], "reason": "no_call_start_in_window"})
             continue
         call_start = min((x["startTime"] for x in root_matches), default=None)
-        if call_start and not stamp(START) <= stamp(call_start) < stamp(END):
+        if call_start and not start <= stamp(call_start) < end:
             excluded.append({"id": r["id"], "reason": "call_start_outside_window"})
             continue
-        if not call_start and not stamp(START) <= stamp(r["startTime"]) < stamp(END):
+        if not call_start and not start <= stamp(r["startTime"]) < end:
             excluded.append({"id": r["id"], "reason": "unresolved_boundary_call"})
             continue
         marker = MEDIA.fullmatch(output.get("recording") or "")
@@ -159,7 +162,7 @@ def prepare(args):
     jsonl(args.root / "calls.jsonl", calls)
     jsonl(args.root / "media.jsonl", [{"media_id": k, "call_ids": v} for k, v in assets.items()])
     save(args.root / "cohort.json", {
-        "environment": args.environment, "start": START, "end_exclusive": END,
+        "environment": args.environment, "start": args.start, "end_exclusive": args.end,
         "calls": len(calls), "assets": len(assets), "excluded": excluded,
         "unresolved_call_starts": sum(c["call_start"] is None for c in calls),
         "missing_media": [c["call_id"] for c in calls if not c["media_id"]],
@@ -170,7 +173,7 @@ def prepare(args):
 
 def native_cli(container, *arguments):
     command = ["sudo", "docker", "exec", container, "npx", "--yes",
-               "@langfuse/cli@1.2.4", "api", *arguments, "--json"]
+               "@langfuse/cli@1.2.4", "--api-version", "auto", "api", *arguments, "--json"]
     run = subprocess.run(command, capture_output=True, text=True, timeout=120)
     result = json.loads(run.stdout)
     if result["status"] == 404 and result.get("body", {}).get("message") == "Media not yet uploaded":
@@ -547,6 +550,8 @@ def main():
             p.add_argument("--recordings", type=Path, required=True)
             p.add_argument("--roots", type=Path)
             p.add_argument("--environment", choices=("prod", "test"), required=True)
+            p.add_argument("--start", default=START, help="Inclusive ISO-8601 call-start boundary")
+            p.add_argument("--end", default=END, help="Exclusive ISO-8601 call-start boundary")
         if action == "download":
             p.add_argument("--api-container", required=True)
             p.add_argument("--ffmpeg", default="ffmpeg")

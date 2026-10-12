@@ -3,8 +3,9 @@ import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import patch
 
-from lalm.benchmark_langfuse_asr import MODEL, agy_result, incomplete_gemini_status, prepare
+from lalm.benchmark_langfuse_asr import MODEL, agy_result, incomplete_gemini_status, native_cli, prepare
 from lalm.benchmark_gemini_api import MODEL as API_MODEL, billed_cost, validate
 
 
@@ -31,7 +32,8 @@ class BenchmarkContracts(unittest.TestCase):
             self.export(p / "recordings.json", recordings)
             self.export(p / "roots.json", roots)
             prepare(SimpleNamespace(root=p / "out", environment="test",
-                                    recordings=p / "recordings.json", roots=p / "roots.json"))
+                                    recordings=p / "recordings.json", roots=p / "roots.json",
+                                    start="2026-09-11T21:00:00Z", end="2026-10-11T21:00:00Z"))
             calls = [json.loads(x) for x in (p / "out/calls.jsonl").read_text().splitlines()]
             media = [json.loads(x) for x in (p / "out/media.jsonl").read_text().splitlines()]
             return calls, media
@@ -61,6 +63,40 @@ class BenchmarkContracts(unittest.TestCase):
     def test_upload_in_window_does_not_admit_earlier_call(self):
         calls, _ = self.prepared([self.recording()], [self.root(start="2026-09-11T20:59:59Z")])
         self.assertEqual(calls, [])
+
+    def test_custom_call_window_uses_inclusive_start_exclusive_end(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d)
+            self.export(p / "recordings.json", [self.recording("inside"), self.recording("end")])
+            self.export(p / "roots.json", [
+                self.root("inside", "2026-10-12T10:00:00Z"),
+                self.root("end", "2026-10-13T10:00:00Z"),
+            ])
+            prepare(SimpleNamespace(root=p / "out", environment="prod",
+                                    recordings=p / "recordings.json", roots=p / "roots.json",
+                                    start="2026-10-12T10:00:00Z", end="2026-10-13T10:00:00Z"))
+            calls = [json.loads(x) for x in (p / "out/calls.jsonl").read_text().splitlines()]
+            cohort = json.loads((p / "out/cohort.json").read_text())
+            self.assertEqual([c["trace_id"] for c in calls], ["inside"])
+            self.assertEqual(cohort["start"], "2026-10-12T10:00:00Z")
+            self.assertEqual(cohort["end_exclusive"], "2026-10-13T10:00:00Z")
+
+    def test_reversed_call_window_fails(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d)
+            self.export(p / "recordings.json", [])
+            with self.assertRaises(ValueError):
+                prepare(SimpleNamespace(root=p / "out", environment="test",
+                                        recordings=p / "recordings.json", roots=None,
+                                        start="2026-10-13T10:00:00Z", end="2026-10-12T10:00:00Z"))
+
+    def test_native_langfuse_cli_uses_auto_api_version(self):
+        response = SimpleNamespace(returncode=0, stdout='{"status":200,"body":{}}', stderr="")
+        with patch("lalm.benchmark_langfuse_asr.subprocess.run", return_value=response) as run:
+            native_cli("langfuse-api", "media", "get", "media-id")
+        command = run.call_args.args[0]
+        self.assertIn("--api-version", command)
+        self.assertEqual(command[command.index("--api-version") + 1], "auto")
 
     def events(self, steps):
         result = {"status": "SUCCESS", "num_turns": 1, "structured_output": {

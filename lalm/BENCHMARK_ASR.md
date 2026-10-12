@@ -6,10 +6,14 @@ SIP preparation runner for native GigaAM RNNT decoding, and native AGY `view_fil
 for Gemini. It does not implement ASR, model inference, forced alignment, or API
 pagination. It does not change training or deploy models.
 
-The fixed cohort is 12 September–11 October 2026, Europe/Moscow:
+The reproducible default cohort is 12 September–11 October 2026, Europe/Moscow:
 `2026-09-11T21:00:00Z <= call_start < 2026-10-11T21:00:00Z`.
 Production and test remain separate. Russian is selected by explicit language
 metadata or the trace's `ru` tag. All raw exports remain available for audit.
+`prepare` also accepts `--start` and `--end` for a later rolling cohort; these
+are inclusive/exclusive ISO-8601 call-start bounds. This only re-filters source
+exports already fetched for that interval. It does not schedule or fetch a new
+window automatically, so each refresh must retain its raw export and date range.
 
 Audio, model outputs and review files belong on dev/exp, outside this repository.
 The current data roots on dev are:
@@ -21,7 +25,13 @@ The current data roots on dev are:
 
 ## Source exports
 
-Use official `@langfuse/cli@1.2.4 api observations list --all --json`. It returns
+Use official `@langfuse/cli@1.2.4 --api-version auto api observations list --all --json`.
+The explicit `auto` is required by the self-hosted Langfuse v3 instance; without
+it, requests hit the CLI's v4 default route. The tested v3 endpoint accepts time
+bounds, but does not accept the v4-only `--fields` and `--is-root-observation`
+options. Root/tag filtering must therefore happen with a supported native v3
+export or after fetching observations; do not assume a command copied from v4
+will work. It returns
 an envelope with `body.data`; observation IO/metadata can be JSON strings.
 The adapter rejects truncated exports and duplicate observation IDs.
 
@@ -41,7 +51,8 @@ review CSV, terminal output, or prompts.
 python lalm/benchmark_langfuse_asr.py prepare \
   --root "$DATA_ROOT" --environment prod \
   --recordings "$DATA_ROOT/raw/recording-observations-boundary.json" \
-  --roots "$DATA_ROOT/raw/call-root-observations.json"
+  --roots "$DATA_ROOT/raw/call-root-observations.json" \
+  --start 2026-09-11T21:00:00Z --end 2026-10-11T21:00:00Z
 ```
 
 Prepare retains missing recordings and empty online results in `calls.jsonl` and
