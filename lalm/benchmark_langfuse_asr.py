@@ -440,6 +440,11 @@ def incomplete_gemini_status(directory):
     if not attempts:
         return "not_completed"
     latest = attempts[-1]
+    status_path = latest.with_name(latest.name.replace(".stream.jsonl", ".status.json"))
+    # Status is atomically published after stdout is fully written and rejected.
+    # A live stdout capture may contain partial JSON; leave it pending.
+    if not status_path.exists():
+        return "attempt_pending_validation"
     for line in latest.read_text().splitlines():
         event = json.loads(line)
         result = event.get("result", {}) if event.get("event") == "result" else {}
@@ -447,8 +452,7 @@ def incomplete_gemini_status(directory):
             return "provider_filtered"
         if "individual quota reached" in str(result.get("error", "")).lower():
             return "quota_blocked_attempt"
-    status_path = latest.with_name(latest.name.replace(".stream.jsonl", ".status.json"))
-    return "failed_attempt" if status_path.exists() else "attempt_pending_validation"
+    return "failed_attempt"
 
 
 def report(args):

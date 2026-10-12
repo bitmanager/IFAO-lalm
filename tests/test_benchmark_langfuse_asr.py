@@ -101,13 +101,16 @@ class BenchmarkContracts(unittest.TestCase):
                 "status": "SUCCESS", "num_turns": 2,
                 "response": "This request was blocked by Gemini's filters.\n{\"transcript\":\"text\"}"}}
             (p / "attempt-2.stream.jsonl").write_text(json.dumps(native))
+            (p / "attempt-2.status.json").write_text('{"exit_code": 0}')
             self.assertEqual(incomplete_gemini_status(p), "provider_filtered")
-            (p / "attempt-10.stream.jsonl").write_text("")
+            (p / "attempt-10.stream.jsonl").write_text('{"event":')
             self.assertEqual(incomplete_gemini_status(p), "attempt_pending_validation")
+            (p / "attempt-10.stream.jsonl").write_text("")
             (p / "attempt-10.status.json").write_text('{"exit_code": 1}')
             self.assertEqual(incomplete_gemini_status(p), "failed_attempt")
             (p / "attempt-11.stream.jsonl").write_text(json.dumps({
                 "event": "result", "result": {"error": "Individual quota reached"}}))
+            (p / "attempt-11.status.json").write_text('{"exit_code": 0}')
             self.assertEqual(incomplete_gemini_status(p), "quota_blocked_attempt")
 
     def api_response(self, **changes):
