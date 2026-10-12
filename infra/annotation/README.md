@@ -1,5 +1,36 @@
 # SpeechLLM: данные, Airflow и AGY
 
+## Текущее размещение и просмотр (2026-10-13)
+
+Runtime работает только на dev-1 (`exp-srv-rtx6000x4-02`), в
+`/mnt/local/drive2/speech-annotation-20261012/code`. Локальная машина используется
+только для доступа; прежний локальный стенд удалён после проверенного переноса.
+Используется существующий S3/MinIO, второй экземпляр не разворачивается.
+PostgreSQL хранит служебную очередь и состояние Airflow; аналитические таблицы
+и датасеты публикуются в Parquet на S3.
+
+После каждого успешного прохода DAG задача `publish_inspection_parquet`
+публикует согласованный снимок таблиц `sources`, `passes`, `examples`,
+`progress`, `publications`. `s3://speech-datasets/analytics/latest.json`
+указывает на конкретные неизменяемые файлы с SHA256 и числом строк.
+Нельзя читать glob всех версий: это повторно посчитает одни и те же записи.
+Событие Airflow Asset для этого URI содержит ключ manifest и счётчики.
+Снимок предназначен для инспекции, не означает разрешение на обучение.
+
+Для просмотра используйте `notebooks/speech_data_inspection.ipynb` на dev-1
+в существующей notebook-среде с boto3, DuckDB, pandas и IPython. Отдельный
+Jupyter-сервис не входит в развёртывание. Read-only AWS credentials передаются
+через окружение/profile, endpoint через `S3_ENDPOINT`, CA через `AWS_CA_BUNDLE`.
+Ноутбук читает Parquet, показывает первоначальные метки и ответы отдельных
+проходов, воспроизводит фрагмент и показывает происхождение/границы.
+Исходные standalone-аудиофайлы доступны для прослушивания; для архивов/Parquet
+пока выводятся метаданные контейнера и идентификатор элемента.
+Перед сохранением notebook в Git очищайте outputs с содержимым данных.
+
+Исходная метка без связи с фрагментом обозначается `not_linked_or_not_available`,
+а не «не размечено». Машинный ответ и ручное подтверждение разделены.
+Пустая `publications` означает отсутствие опубликованного релиза.
+
 Слой оркестрации в существующем IFAO-lalm. Модель разметки, инструкция и проверка
 нативного трейса взяты из `lalm/benchmark_langfuse_asr.py`. Зафиксирована
 `gemini-3.8-flash-low`; каждый файл получает отдельный процесс/разговор AGY.
@@ -218,7 +249,7 @@ infra/annotation/dc exec airflow-scheduler airflow dags list-import-errors
 [Airflow Docker](https://airflow.apache.org/docs/apache-airflow/3.3.1/howto/docker-compose/index.html),
 [Xray VLESS](https://xtls.github.io/en/config/outbounds/vless.html).
 
-## Проверенный стенд 2026-10-12
+## Исторический локальный smoke test 2026-10-12 (стенд уже удалён)
 
 На `/home/alexesn` поднят Compose project `speech-data`. API, scheduler,
 dag-processor, PostgreSQL и MinIO работают. Ручной запуск

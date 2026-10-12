@@ -33,6 +33,7 @@ def dataset_bucket():
 def initialize():
     with connect() as conn:
         conn.execute(Path(__file__).with_name('schema.sql').read_text())
+        conn.execute(Path(__file__).with_name('review_views.sql').read_text())
     client = s3()
     try:
         client.head_bucket(Bucket=bucket())
