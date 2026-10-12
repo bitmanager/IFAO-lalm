@@ -100,6 +100,15 @@ of the same model, not independent recognizers. Blind jobs reuse identical audio
 context jobs are per call. Both compare offline full-call information, not a fair
 equal-context online commit test.
 
+The current trace-assisted payload is exactly `origin` plus the entire recorded
+`online_turns` history (roles, text and timestamps). It includes later user turns
+and agent answers; it is full-trace-assisted reconstruction, not past-history-only
+recognition. It does not include the agent's actual system prompt or task config.
+For this cohort, 347 prod and 638 test call jobs have processable audio; 22 prod
+and 44 test jobs have empty recorded histories. Keep those empty-history jobs
+separate when comparing the effect of context. Do not interpret an improvement
+with full trace as a causal improvement available to the live recognizer.
+
 Accept an AGY result only with native success, one turn, a matching model, a
 successful `view_file` of the exact allowed audio and validated structured output.
 External ASR/commands/extra file reads invalidate the result. Preserve failed
