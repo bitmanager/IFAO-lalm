@@ -25,7 +25,8 @@ class BenchmarkContracts(unittest.TestCase):
             assets.append({"media_id": mid, "status": "complete", "user_sha256": "sha-" + mid})
             checks.append({"source_keys": ["test:" + mid], "audio_sha256": "sha-" + mid,
                            "model": MODEL, "status": "complete", "native_validated": True,
-                           "vad_speech_detected": True, "speech_status": "speech", "language": "ru", **delta})
+                           "vad_speech_detected": True, "speech_status": "speech", "language": "ru",
+                           "language_conflict": False, **delta})
         for name, rows in (("calls", calls), ("assets", assets), ("presence", checks)):
             (root / (name + ".jsonl")).write_text("".join(json.dumps(x) + "\n" for x in rows))
         return SimpleNamespace(root=root, presence_index=root / "presence.jsonl")
@@ -35,7 +36,7 @@ class BenchmarkContracts(unittest.TestCase):
             root = Path(d)
             args = self.presence_report_fixture(root, [{}, {"vad_speech_detected": False},
                 {"speech_status": "no_speech"}, {"language": "en"},
-                {"status": "not_started"}, {"native_validated": False}])
+                {"status": "not_started"}, {"native_validated": False}, {"language_conflict": True}])
             report(args)
             review = next(root.glob("review-*.csv"))
             with review.open() as f:
@@ -50,6 +51,20 @@ class BenchmarkContracts(unittest.TestCase):
                 args = self.presence_report_fixture(Path(d), changes)
                 with self.assertRaises(ValueError):
                     report(args)
+
+    def test_review_gate_holds_conflicting_full_transcript_language(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            args = self.presence_report_fixture(root, [{}])
+            cache = root / "gemini/blind/0/result.json"
+            cache.parent.mkdir(parents=True)
+            cache.write_text(json.dumps({"audio_sha256": "sha-0", "model": MODEL,
+                "variant": "blind", "prompt_sha256": "prompt", "status": "complete",
+                "native_result": {"status": "SUCCESS", "structured_output": {
+                    "language": "ru, uz", "transcript": "Mixed-language speech"}}}))
+            report(args)
+            with next(root.glob("review-*.csv")).open() as f:
+                self.assertEqual(list(csv.DictReader(f)), [])
 
     def test_zero_pcm_gate_preserves_any_nonzero_samples(self):
         with tempfile.TemporaryDirectory() as d:

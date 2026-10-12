@@ -128,7 +128,11 @@ For the cleaned annotation/benchmark export, pass the completed or partial nativ
 presence audit index with `report --presence-index /path/to/presence-index.jsonl`.
 Only matching audio hashes with native-validated Gemini Russian speech and a
 positive Silero speech result enter that CSV. Pending, failed, foreign-language
-and disputed speech-presence cases stay out; the source coverage ledgers remain
+and disputed speech-presence cases stay out. A completed original blind transcript
+labelled foreign or mixed-language also holds the example, even if the presence
+pass says Russian. The index must carry `language_conflict` across all source
+aliases of the same audio hash, so a conflicting prod/test duplicate is held too.
+The source coverage ledgers remain
 available. Duplicate source keys or changed audio hashes fail explicitly.
 The adjacent `.meta.json` records the exact index snapshot hash and quality gate.
 Without this option the report is a coverage review with only the exact-zero

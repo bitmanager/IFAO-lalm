@@ -566,6 +566,7 @@ def report(args):
                 if not (asset.get("status") == "complete" and checked
                         and checked["status"] == "complete" and checked["native_validated"] is True
                         and checked["model"] == MODEL and checked["vad_speech_detected"] is True
+                        and checked["language_conflict"] is False
                         and checked["speech_status"] == "speech" and checked["language"] == "ru"):
                     continue
             row["audio_status"] = asset.get("status", "no_recording")
@@ -609,6 +610,9 @@ def report(args):
                 row[status_field] = ("complete" if path.exists() else
                                      "unavailable_audio" if row["audio_status"] != "complete" else
                                      incomplete_gemini_status(path.parent))
+            if (presence is not None and row["gemini_status"] == "complete"
+                    and row["gemini_language"] != "ru"):
+                continue
             tokens = lambda text: re.sub(r"[\W_]+", " ", text.lower().replace("ё", "е")).split()
             row["sequence_match_similarity"] = SequenceMatcher(None, tokens(row["giga_text"]), tokens(row["gemini_text"]), autojunk=False).ratio() if result and row["gemini_status"] == "complete" else ""
             row["online_giga_similarity"] = SequenceMatcher(None, tokens(row.get("online_text", "")), tokens(row["giga_text"]), autojunk=False).ratio() if result else ""
