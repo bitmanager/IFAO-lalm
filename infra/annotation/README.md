@@ -452,3 +452,11 @@ An ordinary partial unique index on prepared audio SHA256 and pass prevents
 cross-manifest duplicate inference within this prompt version. Source provenance
 remains in the source inventory and immutable manifests. This is exact-byte
 prepared-audio deduplication, not semantic/near-duplicate audio detection.
+
+Overnight audit found that a bare `429` substring in a conversation ID could
+misclassify a rejected native result as a rate limit. Classification now requires
+an explicit provider code/status or rate-limit message. Four worker error tests
+cover this false-positive case, genuine service errors, auth/quota separation,
+and bounded reset times. Rejected native turns remain rejected; no transcript
+validation was relaxed. Historical misclassifications are corrected with audit
+metadata while raw artifacts and attempt history are retained.

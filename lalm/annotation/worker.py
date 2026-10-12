@@ -29,7 +29,8 @@ def classify(text, timed_out=False):
         return 'NEEDS_REVIEW', 'authentication_or_access_denied', 'authentication_or_access_denied'
     if timed_out:
         return 'NEEDS_REVIEW', 'ambiguous_timeout', None
-    if any(x in text for x in ('429', 'too many requests', 'rate limit')):
+    if (any(x in text for x in ('too many requests', 'rate limit'))
+            or re.search(r'\b(?:code|error_code|status|http)\b[\s\"=:()]*429\b', text)):
         return 'RETRYABLE_FAILED', 'rate_limited', None
     return 'NEEDS_REVIEW', 'native_result_rejected', None
 
