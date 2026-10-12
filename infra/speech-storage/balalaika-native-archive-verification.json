@@ -108,6 +108,17 @@
   "copy_method": "native mc",
   "all_local_bytes_sha256_verified_before_and_after_copy": true,
   "all_s3_original_artifacts_read_back_and_sha256_verified": true,
+  "cross_host_training_client_native_read": {
+    "host": "exp-1",
+    "endpoint": "https://172.16.0.234:19000",
+    "tls_ca_verified": true,
+    "role": "speech-train",
+    "object": "nodes/gpu-01/runs/808/part-0004/053549005ee04a97a65f3ec8c53b2f98/control/manifest.json",
+    "sha256": "7ea10e2ba8a7ded2738b06ebb88bde1e045571c1718a4ba32d1f04b7c2ba325c",
+    "matches_local_source": true,
+    "native_mc_path": "/mnt/local/drive1/speech-data-client-20261012/mc",
+    "native_alias": "MC_HOST_speech constructed from the private training AWS environment; credentials never logged"
+  },
   "upstream_hf_receipts_retained": true,
   "upstream_hf_manifest_read_back_verified": false,
   "upstream_hf_access_check": "Official hf CLI could not access the private dataset from this session; publication claims remain local producer receipts",
