@@ -317,6 +317,11 @@ def gemini(args):
         job_id = asset.get("context_call_id", asset["media_id"])
         directory = args.root / "gemini" / args.variant / job_id
         done = directory / "result.json"
+        if args.recover_only and not done.exists():
+            previous_statuses = [json.loads(p.read_text()) for p in directory.glob("attempt-*.status.json")]
+            if not any(s.get("exit_code") == 0 and s.get("error") == "Unexpected native tool use"
+                       for s in previous_statuses):
+                return {"media_id": asset["media_id"], "status": "not_completed"}
         if quota_blocked.is_set() and not done.exists():
             return {"media_id": asset["media_id"], "status": "not_started_quota"}
         path = Path(asset["user_audio_path"]).resolve()
