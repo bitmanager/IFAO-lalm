@@ -81,7 +81,9 @@ def effective_history_mode(recipe_mode, history_policy):
     return recipe_mode
 
 
-def validate_result(path, result, manifest, calls, planned, expected_checkpoint=CHECKPOINT_SHA256):
+def validate_result(
+    path, result, manifest, calls, planned, expected_checkpoint=CHECKPOINT_SHA256, raw_bytes=None
+):
     status = result.get("status")
     if status == "running":
         return None
@@ -113,8 +115,7 @@ def validate_result(path, result, manifest, calls, planned, expected_checkpoint=
         if not transcript_from_result(result):
             raise ValueError("Complete result has no transcript")
     transcript = transcript_from_result(result)
-    raw = Path(path).read_bytes()
-    digest = sha256_bytes(raw)
+    digest = sha256_bytes(raw_bytes if raw_bytes is not None else Path(path).read_bytes())
     if result.get("key") and result["key"] != Path(path).stem:
         raise ValueError("Result filename/key mismatch")
     return {
@@ -283,13 +284,16 @@ def scan(args, token, manifest, calls, planned, cookie_header=None):
     for result_dir in args.results_dir:
         for path in sorted(Path(result_dir).glob("*.json")):
             try:
-                result = load_json(path)
+                raw_bytes = Path(path).read_bytes()
+                result = json.loads(raw_bytes)
                 status = result.get("status", "invalid")
                 if status in counts:
                     counts[status] += 1
                 if status == "running":
                     continue
-                item = validate_result(path, result, manifest, calls, planned, args.checkpoint_sha256)
+                item = validate_result(
+                    path, result, manifest, calls, planned, args.checkpoint_sha256, raw_bytes
+                )
                 if item is None:
                     continue
                 k = key(item["environment"], item["media_id"])
