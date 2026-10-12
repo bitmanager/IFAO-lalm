@@ -460,3 +460,7 @@ cover this false-positive case, genuine service errors, auth/quota separation,
 and bounded reset times. Rejected native turns remain rejected; no transcript
 validation was relaxed. Historical misclassifications are corrected with audit
 metadata while raw artifacts and attempt history are retained.
+
+Starter account 04 repeatedly reached provider capacity limits in short bursts.
+Its launch interval is now 2 seconds with the same concurrency cap of 5; existing
+provider cooldowns remain in force. Ultra accounts keep their configured limits.

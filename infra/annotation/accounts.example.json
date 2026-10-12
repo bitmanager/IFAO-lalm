@@ -18,7 +18,7 @@
     {
       "id": "agy-04",
       "concurrency": 5,
-      "min_interval_seconds": 1
+      "min_interval_seconds": 2
     },
     {
       "id": "agy-05",
