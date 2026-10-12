@@ -21,7 +21,10 @@
   },
   "replay_vod_transfer": {
     "policy": "policies/replay-source-transfer-session.json",
-    "scope": ["sources/ru-replay80h/*", "sources/vod-native-calls8428/*"],
+    "scope": [
+      "sources/ru-replay80h/*",
+      "sources/vod-native-calls8428/*"
+    ],
     "status": "REVOKED_AFTER_VERIFIED_TRANSFER",
     "outside_prefix_denied": true,
     "admin_api_denied": true,
@@ -145,11 +148,21 @@
       "audio_archive_sha256": "94caf3da69d715dd2be965e99b56345e785f8f2695339125229934b4e6870f6d",
       "metadata_bytes": 856572160,
       "metadata_sha256": "916b7c2a794f1ff361a86169cf257b61bf69021a1fc49703837edcd8cf4e26ae",
-      "larger_russian_source_inventory": {"shards": 23, "bytes": 550841845976, "downloaded": false},
+      "larger_russian_source_inventory": {
+        "shards": 23,
+        "bytes": 550841845976,
+        "downloaded": false
+      },
       "s3_prefix": "s3://speech-private-archive/sources/lemas-ru000/hf-91f0c1b9a29f8d1c5bad18182a43975255512cce/",
       "language": "Native Russian source partition; initial gzip/tar/MP3 bytes and original JSONL rows verified",
       "labels": "Golos and YODAS original text/subtitles with automated MMS word alignment and confidence filtering; not independently verified human gold",
-      "metadata_fields": ["key", "audio", "dur", "txt", "align"],
+      "metadata_fields": [
+        "key",
+        "audio",
+        "dur",
+        "txt",
+        "align"
+      ],
       "note": "Bounded pilot after discovering a larger ready source; seven priority families remain primary. Golos/YouTube overlap and upstream holdout leakage require quarantine; no training admission. CLI checks disk reserve before download; temporary files removed only after full S3 readback."
     },
     {
@@ -166,7 +179,14 @@
       "s3_prefix": "s3://speech-benchmarks/upstream-mtsair-21301635963415883d3868fd88b26d1df19881e9/",
       "note": "Four clean/noisy general/numeric subsets, mono 8 kHz, background voices/TV. Two original text references preserved; not established as long real production calls or human gold.",
       "status": "COPIED_AND_FULL_SHA256_READBACK_VERIFIED",
-      "verified_s3_readback_files": 12120
+      "verified_s3_readback_files": 12120,
+      "compressed_source": {
+        "status": "COMPRESSED_AND_FULL_SHA256_READBACK_VERIFIED",
+        "bytes": 905469242,
+        "sha256": "dc4411c835d8638326f635ec1383f15b7c572b859aeb67443f302a85df1f414b",
+        "catalog": "russian-compressed-sources-20261013.json",
+        "source_use": "evaluation_only"
+      }
     },
     {
       "id": "ru-replay80h",

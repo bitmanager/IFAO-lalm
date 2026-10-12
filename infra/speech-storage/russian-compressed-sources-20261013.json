@@ -220,6 +220,24 @@
       "s3_target": "s3://speech-private-archive/sources/yo-cpt-ru-pilot/hf-f2f92c5ecf6b0323cf7e7f9599f0e4852f6c536b/YO-CPT-ru-pinned-pilot-with-all-metadata.tar.zst",
       "receipt": "s3://speech-datasets/catalog/compressed-sources-20261013/yo-cpt-ru-pilot/status.json",
       "initial_attempt": "Native curl HTTP/2 CANCEL exit92 after241432347B; no S3 upload. Failure receipt retained; new stock curl HTTP/1.1 job resumes the same pinned partial bytes and requires complete source LFS SHA256 before archive/upload"
+    },
+    {
+      "id": "mtsair-phone-benchmark-compressed",
+      "source": "MTSAIR/mws-reson-asr-osd",
+      "revision": "21301635963415883d3868fd88b26d1df19881e9",
+      "language": "ru",
+      "language_evidence": "Publisher and original inventory identify Russian telephone benchmark; source labels retained without asserting human gold",
+      "status": "COMPRESSED_AND_FULL_SHA256_READBACK_VERIFIED",
+      "service": "speech-data-mtsair-compressed-native-20261013.service",
+      "native_source_files": 12120,
+      "native_source_bytes": 2186853287,
+      "archive_bytes": 905469242,
+      "archive_sha256": "dc4411c835d8638326f635ec1383f15b7c572b859aeb67443f302a85df1f414b",
+      "metadata": "Every pinned native source file and original reference variants included; downloader .cache excluded",
+      "audio_transcoded": false,
+      "source_use": "evaluation_only",
+      "s3_target": "s3://speech-benchmarks/upstream-mtsair-21301635963415883d3868fd88b26d1df19881e9/compressed/mtsair-native-source.tar.zst",
+      "receipt": "s3://speech-datasets/catalog/compressed-sources-20261013/mtsair-phone-benchmark/status.json"
     }
   ],
   "training_release": false,
