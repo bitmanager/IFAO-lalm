@@ -85,6 +85,20 @@ class AnnotationContractTests(unittest.TestCase):
 
 
 class MultiPassContractTests(unittest.TestCase):
+    def test_source_conditioned_identity_tracks_original_label(self):
+        from lalm.annotation.contract import prompt, source_text
+        sample = dict(AnnotationContractTests().sample(), prompt_variant='source_correction',
+                      source_provenance={'original_label': 'нет, пятнадцать'})
+        changed = dict(sample, source_provenance={'original_label': 'да, пятьдесят'})
+        self.assertNotEqual(job_id(sample), job_id(changed))
+        self.assertEqual(job_id(dict(sample, prompt_variant='verbatim')),
+                         job_id(dict(changed, prompt_variant='verbatim')))
+        self.assertIn('нет, пятнадцать', prompt('/work/audio.wav', 'source_correction', source_text(sample)))
+        self.assertNotIn('нет, пятнадцать', prompt('/work/audio.wav', 'verbatim'))
+        for label in (None, {}, '', 'x' * 12001):
+            with self.assertRaisesRegex(ValueError, 'missing_source_annotation'):
+                job_id(dict(sample, source_provenance={'original_label': label}))
+
     def test_prompt_variants_have_distinct_job_identity(self):
         from lalm.annotation.contract import contract_sha, prompt
         sample = AnnotationContractTests().sample()

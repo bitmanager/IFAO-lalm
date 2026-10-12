@@ -1,10 +1,11 @@
-"""Compare independent transcriptions; agreement is never a gold label."""
+"""Compare blind passes and request an explicitly identified third-pass audit."""
 import hashlib
 import json
 import re
 from difflib import SequenceMatcher
 from .store import connect, s3, bucket
 from .queue import enqueue
+from .contract import source_text
 
 
 def compare(a, b):
@@ -46,18 +47,23 @@ def reconcile():
                                passes['coverage']['result']['verbatim_text']))
             seed = passes['verbatim']['sample']
             if not row['normalized_agreement'] and seed.get('adaptive_third_pass'):
-                if 'literal_audit' not in passes:
-                    sample = dict(seed, prompt_variant='literal_audit')
+                # Retain existing third jobs; never add a fourth pass on upgrade.
+                variant = ('literal_audit' if 'literal_audit' in passes else
+                           'source_correction' if source_text(seed) is not None else 'literal_audit')
+                row['third_pass_variant'] = variant
+                row['third_pass_independent'] = variant != 'source_correction'
+                if variant not in passes:
+                    sample = dict(seed, prompt_variant=variant)
                     with connect() as c:
                         enqueue(c, sample)
                     third_requested += 1
                     row['third_pass_pending'] = True
-                elif passes['literal_audit'].get('result'):
-                    third = passes['literal_audit']['result']['verbatim_text']
+                elif passes[variant].get('result'):
+                    third = passes[variant]['result']['verbatim_text']
                     row['third_vs_verbatim'] = compare(passes['verbatim']['result']['verbatim_text'], third)
                     row['third_vs_coverage'] = compare(passes['coverage']['result']['verbatim_text'], third)
                 else:
-                    row['third_pass_pending'] = passes['literal_audit']['state'] in ('PENDING', 'RUNNING', 'RETRYABLE_FAILED')
+                    row['third_pass_pending'] = passes[variant]['state'] in ('PENDING', 'RUNNING', 'RETRYABLE_FAILED')
         else:
             row['incomplete'] = True
         reports.setdefault(pilot, []).append(row)

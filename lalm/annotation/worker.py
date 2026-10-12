@@ -12,7 +12,7 @@ import time
 import wave
 
 from lalm.benchmark_langfuse_asr import agy_result, zero_user_audio
-from .contract import CONTRACT_SHA, MODEL, SCHEMA, prompt, contract_sha
+from .contract import CONTRACT_SHA, MODEL, SCHEMA, prompt, contract_sha, source_text, digest
 from .queue import claim, finish
 from .store import bucket, s3
 
@@ -33,10 +33,10 @@ def classify(text, timed_out=False):
     return 'NEEDS_REVIEW', 'native_result_rejected', None
 
 
-def run_agy(audio, workspace, variant="verbatim"):
+def run_agy(audio, workspace, variant="verbatim", reference=None):
     command = ['agy', '--mode', 'plan', '--model', MODEL, '--disable-slash-commands',
                '--output-format', 'stream-json', '--json-schema', json.dumps(SCHEMA),
-               '--print-timeout', '5m', '--add-dir', str(workspace), '-p', prompt(audio, variant)]
+               '--print-timeout', '5m', '--add-dir', str(workspace), '-p', prompt(audio, variant, reference)]
     # The model process has its own AGY login but does not inherit DB/S3 credentials.
     child_env = {k: v for k, v in os.environ.items() if k in {
         'PATH', 'HOME', 'LANG', 'LC_ALL', 'TZ', 'HTTP_PROXY', 'HTTPS_PROXY', 'NO_PROXY',
@@ -75,12 +75,13 @@ def process(job):
         with wave.open(str(audio)) as stream:
             duration = stream.getnframes() / stream.getframerate()
         variant = sample.get("prompt_variant", "verbatim")
+        reference = source_text(sample) if variant == "source_correction" else None
         started = time.monotonic()
-        rc, stdout, stderr, timed_out = run_agy(audio, workspace, variant)
+        rc, stdout, stderr, timed_out = run_agy(audio, workspace, variant, reference)
         elapsed = time.monotonic() - started
         # Native raw output can contain transcript/PII: private S3, never stdout.
         for suffix, body in (('stream.jsonl', stdout), ('stderr.log', stderr),
-                             ('request.json', json.dumps({'model': MODEL, 'prompt': prompt(audio, variant),
+                             ('request.json', json.dumps({'model': MODEL, 'prompt': prompt(audio, variant, reference),
                               'schema': SCHEMA, 'contract_sha256': contract_sha(variant),
                               'audio_sha256': sample['audio_sha256'], 'exit_code': rc}))):
             client.put_object(Bucket=bucket(), Key=f'{prefix}/{suffix}', Body=body.encode())
@@ -97,7 +98,9 @@ def process(job):
                   'uncertain_spans': out['uncertain_fragments'], 'native_result': native,
                   'annotation_source': 'agy', 'model': MODEL, 'contract_sha256': contract_sha(variant),
                   'raw_prefix': prefix, 'audio_seconds': duration, 'human_gold': False,
-                  'prompt_variant': variant, 'inference_seconds': elapsed}
+                  'prompt_variant': variant, 'inference_seconds': elapsed,
+                  'source_conditioned': variant == 'source_correction',
+                  'source_text_sha256': digest(reference) if reference is not None else None}
         state = 'VALIDATED' if out['language'] == 'ru' and out['transcript'].strip() else 'NEEDS_REVIEW'
         if state == 'VALIDATED' and sample.get('review_only'):
             finish(job, 'NEEDS_REVIEW', result, 'pilot_review_only')
