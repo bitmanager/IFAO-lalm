@@ -56,8 +56,9 @@ def main():
 
     spec = json.loads(args.manifest.read_text())
     assert spec["history_mode"] in ("self_transcripts_and_agent", "reference_history_v2", "reference_history_v3", "no_history")
-    gpu = "GPU-de629798-46d4-ac37-e28e-d73f59094ab7"
+    gpu = spec.get("gpu_uuid", "GPU-de629798-46d4-ac37-e28e-d73f59094ab7")
     assert os.environ["CUDA_VISIBLE_DEVICES"] == gpu
+    assert torch.cuda.mem_get_info()[0] >= 70 * 1024**3, "Selected GPU lacks room; do not disturb existing jobs"
     runtime.GPUS = [gpu]
     checkpoint = Path(spec["checkpoint"])
     assert runtime.digest(checkpoint) == spec["checkpoint_sha256"]

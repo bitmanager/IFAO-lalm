@@ -51,19 +51,25 @@ def main():
                 "Не требуй повторять все факты. Дай pass=true и score=1 только при "
                 "выполнении критерия, иначе pass=false и score=0. В reason кратко "
                 "по-русски укажи конкретную причину и цитату ответа, если она есть. "
+                "Если сам псевдоэталон не позволяет надёжно оценить критерий, верни "
+                "pass=false, score=0 и начни reason с UNCERTAIN_REFERENCE:; "
+                "не выдумывай отсутствующее намерение пользователя. "
+                "Служебная строка [EMPTY_MODEL_OUTPUT] означает полностью пустой ответ. "
                 f"Генерация завершена: {complete}. Незавершённый или пустой ответ — fail.\n"
                 + condition + "\n"
             )
             tests.append({
                 "description": f"{case['id']}/{branch}",
                 "vars": {"input": condition},
-                "providerOutput": generation["text"],
+                "providerOutput": generation["text"] or "[EMPTY_MODEL_OUTPUT]",
                 "metadata": {
                     "case_id": case["id"], "branch": branch,
                     "cohort": case.get("cohort", "unspecified"),
+                    "eligibility_bucket": case.get("eligibility_bucket", "unspecified"),
                     "checkpoint_sha256": spec["checkpoint_sha256"],
                     "audio_sha256": case["audio_sha256"],
                     "generation_complete": bool(complete),
+                    "candidate_empty": not bool(generation["text"].strip()),
                     "reference_human_verified": case.get("human_verified", False),
                 },
                 "assert": [
@@ -83,7 +89,10 @@ def main():
                          "отсутствие шутки, уточнения или другой части ответа само по себе НЕ "
                          "нарушает grounding. Из forbidden_errors учитывай только противоречия "
                          "и неподтверждённые утверждения, не пропуски. Условное предложение "
-                         "не равно утверждению, что действие уже выполнено."),
+                         "не равно утверждению, что действие уже выполнено. Общие советы "
+                         "не обязаны присутствовать во входе: их отсутствие там само по себе "
+                         "не доказывает выдумку. Разговорное «понял/учту» не равно утверждению "
+                         "об изменении внешней системы."),
                     ]
                 ],
             })
