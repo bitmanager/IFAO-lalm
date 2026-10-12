@@ -2,7 +2,18 @@
   "date": "2026-10-13",
   "scope": "User-requested native Veva3/Meteor/HashTesh exports and exact audio deduplication in protected cold copies",
   "source_access": "Existing se@bitmanager.ai SSO and noninteractive sudo work on both managed hosts; no source account, ACL or database permission change",
-  "native_tools": ["PostgreSQL psql COPY", "MinIO mc", "Docker cp", "sha256sum", "jdupes 1.27.3", "tar", "zstd", "rsync", "SSH", "systemd"],
+  "native_tools": [
+    "PostgreSQL psql COPY",
+    "MinIO mc",
+    "Docker cp",
+    "sha256sum",
+    "jdupes 1.27.3",
+    "tar",
+    "zstd",
+    "rsync",
+    "SSH",
+    "systemd"
+  ],
   "new_python_application_or_format_adapter": false,
   "database_mode": "Repeatable-read, read-only snapshot; UTC timestamps; all native relation/dialog fields, source schema, relevant project model IDs, organization identity/timezone and raw transcript cells preserved",
   "metadata": "Native SQL CSV/JSON/TSV, full source S3 object listings, source export instructions, per-file checksums, exact duplicate groups and integrity receipts accompany audio",
@@ -30,11 +41,17 @@
       "id": "patch-ru-meteor-hashtesh",
       "host": "100.71.231.47",
       "source_instruction": "/opt/calls_export/INSTRUCTIONS.md",
-      "organization_ids": ["8563f8db-f6e3-49c1-8c11-fc695760b9ce", "c19f1873-c014-4f03-95db-b615be5f5536"],
+      "organization_ids": [
+        "8563f8db-f6e3-49c1-8c11-fc695760b9ce",
+        "c19f1873-c014-4f03-95db-b615be5f5536"
+      ],
       "source_snapshot_at": "2026-10-12T22:32:58.416708+00:00",
       "native_relation_rows": 7962,
       "nonempty_transcript_rows": 7878,
-      "organization_nonempty_transcripts": {"Meteor": 5592, "HashTesh": 2286},
+      "organization_nonempty_transcripts": {
+        "Meteor": 5592,
+        "HashTesh": 2286
+      },
       "transcript_rows_with_audio_key": 4595,
       "unique_transcript_audio_keys": 4078,
       "matched_exported_audio_keys": 4078,
@@ -62,7 +79,9 @@
       "id": "patch-uz-veva3",
       "host": "100.101.176.22",
       "source_instruction": "/opt/veva3_export/INSTRUCTIONS.md",
-      "organization_ids": ["23b18383-d5d2-4f52-a0c9-c64dba907726"],
+      "organization_ids": [
+        "23b18383-d5d2-4f52-a0c9-c64dba907726"
+      ],
       "source_snapshot_at": "2026-10-12T22:33:01.563748+00:00",
       "selection": "Instruction's canonical dialogs.current_relation_id join; not the narrower project join",
       "native_relation_rows": 23815,
@@ -91,7 +110,11 @@
     }
   ],
   "other_completed_audio_audit": {
-    "sources": ["Bitmanager sessions pinned snapshot", "MTSAIR pinned snapshot", "Gemini pinned snapshot"],
+    "sources": [
+      "Bitmanager sessions pinned snapshot",
+      "MTSAIR pinned snapshot",
+      "Gemini pinned snapshot"
+    ],
     "scope": "Standalone mp3/wav/opus/flac files only; audio embedded inside Parquet/TAR not unpacked in this pass",
     "native_jdupes_match_sets": 0,
     "mutation": "None; audit only",
@@ -115,5 +138,24 @@
   },
   "training_release": false,
   "russian_only_training_admission": "Not admitted until language, source quality and benchmark overlap are checked; user explicitly requested these source exports for inspection",
-  "dedup_all_existing_s3_archives_complete": false
+  "dedup_all_existing_s3_archives_complete": false,
+  "existing_s3_duplicate_audit": {
+    "current_object_inventory_completed": true,
+    "etag_size_candidates": {
+      "groups": 34,
+      "paths": 9263,
+      "potential_duplicate_payload_bytes": 1752808641,
+      "not_a_checksum_proof": true
+    },
+    "large_whole_objects_verified": {
+      "groups": 9,
+      "paths": 18,
+      "duplicate_payload_bytes": 1750340766,
+      "verification": "Complete native mc read and independent SHA256 of every candidate object"
+    },
+    "s3_objects_removed": false,
+    "canonical_reference_proposal": "s3://speech-datasets/catalog/exact-dedup-20261013/s3-canonical-object-reference-proposal.json",
+    "reference_status": "Proposed canonical references retain all source alias metadata; existing logical paths preserved until consumer references are migrated",
+    "inner_parquet_tar_audio_dedup": "NOT_DONE_IN_THIS_PASS"
+  }
 }
