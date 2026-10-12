@@ -26,6 +26,8 @@
   "native_balalaika_archive_receipt": "balalaika-native-archive-verification.json",
   "portable_parquet_dataset_published": false,
   "final_production_holdout_cohort_not_yet_selected": true,
+  "existing_research_benchmarks_archived_separately": "research-benchmark-catalog.json",
+  "real_research_benchmark_evaluator_read_and_training_ingest_denial_verified": true,
   "adapter_approval_pending": true,
   "native_evidence": [
     "/mnt/local/drive2/speech-data-storage-20261012/audit/filesystem-isolation.json",

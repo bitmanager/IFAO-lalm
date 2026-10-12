@@ -27,5 +27,5 @@
   "buckets": ["speech-corpora", "speech-annotations", "speech-datasets", "speech-benchmarks", "speech-evaluation"],
   "credentials": "Generated on host; config/*.env mode0600; never committed",
   "corpus_import_status": "Native source archives and metadata are being copied with mc and independently checked by full SHA256 readback; see native-corpus-catalog.json. Format conversion and portable training release remain pending adapter approval and holdout exclusion",
-  "benchmark_status": "Access isolation configured; final holdout cohort and hash-exclusion registry not yet defined"
+  "benchmark_status": "Existing Golos/Phone/SVQ research fixtures copied to the closed benchmark bucket with full SHA256 readback and real-object IAM probes. Reference-free encoded-file checksum lists are published for data-building guards. Fresh production cohort and canonical-release exclusion remain pending"
 }

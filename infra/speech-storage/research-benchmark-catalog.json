@@ -1,0 +1,81 @@
+{
+  "date": "2026-10-12",
+  "scope": "Existing repeatedly used research benchmarks, preserved unchanged; not a fresh production holdout",
+  "s3_prefix": "s3://speech-benchmarks/research-existing-20261012/",
+  "source_audio_files": 15771,
+  "scored_cuts_reported": 15770,
+  "all_audio_and_metadata_full_sha256_readback_verified": true,
+  "source_files_unchanged_after_copy": true,
+  "source_originals_retained": true,
+  "benchmark_canonical_s3_manifest_exported": false,
+  "original_local_paths_in_manifests_preserved": true,
+  "evaluator_read_verified": true,
+  "training_and_ingest_native_access_denied": true,
+  "public_build_guard_metadata": {
+    "prefix": "s3://speech-datasets/protection/research-existing-20261012/",
+    "files": "Unchanged source-audio-sha256.txt per benchmark; opaque file identifiers and checksums only, no reference transcripts",
+    "hash_semantics": "Original encoded audio-file SHA256, not decoded PCM or perceptual hashes",
+    "portable_training_release_exclusion_verified": false
+  },
+  "benchmarks": [
+    {
+      "id": "golos-farfield-official-test-v1",
+      "source_root": "/mnt/local/drive1/ifao-data/golos-farfield-official-test-v1",
+      "source_dataset": "Sh1man/golos_opus",
+      "source_revision": "931f5c412a8045e0b03b9e5584072f0810c41dcc",
+      "source_selection": "Original existing first 1916 farfield test rows; no new selection",
+      "source_audio_files": 1916,
+      "source_audio_bytes": 21532184,
+      "copied_metadata_files": 6,
+      "copied_metadata_bytes": 3029307,
+      "scored_cuts_reported": 1915,
+      "unresolved_rows_reported": 1,
+      "original_evaluation_only": true,
+      "original_training_eligible": false
+    },
+    {
+      "id": "phone-test-eval-v1",
+      "source_root": "/mnt/local/drive1/ifao-data/phone-test-eval-v1",
+      "source_dataset": "Malecc/asr_calls_2_val",
+      "source_revision": "36f9769d1548bfa9282b615737e5c29e29149198",
+      "source_audio_files": 1943,
+      "source_audio_bytes": 132112036,
+      "copied_metadata_files": 7,
+      "copied_metadata_bytes": 133194326,
+      "scored_cuts_reported": 1943,
+      "reference_note": "Original dataset references retained; independent human-correction provenance not established",
+      "original_evaluation_only": true,
+      "original_training_eligible": false
+    },
+    {
+      "id": "svq-ru-eval",
+      "source_root": "/mnt/local/drive1/ifao-data/svq-ru-eval",
+      "source_dataset": "google/svq",
+      "source_revision": "74f17ec92f0654860c160029d3542199626f63ef",
+      "source_audio_files": 11912,
+      "source_audio_bytes": 2202249568,
+      "copied_metadata_files": 10,
+      "copied_metadata_bytes": 1953128871,
+      "original_parquet_files": 4,
+      "scored_cuts_reported": 11912,
+      "strata": ["background_speech", "clean", "media_noise", "traffic_noise"],
+      "source_pairing_note": "Independently recorded strata; not exact paired clean/noisy waveforms",
+      "original_evaluation_only": true,
+      "original_training_eligible": false
+    }
+  ],
+  "verification": {
+    "native_copy_service": "speech-data-research-benchmarks-copy-literal-20261012.service",
+    "receipt_root": "/mnt/local/drive2/speech-data-storage-20261012/audit/research-benchmarks-20261012-v2",
+    "initial_launch_issue": "systemd expanded the Bash array before execution; stopped before object upload. Corrected with native --expand-environment=no",
+    "native_mc_denial_output": "One genuine S3 AccessDenied followed by a secondary mc fatal message; verification requires all rows to be errors and at least one real AccessDenied",
+    "evaluator_probe_object": "phone-test-eval-v1/native/summary.json",
+    "evaluator_probe_sha256": "0554e326dab4120553c8b3098813c47ca3c7f65243d2878afd7ea81b5a715169",
+    "training_ingest_probe_object": "phone-test-eval-v1/test.parquet",
+    "evaluator_check_service": "speech-data-real-benchmark-eval-read-20261012.service",
+    "training_denial_service": "speech-data-real-benchmark-training-denial-checked-20261012.service",
+    "ingest_denial_service": "speech-data-real-benchmark-ingest-denial-checked-20261012.service",
+    "build_guard_publish_service": "speech-data-research-benchmark-protection-hashes-20261012.service"
+  },
+  "final_production_benchmark": "Fresh cohort remains unselected; user clarification pending. Existing research fixtures and bucket isolation do not prove an unseen production benchmark"
+}
