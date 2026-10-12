@@ -108,7 +108,11 @@
       "license": "CC-BY-NC-SA-4.0",
       "s3_target": "s3://speech-private-archive/sources/kopesc1-ru/clarino-11509-150/KoPeSC1-all-original-files.tar.zst",
       "receipt": "s3://speech-datasets/catalog/compressed-sources-20261013/kopesc1/status.json",
-      "initial_attempt": "Missing stock unzip caused validation failure before upload; installed native unzip without upgrades and restarted the same job"
+      "initial_attempt": "Missing stock unzip caused validation failure before upload; installed native unzip without upgrades and restarted the same job",
+      "status": "COMPRESSED_AND_FULL_SHA256_READBACK_VERIFIED",
+      "archive_bytes": 522388564,
+      "archive_sha256": "1113a8a40d7e5d9bae05a5e47b72f4bf86865110dd6d19bb333f5b15ef5e4cca",
+      "verified_archive_members": 8
     },
     {
       "id": "rinco-ru",
