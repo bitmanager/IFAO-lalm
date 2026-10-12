@@ -52,6 +52,9 @@
         "service": "speech-data-full-sova-original-follow-20261012.service",
         "initial_archive_attempt": "Native curl initially did not follow the provider redirect, producing an empty temporary file. SHA256 check rejected it before S3 upload. The current job follows redirects with TLS verification; the failed receipt is preserved.",
         "status_at_launch": "RUNNING",
+        "latest_status": "PROVIDER_DOWNLOAD_FAILED",
+        "s3_archive_uploaded": false,
+        "provider_failure": "TLS-verified probes on dev and exp receive HEAD 200 but range GET 206 with zero body/curl exit 18; bounded ordinary GET also yields no data. No archive was admitted or uploaded. The complete pinned HF source is independently copied and verified.",
         "note": "Native original enables subsequent coverage comparison; no missing-sample conclusion solely from differing reported hours."
       }
     },
