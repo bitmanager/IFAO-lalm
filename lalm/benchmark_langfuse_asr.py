@@ -25,7 +25,7 @@ START = "2026-09-11T21:00:00Z"
 END = "2026-10-11T21:00:00Z"
 MODEL = "gemini-3.8-flash-low"
 SEED = "Начни разговор"
-MEDIA = re.compile(r"^@@@langfuseMedia:type=audio/wav\|id=([A-Za-z0-9_-]+)\|source=[^|@]+@@@$")
+MEDIA = re.compile(r"^@@@langfuseMedia:type=(?P<content_type>audio/(?:wav|mpeg))\|id=(?P<media_id>[A-Za-z0-9_-]+)\|source=[^|@]+@@@$")
 SCHEMA = {
     "type": "object",
     "properties": {
@@ -125,7 +125,8 @@ def prepare(args):
         marker = MEDIA.fullmatch(output.get("recording") or "")
         if output.get("recording") and not marker:
             raise ValueError("Unsupported media marker; classify explicitly before preparing corpus")
-        media_id = marker[1] if marker else None
+        media_id = marker["media_id"] if marker else None
+        content_type = marker["content_type"] if marker else None
         turns = output.get("transcript") or []
         online = [t for i, t in enumerate(turns)
                   if not (i == 0 and t.get("role") == "client" and t.get("text") == SEED)]
@@ -133,7 +134,7 @@ def prepare(args):
             "call_id": args.environment + "-" + r["traceId"],
             "source_environment": args.environment, "trace_id": r["traceId"],
             "observation_id": r["id"], "session_id": r.get("sessionId"),
-            "media_id": media_id, "recording_start": r["startTime"],
+            "media_id": media_id, "media_content_type": content_type, "recording_start": r["startTime"],
             "call_start": call_start, "cohort_clock": "call_start" if call_start else "upload_unresolved",
             "language_source": language_source, "tags": tags, "metadata": metadata,
             "origin": metadata.get("origin"), "online_turns": online,
@@ -142,7 +143,10 @@ def prepare(args):
         }
         calls.append(call)
         if media_id:
-            assets.setdefault(media_id, []).append(call["call_id"])
+            asset = assets.setdefault(media_id, {"media_id": media_id, "content_type": content_type, "call_ids": []})
+            if asset["content_type"] != content_type:
+                raise ValueError("Conflicting MIME types for the same media ID")
+            asset["call_ids"].append(call["call_id"])
     seen_traces = {c["trace_id"] for c in calls}
     for trace_id, root in expected_roots.items():
         if trace_id in seen_traces:
@@ -160,7 +164,7 @@ def prepare(args):
         raise ValueError("Multiple recording observations per call; resolve provenance before scoring")
     args.root.mkdir(parents=True, exist_ok=True)
     jsonl(args.root / "calls.jsonl", calls)
-    jsonl(args.root / "media.jsonl", [{"media_id": k, "call_ids": v} for k, v in assets.items()])
+    jsonl(args.root / "media.jsonl", assets.values())
     save(args.root / "cohort.json", {
         "environment": args.environment, "start": args.start, "end_exclusive": args.end,
         "calls": len(calls), "assets": len(assets), "excluded": excluded,
@@ -204,6 +208,8 @@ def download(args):
         try:
             if status_file.exists():
                 saved = json.loads(status_file.read_text())
+                if saved.get("content_type", "audio/wav") != row.get("content_type", "audio/wav"):
+                    raise ValueError("Cached media MIME does not match manifest")
                 if saved.get("status") in ("excluded_no_user_speech", "source_empty_audio"):
                     saved["call_ids"] = row["call_ids"]
                     save(status_file, saved)
@@ -212,13 +218,19 @@ def download(args):
                     intact = all(Path(saved[k]).exists() and sha(saved[k]) == saved[h]
                                  for k, h in (("audio_path", "sha256"), ("user_audio_path", "user_sha256"),
                                               ("giga_audio_path", "giga_sha256")))
+                    if saved.get("source_audio_path"):
+                        intact &= (Path(saved["source_audio_path"]).exists()
+                                   and sha(saved["source_audio_path"]) == saved["source_sha256"])
+                    intact &= saved.get("content_type", "audio/wav") == row.get("content_type", "audio/wav")
                     if intact and not zero_user_audio(Path(saved["user_audio_path"])):
                         saved["call_ids"] = row["call_ids"]
                         save(status_file, saved)
                         return saved
             descriptor = native_cli(args.api_container, "media", "get", media_id,
                                     api_version=args.api_version)
-            if descriptor["mediaId"] != media_id or descriptor["contentType"] != "audio/wav":
+            content_type = row.get("content_type", "audio/wav")  # Earlier WAV-only manifests omit MIME.
+            if (descriptor["mediaId"] != media_id or descriptor["contentType"] != content_type
+                    or content_type not in ("audio/wav", "audio/mpeg")):
                 raise ValueError("Media descriptor identity/type mismatch")
             url = descriptor["url"]
             parsed = urlsplit(url)
@@ -231,24 +243,39 @@ def download(args):
                 url = urlunsplit((proxy.scheme, proxy.netloc, parsed.path, parsed.query, ""))
             elif parsed.scheme != "https":
                 raise ValueError("Internal HTTP media requires explicit SSH loopback proxy")
-            original.parent.mkdir(parents=True, exist_ok=True)
-            tmp = original.with_suffix(".wav.partial")
+            source = (args.root / "source-audio" / (media_id + ".mp3")) if content_type == "audio/mpeg" else original
+            source.parent.mkdir(parents=True, exist_ok=True)
+            tmp = source.with_suffix(source.suffix + ".partial")
             request = urllib.request.Request(url, headers=headers)
             with urllib.request.urlopen(request, timeout=120) as incoming, tmp.open("wb") as out:
                 while chunk := incoming.read(1024 * 1024):
                     out.write(chunk)
             if tmp.stat().st_size != descriptor["contentLength"]:
                 raise ValueError("Downloaded media size mismatch")
-            with wave.open(str(tmp)) as wav:
+            source_hash = sha(tmp)
+            decoded = tmp
+            if content_type == "audio/mpeg":
+                original.parent.mkdir(parents=True, exist_ok=True)
+                decoded = original.with_suffix(".wav.partial")
+                subprocess.run([*shlex.split(args.ffmpeg), "-nostdin", "-v", "error", "-xerror", "-y",
+                                "-f", "mp3", "-i", str(tmp), "-c:a", "pcm_s16le", "-f", "wav", str(decoded)],
+                               check=True, capture_output=True)
+            with wave.open(str(decoded)) as wav:
                 channels, rate, frames = wav.getnchannels(), wav.getframerate(), wav.getnframes()
                 if channels not in (1, 2) or rate <= 0:
                     raise ValueError("Unexpected source audio geometry")
-            tmp.replace(original)
+            decoded.replace(original)
+            if source != original:
+                tmp.replace(source)
+            source_info = {"source_audio_path": str(source), "source_sha256": source_hash,
+                           "source_content_type": content_type, "source_content_length": descriptor["contentLength"]}
             if frames == 0:
-                result = dict(row, status="source_empty_audio", audio_path=str(original),
+                result = dict(row, **source_info, status="source_empty_audio", audio_path=str(original),
                               sha256=sha(original), channels=channels, sample_rate=rate,
                               duration_seconds=0, channel_role_verified=False)
                 original.unlink()
+                if source != original:
+                    source.unlink()
                 result["audio_deleted"] = True
                 save(status_file, result)
                 print(json.dumps({"media_id": media_id, "status": result["status"]}), flush=True)
@@ -259,11 +286,13 @@ def download(args):
                             "-af", "pan=mono|c0=c0", "-ar", "16000", "-c:a", "pcm_s16le", str(user)],
                            check=True, capture_output=True)
             if zero_user_audio(user):
-                result = dict(row, status="excluded_no_user_speech", sha256=sha(original),
+                result = dict(row, **source_info, status="excluded_no_user_speech", sha256=sha(original),
                               user_sha256=sha(user), channels=channels, sample_rate=rate,
                               duration_seconds=frames / rate, audio_deleted=True,
                               exclusion_reason="exact_zero_user_pcm")
                 original.unlink()
+                if source != original:
+                    source.unlink()
                 user.unlink()
                 save(status_file, result)
                 print(json.dumps({"media_id": media_id, "status": result["status"]}), flush=True)
@@ -275,7 +304,7 @@ def download(args):
                 subprocess.run([*shlex.split(args.ffmpeg), "-nostdin", "-v", "error", "-y", "-i", str(original),
                                 "-af", "pan=stereo|c0=c0|c1=0*c0", "-c:a", "pcm_s16le", str(stereo)],
                                check=True, capture_output=True)
-            result = dict(row, status="complete", audio_path=str(original), user_audio_path=str(user),
+            result = dict(row, **source_info, status="complete", audio_path=str(original), user_audio_path=str(user),
                           giga_audio_path=str(stereo), sha256=sha(original), user_sha256=sha(user),
                           giga_sha256=sha(stereo), channels=channels, sample_rate=rate,
                           duration_seconds=frames / rate, channel_role_verified=False,
@@ -297,6 +326,8 @@ def download(args):
     raw = [{"call_id": r["media_id"], "audio_path": r["giga_audio_path"],
             "provenance": {"audio_sha256": r["giga_sha256"], "speaker_channel_permutation": [0, 1],
                            "source_call_ids": r["call_ids"], "original_sha256": r["sha256"],
+                           "source_sha256": r.get("source_sha256", r["sha256"]),
+                           "source_content_type": r.get("source_content_type", "audio/wav"),
                            "original_channels": r["channels"]}} for r in ready]
     jsonl(args.root / "giga" / "data" / "calls.raw.jsonl", raw)
     (args.root / "giga" / "data" / "control_truth.jsonl").touch()

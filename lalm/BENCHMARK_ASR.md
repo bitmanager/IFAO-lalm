@@ -63,6 +63,9 @@ Report `recording_source_status` distinguishes an absent recording span from an
 existing span with no media link. Neither is a failed download. A nonempty media
 marker in an unsupported format fails preparation loudly instead of silently
 discarding that audio.
+Supported markers are `audio/wav` and `audio/mpeg` (MP3). The manifest keeps the
+marker MIME; the native media descriptor must match both this MIME and media ID.
+Conflicting MIME declarations for one media ID fail preparation.
 
 ## Ready ASR runners
 
@@ -81,6 +84,13 @@ to an SSH loopback forward. The original signed Host header is preserved. This
 does not change the Langfuse/MinIO services. `--ffmpeg` can specify the ready
 FFmpeg in our existing container. Existing originals and derived audio must all
 match their stored hashes before a download is reused.
+MP3 bytes are retained under `source-audio/<media_id>.mp3`; native FFmpeg explicitly
+decodes MP3 into PCM WAV under `audio/`. `source_sha256`, `source_content_type` and
+`source_content_length` identify the original compressed download, separately
+from the decoded WAV and user/Giga derivatives. Resume checks the compressed
+source hash too. Ready Giga provenance retains both source and decoded hashes.
+Malformed MP3 or a descriptor mismatch is a failed download; there is no decoder
+or MIME fallback. Earlier WAV-only manifests without a MIME field still mean WAV.
 
 After native channel extraction, exact-zero user PCM is excluded before either
 recognizer runs. Empty and zero-user-channel downloaded WAVs are deleted, with

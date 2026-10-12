@@ -1,4 +1,8 @@
 import json
+import io
+import shutil
+import struct
+import subprocess
 import tempfile
 import unittest
 import wave
@@ -6,7 +10,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from lalm.benchmark_langfuse_asr import MODEL, agy_result, incomplete_gemini_status, native_cli, prepare, zero_user_audio
+from lalm.benchmark_langfuse_asr import MODEL, agy_result, download, incomplete_gemini_status, native_cli, prepare, sha, zero_user_audio
 from lalm.benchmark_gemini_api import MODEL as API_MODEL, billed_cost, validate
 
 
@@ -64,6 +68,128 @@ class BenchmarkContracts(unittest.TestCase):
         self.assertEqual(len(media), 1)
         self.assertEqual(len(media[0]["call_ids"]), 2)
         self.assertEqual(calls[0]["online_text"], "я учусь")
+
+    def test_mp3_marker_keeps_identity_and_mime(self):
+        recording = self.recording(media="mp3-id")
+        recording["output"] = recording["output"].replace("audio/wav", "audio/mpeg")
+        calls, media = self.prepared([recording], [self.root()])
+        self.assertEqual(calls[0]["media_id"], "mp3-id")
+        self.assertEqual(calls[0]["media_content_type"], "audio/mpeg")
+        self.assertEqual(media, [{"media_id": "mp3-id", "content_type": "audio/mpeg",
+                                 "call_ids": ["test-a"]}])
+
+    def test_same_media_with_conflicting_mime_fails_loud(self):
+        mp3 = self.recording("b")
+        mp3["output"] = mp3["output"].replace("audio/wav", "audio/mpeg")
+        with self.assertRaises(ValueError):
+            self.prepared([self.recording("a"), mp3], [self.root("a"), self.root("b")])
+
+    def download_args(self, root):
+        (root / "media.jsonl").write_text(json.dumps({"media_id": "mp3-id", "content_type": "audio/mpeg",
+                                                    "call_ids": ["test-a"]}) + "\n")
+        return SimpleNamespace(root=root, api_container="native-api", api_version="4.10.0",
+                               ffmpeg="ffmpeg", media_proxy=None, workers=1)
+
+    def test_download_rejects_descriptor_identity_or_mime_before_network(self):
+        for identity, mime in (("other-id", "audio/mpeg"), ("mp3-id", "audio/wav")):
+            with self.subTest(identity=identity, mime=mime), tempfile.TemporaryDirectory() as d:
+                root = Path(d)
+                args = self.download_args(root)
+                with patch("lalm.benchmark_langfuse_asr.native_cli", return_value={"mediaId": identity, "contentType": mime}), \
+                        patch("lalm.benchmark_langfuse_asr.urllib.request.urlopen") as request:
+                    download(args)
+                request.assert_not_called()
+                result = json.loads((root / "download/mp3-id.json").read_text())
+                self.assertEqual((result["status"], result["error"]),
+                                 ("failed", "Media descriptor identity/type mismatch"))
+
+    @unittest.skipUnless(shutil.which("ffmpeg"), "Native FFmpeg required for compressed-audio regression")
+    def test_mp3_native_decode_preserves_compressed_sha_and_rechecks_resume(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            source = root / "fixture.wav"
+            with wave.open(str(source), "wb") as wav:
+                wav.setparams((1, 2, 16000, 0, "NONE", "not compressed"))
+                wav.writeframes(b"".join(struct.pack("<h", 4000 if i % 80 < 40 else -4000) for i in range(16000)))
+            mp3 = root / "fixture.mp3"
+            subprocess.run(["ffmpeg", "-nostdin", "-v", "error", "-y", "-i", str(source), str(mp3)], check=True)
+            body = mp3.read_bytes()
+            descriptor = {"mediaId": "mp3-id", "contentType": "audio/mpeg", "contentLength": len(body),
+                          "url": "https://example.invalid/audio?secret=do-not-persist"}
+            args = self.download_args(root)
+            with patch("lalm.benchmark_langfuse_asr.native_cli", return_value=descriptor), \
+                    patch("lalm.benchmark_langfuse_asr.urllib.request.urlopen", return_value=io.BytesIO(body)):
+                download(args)
+            result = json.loads((root / "download/mp3-id.json").read_text())
+            self.assertEqual(result["status"], "complete")
+            self.assertEqual(result["source_sha256"], sha(mp3))
+            self.assertEqual(result["source_content_type"], "audio/mpeg")
+            self.assertEqual(Path(result["source_audio_path"]).read_bytes(), body)
+            self.assertNotEqual(result["sha256"], result["source_sha256"])
+            self.assertFalse(zero_user_audio(Path(result["user_audio_path"])))
+            native = json.loads((root / "giga/data/calls.raw.jsonl").read_text())
+            self.assertEqual(native["provenance"]["source_sha256"], sha(mp3))
+            self.assertNotIn("do-not-persist", (root / "download/mp3-id.json").read_text())
+            Path(result["source_audio_path"]).write_bytes(b"tampered compressed source")
+            with patch("lalm.benchmark_langfuse_asr.native_cli", side_effect=LookupError("media_not_uploaded")) as cli:
+                download(args)
+            cli.assert_called_once()
+            self.assertEqual(json.loads((root / "download/mp3-id.json").read_text())["status"], "media_not_uploaded")
+
+    @unittest.skipUnless(shutil.which("ffmpeg"), "Native FFmpeg required for compressed-audio regression")
+    def test_invalid_mp3_does_not_fall_back_or_leak_url(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            args = self.download_args(root)
+            body = b"not an mp3 audio stream"
+            descriptor = {"mediaId": "mp3-id", "contentType": "audio/mpeg", "contentLength": len(body),
+                          "url": "https://example.invalid/audio?secret=do-not-persist"}
+            with patch("lalm.benchmark_langfuse_asr.native_cli", return_value=descriptor), \
+                    patch("lalm.benchmark_langfuse_asr.urllib.request.urlopen", return_value=io.BytesIO(body)):
+                download(args)
+            saved = (root / "download/mp3-id.json").read_text()
+            self.assertEqual(json.loads(saved)["status"], "failed")
+            self.assertNotIn("do-not-persist", saved)
+            self.assertEqual((root / "giga/data/calls.raw.jsonl").read_text(), "")
+
+    @unittest.skipUnless(shutil.which("ffmpeg"), "Native FFmpeg required for compressed-audio regression")
+    def test_zero_mp3_removes_compressed_and_derived_audio_keeps_ledger(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            source = root / "silent.wav"
+            with wave.open(str(source), "wb") as wav:
+                wav.setparams((1, 2, 16000, 0, "NONE", "not compressed"))
+                wav.writeframes(b"\0\0" * 16000)
+            mp3 = root / "silent.mp3"
+            subprocess.run(["ffmpeg", "-nostdin", "-v", "error", "-y", "-i", str(source), str(mp3)], check=True)
+            body = mp3.read_bytes()
+            descriptor = {"mediaId": "mp3-id", "contentType": "audio/mpeg", "contentLength": len(body),
+                          "url": "https://example.invalid/audio"}
+            args = self.download_args(root)
+            with patch("lalm.benchmark_langfuse_asr.native_cli", return_value=descriptor), \
+                    patch("lalm.benchmark_langfuse_asr.urllib.request.urlopen", return_value=io.BytesIO(body)):
+                download(args)
+            result = json.loads((root / "download/mp3-id.json").read_text())
+            self.assertEqual(result["status"], "excluded_no_user_speech")
+            self.assertEqual(result["source_sha256"], sha(mp3))
+            self.assertTrue(result["audio_deleted"])
+            for name in ("source-audio/mp3-id.mp3", "audio/mp3-id.wav", "user-audio/mp3-id.wav"):
+                self.assertFalse((root / name).exists())
+            self.assertEqual((root / "giga/data/calls.raw.jsonl").read_text(), "")
+
+    def test_excluded_cache_cannot_hide_a_manifest_mime_conflict(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            args = self.download_args(root)
+            (root / "download").mkdir()
+            (root / "download/mp3-id.json").write_text(json.dumps({
+                "status": "excluded_no_user_speech", "content_type": "audio/wav"}))
+            with patch("lalm.benchmark_langfuse_asr.native_cli") as cli:
+                download(args)
+            cli.assert_not_called()
+            result = json.loads((root / "download/mp3-id.json").read_text())
+            self.assertEqual((result["status"], result["error"]),
+                             ("failed", "Cached media MIME does not match manifest"))
 
     def test_missing_recording_remains_in_coverage(self):
         calls, media = self.prepared([], [self.root()])
