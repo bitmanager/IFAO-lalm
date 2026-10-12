@@ -402,3 +402,19 @@ separate human-checked evaluation set; these four examples are prompt-developmen
 controls. The shared diagnostic CLI supports `--profile mixed-language`; its default
 is still dry-run. `notebooks/speech_prompt_review.ipynb` reads the 14 saved results
 and renders the four audio clips without issuing any inference requests.
+
+### Exact three-arm precision pilot
+
+`--profile precision-triad` runs English automatic-language transcription, Russian
+automatic-language transcription, and source-conditioned correction. The English
+arm has no Russian prior. The Russian arm permits foreign languages; neither blind
+arm sees the source label or the other outputs. The correction arm sees only the
+original annotation and audio. Twelve requests on the same four development clips
+are stored under `debug/precision-triad-6f3319f29d81/`.
+
+`notebooks/speech_prompt_triad.ipynb` shows transcripts, language consistency,
+three-way word agreement, uncertainty, and prior conflicts separately. It never
+accepts or publishes training examples. Language consistency compares the primary
+BCP-47 language (pt and pt-BR are consistent), while word agreement uses the shared
+normalizer without stemming or fuzzy matching. A three-way candidate is not a
+human-verified label, and prior conflicts remain visible.
