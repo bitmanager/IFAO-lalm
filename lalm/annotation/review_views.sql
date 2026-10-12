@@ -5,7 +5,10 @@ SELECT id AS source_id, split_part(object_key,'/',2) AS corpus,
        (cursor_json->>'rows')::bigint AS rows_read,
        (cursor_json->>'samples')::bigint AS samples_prepared,
        (cursor_json->>'errors')::bigint AS preparation_errors,
-       cursor_json->>'error_type' AS error_type, created_at, updated_at
+       cursor_json->>'error_type' AS error_type, created_at, updated_at,
+       cursor_json->>'source_kind' AS source_kind,
+       (cursor_json->>'metadata_rows')::bigint AS metadata_rows,
+       cursor_json->>'audio_link_status' AS audio_link_status
 FROM source_assets;
 
 CREATE OR REPLACE VIEW review_passes AS

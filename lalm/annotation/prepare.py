@@ -17,6 +17,7 @@ import time
 import wave
 
 import numpy as np
+import pyarrow as pa
 import pyarrow.parquet as pq
 import soundfile as sf
 import webrtcvad
@@ -27,6 +28,19 @@ from .pilot_source import S3File
 from .store import s3, connect, dataset_bucket
 
 STOP = False
+
+
+def parquet_source_kind(schema):
+    """Distinguish embedded audio from source-label tables without guessing paths."""
+    if 'audio' in schema.names:
+        audio = schema.field('audio').type
+        if pa.types.is_struct(audio) and 'bytes' in [f.name for f in audio]:
+            if pa.types.is_binary(audio.field('bytes').type) or pa.types.is_large_binary(audio.field('bytes').type):
+                return 'embedded_audio'
+        raise ValueError('unsupported_parquet_audio_schema')
+    if 'filepath' in schema.names and pa.types.is_string(schema.field('filepath').type):
+        return 'reference_metadata'
+    raise ValueError('unsupported_parquet_source_schema')
 
 
 def tar_audio_rows(body):
@@ -132,6 +146,22 @@ def pending_work(conn):
 
 def prepare_asset(asset):
     client = s3()
+    if asset['codec'] == 'parquet':
+        remote = S3File(client, asset['bucket'], asset['object_key'])
+        if remote.etag != asset['etag']: raise ValueError('source_changed')
+        parquet = pq.ParquetFile(remote)
+        if parquet_source_kind(parquet.schema_arrow) == 'reference_metadata':
+            # Preserve the original Parquet in place. Local filepath values are
+            # references, never instructions to read arbitrary worker files.
+            metadata = {'source_kind': 'reference_metadata',
+                        'metadata_rows': parquet.metadata.num_rows,
+                        'columns': parquet.schema_arrow.names,
+                        'audio_link_status': 'not_resolved_by_this_table'}
+            with connect() as conn:
+                conn.execute("UPDATE source_assets SET state='REFERENCE_METADATA',"
+                             "cursor_json=cursor_json || %s,updated_at=now() WHERE id=%s",
+                             (Jsonb(metadata), asset['id']))
+            return
     registry = json.loads(client.get_object(Bucket=dataset_bucket(), Key='benchmarks/holdouts.json')['Body'].read())
     protected = set(registry['audio_sha256'])
     cursor = asset['cursor_json'].get('rows', 0)

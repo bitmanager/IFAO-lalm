@@ -5,8 +5,9 @@ from unittest.mock import patch
 
 import numpy as np
 import soundfile as sf
+import pyarrow as pa
 
-from lalm.annotation.prepare import segments, tar_audio_rows
+from lalm.annotation.prepare import segments, tar_audio_rows, parquet_source_kind
 
 
 def wav(values, rate=16000):
@@ -16,6 +17,17 @@ def wav(values, rate=16000):
 
 
 class SourcePreparationTests(unittest.TestCase):
+    def test_parquet_metadata_is_not_treated_as_broken_audio(self):
+        self.assertEqual(parquet_source_kind(pa.schema([
+            ('filepath', pa.string()), ('gigaam-v3-ctc', pa.string())])), 'reference_metadata')
+        self.assertEqual(parquet_source_kind(pa.schema([
+            ('audio', pa.struct([('bytes', pa.binary()), ('path', pa.string())])),
+            ('text', pa.string())])), 'embedded_audio')
+        with self.assertRaisesRegex(ValueError, 'unsupported_parquet_audio_schema'):
+            parquet_source_kind(pa.schema([('audio', pa.string()), ('filepath', pa.string())]))
+        with self.assertRaisesRegex(ValueError, 'unsupported_parquet_source_schema'):
+            parquet_source_kind(pa.schema([('text', pa.string())]))
+
     def test_long_speech_has_full_coverage_and_bounded_overlap(self):
         with patch('lalm.annotation.prepare.webrtcvad.Vad') as vad:
             vad.return_value.is_speech.return_value = True
