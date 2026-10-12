@@ -75,6 +75,10 @@ class BenchmarkContracts(unittest.TestCase):
             with self.subTest(steps=steps), self.assertRaises(ValueError):
                 agy_result(self.events(steps), Path("/audio.wav"))
 
+    def test_native_schema_finalization_is_not_external_asr(self):
+        result = agy_result(self.events([self.tool(), self.tool(name="finish")]), Path("/audio.wav"))
+        self.assertEqual(result["structured_output"]["transcript"], "я учусь")
+
     def test_external_asr_and_extra_file_reads_rejected(self):
         for extra in (self.tool(name="run_command"), self.tool(path="/transcript.txt")):
             with self.subTest(extra=extra), self.assertRaises(ValueError):

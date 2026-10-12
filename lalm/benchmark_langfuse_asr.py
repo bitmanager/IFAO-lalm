@@ -286,6 +286,10 @@ def agy_result(text, path):
         step = event.get("step_update", {})
         if step.get("step_type") != "tool":
             continue
+        # AGY may expose structured-output finalization as a native tool step.
+        # It does not read another input or run ASR. Validate the final schema below.
+        if step.get("tool_name") == "finish":
+            continue
         if step.get("tool_name") != "view_file":
             raise ValueError("Unexpected native tool use")
         if step.get("tool_info", {}).get("parameters", {}).get("AbsolutePath") != str(path):
