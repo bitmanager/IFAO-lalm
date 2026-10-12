@@ -38,6 +38,14 @@ def main():
     recipe = {k: spec[k] for k in ("checkpoint_sha256", "system_prompt", "user_suffix")}
     recipe["adapter_sha256"] = runtime.digest(Path(__file__))
     recipe["native_inference_sha256"] = runtime.digest(Path(__import__("evaluate_kl").__file__))
+    recipe["native_runtime_sha256"] = runtime.digest(Path(runtime.__file__))
+    recipe["model_runtime_sha256"] = runtime.digest(Path(__import__("model_runtime").__file__))
+    recipe["base_model_manifest_sha256"] = runtime.digest(runtime.ROOT / "model_download.json")
+    recipe["gigaam_checkpoint_sha256"] = runtime.digest(Path(runtime.CKPT))
+    recipe["tokenizer_files"] = {p.name: runtime.digest(p) for p in sorted((runtime.ROOT / "data/tokenizer").iterdir())
+                                 if p.is_file()}
+    recipe["model_code"] = {str(p.relative_to(runtime.ROOT / "code/lalm")): runtime.digest(p)
+                             for p in sorted((runtime.ROOT / "code/lalm/lalm_core/model").glob("*.py"))}
     calls = spec["calls"][:args.limit] if args.limit else spec["calls"]
     for call_index, call in enumerate(calls):
         assert call["segments"], "No speech segments: cannot mark a call transcribed"
