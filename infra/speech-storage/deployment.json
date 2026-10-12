@@ -9,6 +9,8 @@
   "tls": "Private CA public certificate at config/ca.pem; clients require AWS_CA_BUNDLE or SSL_CERT_FILE; no insecure TLS flag",
   "lan_service": "Native systemd-socket-proxyd; no custom proxy implementation",
   "service": "speech-data-minio.service",
+  "service_user": "speech-data-minio; separate from training UID2026",
+  "filesystem_isolation": "MinIO data700 and TLS private key belong to service user; admin/evaluation/server environment files belong to root0600; project root and config parent are root-owned",
   "storage_mode": "Single disk R&D; no replication or high-availability claim",
   "minio": {
     "version": "RELEASE.2025-09-07T16-13-09Z",

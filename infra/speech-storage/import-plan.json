@@ -1,0 +1,25 @@
+{
+  "status": "Prepared; custom format adapter approval pending",
+  "source": "/mnt/local/drive2/ifao-qwen38-sr-20261010/data/answer-expanded-20261012-v1/all-new-source.jsonl",
+  "source_sha256": "981e4ddf1cf1404a8d55357bad26667da35421ec74b3111d7aab72780e5347c1",
+  "reported_rows": 1946766,
+  "reported_hours": 2731.8017911214606,
+  "original_metadata_copy": "s3://speech-datasets/staging/existing-27b-expanded-v1-20261012/",
+  "output": "Parquet media/annotation index plus unchanged original JSONL; versioned release manifest",
+  "field_mapping": {
+    "sample_id": "id",
+    "source_group": "group; do not claim verified original conversation identity",
+    "corpus": "family and source_dataset",
+    "verbatim_text": "transcript, unchanged with original label_source",
+    "audio_source": "cut.recording.sources; file source only after verification",
+    "decoded_pcm_sha256": "pcm_sha256, retain separately from compressed-file checksum",
+    "history": "history text plus source provenance",
+    "split": "existing split, subject to benchmark exclusion; no random resplitting"
+  },
+  "qwen_generated_responses": "Separate annotations and task targets; never replace source transcript silently",
+  "copy_engine": "Native MinIO mc; no custom upload client",
+  "balalaika": "Retain completed WebDataset shards, Parquet and producer manifest/_SUCCESS; do not rewrite model outputs or unpack solely to repack",
+  "required_checks": ["source snapshot bytes/checksum", "audio availability and original-file checksum", "declared media geometry", "conversation/group and audio-hash benchmark exclusion", "original-label preservation", "S3 read-back integrity", "complete release manifest written last"],
+  "publication_gate": "No portable train release until benchmark registry and all declared artifact checks pass",
+  "original_audio": "Retained; migration is a copy, not deletion or in-place preprocessing"
+}

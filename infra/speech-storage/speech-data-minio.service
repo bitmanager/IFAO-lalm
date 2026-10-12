@@ -13,8 +13,8 @@ AssertFileNotEmpty=/mnt/local/drive2/speech-data-storage-20261012/config/server.
 [Service]
 Type=notify
 WorkingDirectory=/mnt/local/drive2/speech-data-storage-20261012
-User=2026
-Group=2026
+User=speech-data-minio
+Group=speech-data-minio
 ProtectProc=invisible
 EnvironmentFile=/mnt/local/drive2/speech-data-storage-20261012/config/server.env
 ExecStart=/mnt/local/drive2/speech-data-storage-20261012/bin/minio server $MINIO_OPTS $MINIO_VOLUMES
