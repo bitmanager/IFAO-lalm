@@ -9,9 +9,7 @@ import pyarrow.parquet as pq
 
 from .store import connect, s3, dataset_bucket
 
-TABLES = {'sources': 'review_sources', 'passes': 'review_passes',
-          'examples': 'review_examples', 'progress': 'review_progress',
-          'publications': 'review_publications'}
+from .inspection import TABLES
 
 
 def arrow_type(oid):
