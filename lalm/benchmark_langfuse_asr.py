@@ -12,6 +12,7 @@ import json
 import re
 import shlex
 import subprocess
+import threading
 import time
 import urllib.request
 from urllib.parse import urlsplit, urlunsplit
@@ -311,10 +312,13 @@ def agy_result(text, path):
 
 def gemini(args):
     calls = {c["call_id"]: c for c in jsonl(args.root / "calls.jsonl")}
+    quota_blocked = threading.Event()
     def one(asset):
         job_id = asset.get("context_call_id", asset["media_id"])
         directory = args.root / "gemini" / args.variant / job_id
         done = directory / "result.json"
+        if quota_blocked.is_set() and not done.exists():
+            return {"media_id": asset["media_id"], "status": "not_started_quota"}
         path = Path(asset["user_audio_path"]).resolve()
         # Mount locations differ from dev absolute paths; select the same verified asset.
         path = (args.root / "user-audio" / path.name).resolve()
@@ -371,9 +375,18 @@ def gemini(args):
                                   "status": "complete"}), flush=True)
                 return result
             except Exception as error:
+                native_errors = [e["result"].get("error") for e in
+                                 (json.loads(line) for line in run.stdout.splitlines() if line.strip())
+                                 if e.get("event") == "result"]
+                native_error = next((x for x in native_errors if x), None)
                 save(directory / f"attempt-{attempt}.status.json",
                      {"exit_code": run.returncode, "error_type": type(error).__name__,
-                      "error": str(error), "seconds": time.monotonic() - start})
+                      "error": str(error), "native_error": native_error,
+                      "seconds": time.monotonic() - start})
+                if "individual quota reached" in (run.stderr + run.stdout).lower():
+                    quota_blocked.set()
+                    print(json.dumps({"media_id": asset["media_id"], "status": "quota_blocked"}), flush=True)
+                    return {"media_id": asset["media_id"], "status": "quota_blocked"}
                 transient = any(s in (run.stderr + run.stdout).lower()
                                 for s in ("rate limit", "too many requests", "timeout", "timed out", "connection reset", "temporarily unavailable"))
                 if not transient or retry == 2:
@@ -386,7 +399,11 @@ def gemini(args):
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.workers) as pool:
         results = list(pool.map(one, ready))
     save(args.root / "gemini" / args.variant / "summary.json",
-         {"total": len(results), "complete": sum(x["status"] == "complete" for x in results), "model": MODEL})
+         {"total": len(results), "complete": sum(x["status"] == "complete" for x in results),
+          "quota_blocked": quota_blocked.is_set(),
+          "not_started_quota": sum(x["status"] == "not_started_quota" for x in results), "model": MODEL})
+    if quota_blocked.is_set():
+        raise SystemExit(3)
 
 
 def report(args):
