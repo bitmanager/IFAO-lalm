@@ -9,6 +9,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 
 from auden.trainer.ddp_trainer import BaseTrainer
 from auden.utils.metric_tracker import MetricsTracker
+from lalm_core.mlflow_monitoring import MLflowMonitor
 
 
 class LALMTrainer(BaseTrainer):
@@ -20,6 +21,9 @@ class LALMTrainer(BaseTrainer):
         self._ema_decay: float = float(getattr(t, "ema_decay", 0.9999))
         self._accum_step: int = 0
         super().__init__(cfg, model, data_module, rank, local_rank, world_size)
+        model_ref = self.model.module if isinstance(self.model, DDP) else self.model
+        self._last_grad_norm: float | None = None
+        self.mlflow_monitor = MLflowMonitor(cfg, self.exp_dir, self.rank, model_ref)
 
     def setup_model(self, model: nn.Module):
         """float32 EMA on rank-0 (not float64), find_unused_parameters=False."""
@@ -100,11 +104,16 @@ class LALMTrainer(BaseTrainer):
 
             self.scaler.unscale_(self.optimizer)
 
-            if self._max_grad_norm > 0:
-                nn.utils.clip_grad_norm_(
-                    (p for p in self.model.parameters() if p.grad is not None),
-                    self._max_grad_norm,
+            parameters = [p for p in self.model.parameters() if p.grad is not None]
+            if parameters and (self._max_grad_norm > 0 or self.mlflow_monitor.enabled):
+                max_norm = (
+                    self._max_grad_norm if self._max_grad_norm > 0 else float("inf")
                 )
+                grad_norm = nn.utils.clip_grad_norm_(parameters, max_norm)
+                if self.mlflow_monitor.enabled:
+                    self._last_grad_norm = float(grad_norm.detach().float().cpu().item())
+            else:
+                self._last_grad_norm = None
 
             self.scheduler.step_batch(self.global_step)
             self.scaler.step(self.optimizer)
@@ -118,7 +127,9 @@ class LALMTrainer(BaseTrainer):
         attention_mask = batch["attention_mask"].to(device, non_blocking=True)
         labels = batch["labels"].to(device, non_blocking=True)
         audio_features = batch["features"].to(device, non_blocking=True)
-        feature_lens = batch["feature_lens"].to(device=device, dtype=torch.long, non_blocking=True)
+        feature_lens = batch["feature_lens"].to(
+            device=device, dtype=torch.long, non_blocking=True
+        )
 
         model_ref = self.model.module if isinstance(self.model, DDP) else self.model
         audio_param = next(model_ref.audio_tower.parameters(), None)
@@ -151,6 +162,11 @@ class LALMTrainer(BaseTrainer):
         info.set_value(
             "tokens", int((attention_mask > 0).sum().item()), normalization="sum"
         )
+        target_tokens = int((labels != -100).sum().item())
+        info.set_value("target_tokens", target_tokens, normalization="sum")
+        info.set_value(
+            "audio_frames", int(feature_lens.sum().item()), normalization="sum"
+        )
         info.set_value(
             "loss", float(loss.detach().cpu().item()), normalization="sample_avg"
         )
@@ -159,7 +175,87 @@ class LALMTrainer(BaseTrainer):
             float(self._token_accuracy(logits, packed_labels).detach().cpu().item()),
             normalization="sample_avg",
         )
+        if is_training and self.rank == 0:
+            self.mlflow_monitor.add_batch(B, target_tokens)
         return loss, info
+
+    def _maybe_log_training_status(
+        self,
+        epoch: int,
+        batch_idx: int,
+        batch_size: int,
+        batch_metrics,
+        total_metrics,
+    ):
+        super()._maybe_log_training_status(
+            epoch, batch_idx, batch_size, batch_metrics, total_metrics
+        )
+        if self.rank != 0 or batch_idx % self.cfg.trainer.log_interval != 0:
+            return
+
+        learning_rate = max(self.scheduler.get_last_lr())
+        grad_scale = (
+            self.scaler.get_scale() if self.mixed_precision == "fp16" else 1.0
+        )
+        self.mlflow_monitor.log_training(
+            step=self.global_step,
+            epoch=epoch,
+            batch_metrics=batch_metrics,
+            average_metrics=total_metrics,
+            learning_rate=float(learning_rate),
+            grad_scale=float(grad_scale),
+            grad_norm=self._last_grad_norm,
+            torch_module=torch,
+            device=self.device,
+        )
+
+    def validate(self, epoch: int):
+        """Run the standard validation pass and log each split to MLflow."""
+        self.model.eval()
+        with torch.no_grad():
+            for valid_name, valid_dl in zip(
+                self.data_module.valid_names, self.data_module.valid_dls
+            ):
+                total_metrics = MetricsTracker()
+                for batch in valid_dl:
+                    loss, batch_metrics = self._forward_one_batch(
+                        batch=batch, is_training=False
+                    )
+                    assert not loss.requires_grad
+                    total_metrics.update(batch_metrics)
+
+                if self.world_size > 1:
+                    total_metrics.reduce(device=self.device)
+
+                if self.rank == 0:
+                    logging.info(
+                        "Epoch %s, global step %s, validation %s: %s",
+                        epoch,
+                        self.global_step,
+                        valid_name,
+                        total_metrics,
+                    )
+                    if self.tb_writer is not None:
+                        total_metrics.write_summary(
+                            self.tb_writer,
+                            f"train/valid_{valid_name}_",
+                            self.global_step,
+                        )
+                    self.mlflow_monitor.log_validation(
+                        self.global_step, str(valid_name), total_metrics
+                    )
+
+        self.model.train()
+
+    def run(self):
+        """Close the MLflow run with a status that reflects the training outcome."""
+        try:
+            super().run()
+        except BaseException:
+            self.mlflow_monitor.close(status="FAILED")
+            raise
+        else:
+            self.mlflow_monitor.close(status="FINISHED")
 
     @staticmethod
     def _token_accuracy(logits: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:

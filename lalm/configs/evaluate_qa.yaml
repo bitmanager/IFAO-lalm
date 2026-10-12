@@ -1,5 +1,14 @@
 exp_dir:
 
+monitoring:
+  enabled: ${oc.env:MLFLOW_ENABLED,false}
+  tracking_uri: http://127.0.0.1:5000
+  experiment_name: SpeechLLM R&D
+  run_name:
+  log_system_metrics: true
+  system_metrics_sampling_interval: 10
+  system_metrics_samples_before_logging: 1
+
 checkpoint:
   # [Checkpoint Loading Priority]
   # 1. If 'model_dir' exists and has weights, use it directly (from_pretrained).
