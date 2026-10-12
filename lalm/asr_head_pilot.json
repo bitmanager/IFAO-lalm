@@ -1,0 +1,20 @@
+{
+  "output": "/runs/asr-head-kl-iter1",
+  "checkpoint": "/models/kl_iter1.pt",
+  "data": "/data/asr-1024-32.json",
+  "tokenizer": "/models/tokenizer",
+  "audio_checkpoint": "/models/gigaam.ckpt",
+  "lr": 1e-05,
+  "tracking_uri": "http://127.0.0.1:15000",
+  "language_model": "/models/qwen-27b",
+  "projector_downsample_rate": 2,
+  "epochs": 1,
+  "gradient_accumulation": 4,
+  "ce_chunk_tokens": 32,
+  "seed": 114514,
+  "max_grad_norm": 1.0,
+  "max_new_tokens": 128,
+  "save_every": 64,
+  "experiment_name": "ASR head - kl_iter1",
+  "run_name": "asr-head"
+}
