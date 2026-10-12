@@ -1,11 +1,12 @@
 import io
+import tarfile
 import unittest
 from unittest.mock import patch
 
 import numpy as np
 import soundfile as sf
 
-from lalm.annotation.prepare import segments
+from lalm.annotation.prepare import segments, tar_audio_rows
 
 
 def wav(values, rate=16000):
@@ -45,6 +46,25 @@ class SourcePreparationTests(unittest.TestCase):
 
     def test_silence_is_not_queued(self):
         self.assertEqual(list(segments(wav(np.zeros(32000)))), [])
+
+
+class ArchiveLabelTests(unittest.TestCase):
+    def test_sidecars_before_and_after_audio_keep_exact_identity(self):
+        data = io.BytesIO()
+        entries = [('a.wav', b'audio-a'), ('a.txt', b'original a'),
+                   ('b.json', b'{"text":"original b","model":"legacy"}'),
+                   ('b.flac', b'audio-b'), ('c.opus', b'audio-c')]
+        with tarfile.open(fileobj=data, mode='w') as archive:
+            for name, content in entries:
+                member = tarfile.TarInfo(name); member.size = len(content)
+                archive.addfile(member, io.BytesIO(content))
+        data.seek(0)
+        rows = list(tar_audio_rows(data))
+        self.assertEqual([r[0] for r in rows], ['a.wav', 'b.flac', 'c.opus'])
+        self.assertEqual(rows[0][2]['archive_sidecars'][0],
+                         {'member': 'a.txt', 'value': 'original a'})
+        self.assertEqual(rows[1][2]['archive_sidecars'][0]['value']['model'], 'legacy')
+        self.assertIsNone(rows[2][2])
 
 
 if __name__ == '__main__':

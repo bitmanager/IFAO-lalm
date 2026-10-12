@@ -29,6 +29,42 @@ from .store import s3, connect, dataset_bucket
 STOP = False
 
 
+def tar_audio_rows(body):
+    """Read adjacent WebDataset/OpenSTT sidecars, preserving their source names.
+
+    Only one audio is buffered. Sidecars before their audio use a bounded cache;
+    original archive bytes remain authoritative when a layout is non-adjacent.
+    """
+    pending = None
+    labels = {}
+    with tarfile.open(fileobj=body, mode='r|*') as archive:
+        for member in archive:
+            if not member.isfile(): continue
+            stem, _, suffix = member.name.rpartition('.')
+            suffix = suffix.lower()
+            if suffix in ('wav', 'flac', 'mp3', 'ogg', 'opus', 'm4a'):
+                if pending:
+                    name, raw, previous_stem = pending
+                    sidecars = labels.pop(previous_stem, [])
+                    yield name, raw, {'archive_sidecars': sidecars} if sidecars else None
+                raw = archive.extractfile(member).read() if member.size <= 100*1024*1024 else None
+                pending = (member.name, raw, stem)
+            elif suffix in ('txt', 'json') and member.size <= 256*1024:
+                try:
+                    text = archive.extractfile(member).read().decode('utf-8')
+                    value = json.loads(text) if suffix == 'json' else text
+                except (UnicodeError, ValueError):
+                    continue
+                labels.setdefault(stem, []).append({'member': member.name, 'value': value})
+                if len(labels) > 64:
+                    candidates = [k for k in labels if not pending or k != pending[2]]
+                    if candidates: labels.pop(candidates[0])
+        if pending:
+            name, raw, stem = pending
+            sidecars = labels.pop(stem, [])
+            yield name, raw, {'archive_sidecars': sidecars} if sidecars else None
+
+
 def audio_rows(client, asset):
     """Yield native identity and original audio bytes without rewriting sources."""
     if asset['codec'] == 'parquet':
@@ -44,13 +80,10 @@ def audio_rows(client, asset):
                 index += 1
     elif asset['codec'] == 'tar':
         body = client.get_object(Bucket=asset['bucket'], Key=asset['object_key'], IfMatch=asset['etag'])['Body']
-        with tarfile.open(fileobj=body, mode='r|*') as archive:
-            for member in archive:
-                if member.isfile() and member.name.lower().endswith(('.wav', '.flac', '.mp3', '.ogg', '.opus', '.m4a')):
-                    if member.size > 100*1024*1024:
-                        yield member.name, None, None
-                    else:
-                        yield member.name, archive.extractfile(member).read(), None
+        try:
+            yield from tar_audio_rows(body)
+        finally:
+            body.close()
     else:
         if asset['bytes'] > 100*1024*1024:
             yield asset['object_key'], None, None
@@ -89,6 +122,14 @@ def segments(raw):
             start = max(start+320, end-8000)
 
 
+def pending_work(conn):
+    # Count both imported jobs and staged batches; an import must not count twice.
+    return conn.execute("SELECT (SELECT count(*) FROM jobs WHERE state IN "
+        "('PENDING','RUNNING','RETRYABLE_FAILED')) + "
+        "COALESCE((SELECT sum(p.row_count) FROM prepared_manifests p "
+        "WHERE NOT EXISTS (SELECT 1 FROM source_manifests s WHERE s.object_key=p.object_key)),0) AS n").fetchone()['n']
+
+
 def prepare_asset(asset):
     client = s3()
     registry = json.loads(client.get_object(Bucket=dataset_bucket(), Key='benchmarks/holdouts.json')['Body'].read())
@@ -100,19 +141,17 @@ def prepare_asset(asset):
     last_index = cursor - 1
 
     def flush():
+        key = None
         if buffered:
             payload = ''.join(json.dumps(row, ensure_ascii=False, sort_keys=True)+'\n' for row in buffered).encode()
             key = 'incoming/'+hashlib.sha256(payload).hexdigest()+'.jsonl'
             client.put_object(Bucket=dataset_bucket(), Key=key, Body=payload)
-            # Wait for Airflow to accept this batch before preparing another.
-            # This bounds unimported work as well as the durable job queue.
-            while not STOP:
-                with connect() as conn:
-                    accepted = conn.execute('SELECT 1 FROM source_manifests WHERE object_key=%s', (key,)).fetchone()
-                if accepted: break
-                time.sleep(5)
-            if STOP: return False
+        # S3 output precedes one DB transaction recording its backlog and cursor.
+        # A crash can replay the same immutable manifest; job IDs deduplicate it.
         with connect() as conn:
+            if key:
+                conn.execute('INSERT INTO prepared_manifests(object_key,row_count) VALUES (%s,%s) '
+                             'ON CONFLICT DO NOTHING', (key, len(buffered)))
             conn.execute('UPDATE source_assets SET cursor_json=%s,updated_at=now() WHERE id=%s',
                 (Jsonb({'rows': last_index+1, 'samples': made, 'errors': errors}), asset['id']))
         buffered.clear()
@@ -123,7 +162,7 @@ def prepare_asset(asset):
         if STOP: return
         while True:
             with connect() as conn:
-                pending = conn.execute("SELECT count(*) AS n FROM jobs WHERE state IN ('PENDING','RUNNING','RETRYABLE_FAILED')").fetchone()['n']
+                pending = pending_work(conn)
             if pending < int(os.environ.get('PREPARE_MAX_PENDING', '1500')): break
             if STOP: return
             time.sleep(10)

@@ -71,3 +71,9 @@ CREATE TABLE IF NOT EXISTS annotation_review_cursors (
   checked_at timestamptz NOT NULL
 );
 CREATE INDEX IF NOT EXISTS jobs_review_group ON jobs ((sample->>'pilot_id'),updated_at);
+
+CREATE TABLE IF NOT EXISTS prepared_manifests (
+  object_key text PRIMARY KEY,
+  row_count integer NOT NULL CHECK (row_count >= 0),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
