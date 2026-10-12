@@ -439,6 +439,7 @@ def report(args):
               "gemini_status", "sequence_match_similarity", "online_giga_similarity",
               "online_asr_labels", "online_asr_observations", "giga_error", "gemini_language",
               "review_priority", "user_audio_path", "channel_role_verified",
+              "source_tags", "copy_provenance", "user_audio_sha256",
               "review_status", "human_transcript", "review_notes"]
     output = args.root / ("review-" + time.strftime("%Y%m%dT%H%M%S", time.gmtime()) + ".csv")
     native_path = args.root / "giga" / "data" / "calls.jsonl"
@@ -471,6 +472,10 @@ def report(args):
             row["giga_status"] = "complete" if result else "empty_asr" if row["giga_error"] == "ValueError: Empty ASR" else "failed" if row["giga_error"] else "not_completed"
             row["user_audio_path"] = asset.get("user_audio_path", "")
             row["channel_role_verified"] = asset.get("channel_role_verified", False)
+            row["source_tags"] = json.dumps(call.get("tags") or [], ensure_ascii=False)
+            row["copy_provenance"] = json.dumps({k: v for k, v in call.get("metadata", {}).items()
+                                                  if k.startswith("copied_from")}, ensure_ascii=False)
+            row["user_audio_sha256"] = asset.get("user_sha256", "")
             observations = telemetry.get(call["trace_id"], [])
             row["online_asr_observations"] = len(observations)
             row["online_asr_labels"] = json.dumps(sorted({(str(m.get("provider", "")), str(m.get("model", "")), str(m.get("language", ""))) for m in observations}), ensure_ascii=False)
