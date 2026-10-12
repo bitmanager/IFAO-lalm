@@ -1,0 +1,65 @@
+<View>
+  <Header value="Послушайте запись. Для каждой гипотезы отметьте качество. Затем одним нажатием выберите лучший готовый текст или отметьте, что нужна ручная правка." />
+  <Audio name="audio" value="$audio" zoom="true" hotkey="ctrl+enter" />
+  <Text name="source_environment" value="Среда: $source_environment" />
+  <Text name="language" value="Язык по Gemini: $gemini_language" />
+
+  <Header value="Штатное онлайн-распознавание" />
+  <Text name="online" value="$online_display" />
+  <Choices name="online_verdict" toName="online" choice="single-radio" showInline="true" required="true">
+    <Choice value="Точно" />
+    <Choice value="Есть ошибки" />
+    <Choice value="Пусто / не распознало" />
+    <Choice value="Невозможно оценить" />
+  </Choices>
+
+  <Header value="GigaAM · офлайн" />
+  <Text name="giga" value="$giga_display" />
+  <Choices name="giga_verdict" toName="giga" choice="single-radio" showInline="true" required="true">
+    <Choice value="Точно" />
+    <Choice value="Есть ошибки" />
+    <Choice value="Пусто / не распознало" />
+    <Choice value="Невозможно оценить" />
+  </Choices>
+
+  <Header value="Gemini" />
+  <Text name="gemini" value="$gemini_display" />
+  <Choices name="gemini_verdict" toName="gemini" choice="single-radio" showInline="true" required="true">
+    <Choice value="Точно" />
+    <Choice value="Есть ошибки" />
+    <Choice value="Пусто / не распознало" />
+    <Choice value="Невозможно оценить" />
+  </Choices>
+
+  <Header value="Qwen · с историей (учитывались только предыдущие сообщения; используйте как источник только при статусе complete)" />
+  <Text name="qwen_history_status_display" value="Статус: $qwen_history_status" />
+  <Text name="qwen_history" value="$qwen_history_display" />
+  <Choices name="qwen_history_verdict" toName="qwen_history" choice="single-radio" showInline="true">
+    <Choice value="Точно" />
+    <Choice value="Есть ошибки" />
+    <Choice value="Пусто / не распознало" />
+    <Choice value="Невозможно оценить" />
+  </Choices>
+
+  <Header value="Псевдоразметка: выберите источник точного текста. Если все варианты ошибочны, выберите ручную правку и внесите полный текст." />
+  <Choices name="accepted_source" toName="audio" choice="single-radio" showInline="true" required="true">
+    <Choice value="Штатное онлайн-распознавание" />
+    <Choice value="GigaAM" />
+    <Choice value="Gemini" />
+    <Choice value="Qwen · с историей" />
+    <Choice value="Все варианты ошибочны — исправить вручную" />
+    <Choice value="Нет разборчивой русской речи" />
+    <Choice value="Не русский язык — пропустить" />
+  </Choices>
+  <TextArea name="corrected_transcript" toName="audio" rows="5" editable="true" placeholder="Заполняйте только если выбрали ручную правку; укажите полный русский текст" />
+
+  <Header value="Условия записи" />
+  <Choices name="audio_conditions" toName="audio" choice="multiple" showInline="true">
+    <Choice value="Телефонный / сжатый звук" />
+    <Choice value="Шум или помехи" />
+    <Choice value="Посторонняя речь на фоне" />
+    <Choice value="Одновременная речь" />
+    <Choice value="Часть слов неразборчива" />
+  </Choices>
+  <TextArea name="annotator_notes" toName="audio" rows="2" editable="true" placeholder="Необязательно: имя, число или сомнительный фрагмент" />
+</View>
