@@ -34,6 +34,7 @@
   <Header value="Qwen · с историей (режим показан ниже; truncated/failed — неполный результат, не готовый текст; использовать как источник только при complete)" />
   <Text name="qwen_history_status_display" value="Статус: $qwen_history_status" />
   <Text name="qwen_history_mode_display" value="Режим истории: $qwen_history_mode_display" />
+  <Text name="qwen_history_quality_note" value="Проверка качества: $qwen_history_quality_note" />
   <Text name="qwen_history" value="$qwen_history_display" />
   <Choices name="qwen_history_verdict" toName="qwen_history" choice="single-radio" showInline="true">
     <Choice value="Точно" />
