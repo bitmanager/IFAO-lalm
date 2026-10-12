@@ -433,10 +433,26 @@ def gemini(args):
         raise SystemExit(3)
 
 
+def incomplete_gemini_status(directory):
+    """Classify captured native attempts without accepting or retrying them."""
+    attempts = sorted(directory.glob("attempt-*.stream.jsonl"),
+                      key=lambda p: int(p.name.split("-")[1].split(".")[0]))
+    if not attempts:
+        return "not_completed"
+    latest = attempts[-1]
+    for line in latest.read_text().splitlines():
+        event = json.loads(line)
+        result = event.get("result", {}) if event.get("event") == "result" else {}
+        if result.get("response", "").startswith("This request was blocked by Gemini's filters."):
+            return "provider_filtered"
+    status_path = latest.with_name(latest.name.replace(".stream.jsonl", ".status.json"))
+    return "failed_attempt" if status_path.exists() else "attempt_pending_validation"
+
+
 def report(args):
     fields = ["source_environment", "call_id", "trace_id", "origin", "cohort_clock", "media_id", "audio_status", "recording_source_status",
               "online_text", "giga_text", "gemini_text", "trace_assisted_text", "giga_status",
-              "gemini_status", "sequence_match_similarity", "online_giga_similarity",
+              "gemini_status", "trace_assisted_status", "sequence_match_similarity", "online_giga_similarity",
               "online_asr_labels", "online_asr_observations", "online_text_source", "giga_error", "gemini_language",
               "review_priority", "user_audio_path", "channel_role_verified",
               "source_tags", "copy_provenance", "user_audio_sha256",
@@ -497,8 +513,10 @@ def report(args):
                         row["gemini_language"] = cached["native_result"]["structured_output"]["language"]
                 else:
                     row[field] = ""
-                if variant == "blind":
-                    row["gemini_status"] = "complete" if path.exists() else "not_completed"
+                status_field = "gemini_status" if variant == "blind" else "trace_assisted_status"
+                row[status_field] = ("complete" if path.exists() else
+                                     "unavailable_audio" if row["audio_status"] != "complete" else
+                                     incomplete_gemini_status(path.parent))
             tokens = lambda text: re.sub(r"[\W_]+", " ", text.lower().replace("ё", "е")).split()
             row["sequence_match_similarity"] = SequenceMatcher(None, tokens(row["giga_text"]), tokens(row["gemini_text"]), autojunk=False).ratio() if result and row["gemini_status"] == "complete" else ""
             row["online_giga_similarity"] = SequenceMatcher(None, tokens(row.get("online_text", "")), tokens(row["giga_text"]), autojunk=False).ratio() if result else ""

@@ -117,9 +117,9 @@ report columns or represented as the same inference condition.
 The existing evaluation key was tested in memory. The native smoke request was
 denied with HTTP 403, `Access denied by security policy`; no bulk API job ran.
 The adapter stops on authorization/billing denial. Do not try alternate keys or
-network routes to bypass that policy. AGY independently reports a weekly quota
-reset in approximately 166 hours. Restore permitted provider access before
-continuing Gemini inference.
+network routes to bypass that policy. AGY access was separately restored after
+the user's subscription upgrade and a successful native audio smoke test.
+That does not restore the denied direct API route.
 
 Once access is restored, test one asset before launching a corpus:
 
@@ -145,6 +145,11 @@ Primary protocol documentation:
 ## Review and metrics
 
 Reports are timestamped snapshots so manual edits in prior files are preserved.
+Both Gemini variants expose completion status. Captured provider filter refusals,
+failed attempts, attempts awaiting validation, unavailable audio and uncompleted
+jobs remain distinct. A native envelope saying `SUCCESS` does not override a
+filter refusal or make an invalid multi-turn result acceptable. Status reporting
+does not retry rejected requests or accept their partial transcripts.
 Keep reviewed annotations keyed by `call_id`; do not treat a new snapshot as
 carrying earlier manual decisions. Report similarity is a sequence-match diagnostic,
 not WER. Include missing/failed jobs in coverage, not just completed transcripts.

@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 from types import SimpleNamespace
 
-from lalm.benchmark_langfuse_asr import MODEL, agy_result, prepare
+from lalm.benchmark_langfuse_asr import MODEL, agy_result, incomplete_gemini_status, prepare
 from lalm.benchmark_gemini_api import MODEL as API_MODEL, billed_cost, validate
 
 
@@ -92,6 +92,20 @@ class BenchmarkContracts(unittest.TestCase):
         for extra in (self.tool(name="run_command"), self.tool(path="/transcript.txt")):
             with self.subTest(extra=extra), self.assertRaises(ValueError):
                 agy_result(self.events([self.tool(), extra]), Path("/audio.wav"))
+
+    def test_filtered_native_success_is_not_an_unstarted_job(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d)
+            self.assertEqual(incomplete_gemini_status(p), "not_completed")
+            native = {"event": "result", "result": {
+                "status": "SUCCESS", "num_turns": 2,
+                "response": "This request was blocked by Gemini's filters.\n{\"transcript\":\"text\"}"}}
+            (p / "attempt-2.stream.jsonl").write_text(json.dumps(native))
+            self.assertEqual(incomplete_gemini_status(p), "provider_filtered")
+            (p / "attempt-10.stream.jsonl").write_text("")
+            self.assertEqual(incomplete_gemini_status(p), "attempt_pending_validation")
+            (p / "attempt-10.status.json").write_text('{"exit_code": 1}')
+            self.assertEqual(incomplete_gemini_status(p), "failed_attempt")
 
     def api_response(self, **changes):
         native = {"model": API_MODEL, "choices": [{"finish_reason": "stop", "message": {
