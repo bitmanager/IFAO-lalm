@@ -39,3 +39,29 @@ are retained; SGLang's native logit bias (-1e9) suppresses the two thinking mark
 Use `benchmark_qwen_calls.py --sglang-url http://127.0.0.1:18139` with a separate
 output directory. Backend metadata is recorded in each result fingerprint.
 Never overwrite or combine the completed HF run with these outputs.
+
+## Binary transport experiment
+
+`input-embeds-bytes-v0.5.21.patch` ports the existing implementation from
+[SGLang PR #20207](https://github.com/sgl-project/sglang/pull/20207) (including
+its NumPy IPC prerequisite, PR #20205). This is an unmerged upstream proposal,
+not a feature of the stock release. Port adjustments use v0.5.21's existing
+`Annotated[..., Base64Bytes()]` marker, retain current chunk slicing and its
+memory-config accessor, and preserve current unrelated request checks.
+GPU testing also exposed a PyTorch incompatibility in the proposed PR:
+`torch.tensor(numpy_array, pin_memory=True)` fails in this runtime. The port
+uses the standard two-step `torch.from_numpy(...).pin_memory()` operation
+(pinning only when the existing `_pin` flag is enabled), then the same device copy.
+
+Apply this patch to the pinned image's three manager files under
+`bytes-pr/python/sglang/srt/managers/`; the launcher bind-mounts those files.
+The original stock image stays intact. `test_input_embeds_bytes.py` tests the
+HTTP schema, exact float32 reconstruction and malformed request rejection.
+`canary.py --bytes` additionally requires identical JSON/binary generated text.
+Select binary transport with `--sglang-embedding-format bytes`; no quantization
+or embedding normalization is introduced. Keep its outputs in a separate run.
+
+Motivation measured on this host: approximately 15 of 20 seconds sampled in the
+HTTP process were spent in Pydantic validation of nested float lists. Four JSON
+clients did not outperform the previous serial HF run on the initial matched
+subset. Speed improvements must be measured, not inferred from engine choice.

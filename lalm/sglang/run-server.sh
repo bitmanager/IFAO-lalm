@@ -18,6 +18,9 @@ docker run -d --name asr-bench-sglang-epoch8 --gpus "device=$gpu" \
   -v /mnt/local/drive2:/mnt/local/drive2:ro \
   -v "$bench/cache:/cache" \
   -v "$bench/qwen3_vl.py:/sgl-workspace/sglang/python/sglang/srt/models/qwen3_vl.py:ro" \
+  -v "$bench/bytes-pr/python/sglang/srt/managers/io_struct.py:/sgl-workspace/sglang/python/sglang/srt/managers/io_struct.py:ro" \
+  -v "$bench/bytes-pr/python/sglang/srt/managers/schedule_batch.py:/sgl-workspace/sglang/python/sglang/srt/managers/schedule_batch.py:ro" \
+  -v "$bench/bytes-pr/python/sglang/srt/managers/tokenizer_manager.py:/sgl-workspace/sglang/python/sglang/srt/managers/tokenizer_manager.py:ro" \
   --entrypoint python lmsysorg/sglang:v0.5.21 \
   -m sglang.launch_server --model-path "$model" \
   --tokenizer-path "$runtime/data/tokenizer" \

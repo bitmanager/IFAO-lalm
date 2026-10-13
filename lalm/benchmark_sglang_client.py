@@ -4,6 +4,7 @@ The server runs the unchanged Qwen weights; no HF language model is loaded here.
 Requires language-model-only mode and disabled radix caching on the server.
 """
 import json
+import base64
 import time
 from pathlib import Path
 
@@ -17,7 +18,10 @@ from lalm_core.model.gigaam_adapter import GigaAMAudioTower, gigaam_output_lengt
 
 
 class SGLangClient:
-    def __init__(self, checkpoint, endpoint):
+    def __init__(self, checkpoint, endpoint, embedding_format="json"):
+        if embedding_format not in ("json", "bytes"):
+            raise ValueError("Unknown embedding format")
+        self.embedding_format = embedding_format
         self.endpoint = endpoint.rstrip("/")
         self.http = requests.Session()
         response = self.http.get(self.endpoint + "/server_info", timeout=30)
@@ -37,6 +41,10 @@ class SGLangClient:
             "context_length", "attention_backend", "mamba_backend", "mamba_ssm_dtype",
             "cuda_graph_backend_decode", "cuda_graph_backend_prefill", "tp_size", "version")}
         self.server_recipe["wrapper_sha256"] = runtime.digest(Path(__file__).parent / "qwen3_vl.py")
+        self.server_recipe["embedding_format"] = embedding_format
+        if embedding_format == "bytes":
+            patch = Path(__file__).parent / "input-embeds-bytes-v0.5.21.patch"
+            self.server_recipe["transport_patch_sha256"] = runtime.digest(patch)
         index = json.loads((snapshot / "model.safetensors.index.json").read_text())["weight_map"]
         keys = [k for k in index if k.endswith("embed_tokens.weight")]
         if len(keys) != 1:
@@ -65,7 +73,7 @@ class SGLangClient:
             embeds[mask] = projected
         return embeds.float().numpy()
 
-    def generate(self, prefix, wave=None, *, text_embeds=False):
+    def generate(self, prefix, wave=None, *, text_embeds=False, embedding_format=None):
         import orjson
 
         started = time.monotonic()
@@ -79,7 +87,12 @@ class SGLangClient:
         if wave is None and not text_embeds:
             payload["input_ids"] = prefix
         else:
-            payload["input_embeds"] = self.embeddings(prefix, wave)
+            embeds = self.embeddings(prefix, wave)
+            if (embedding_format or self.embedding_format) == "bytes":
+                payload["input_embeds_bytes"] = base64.b64encode(embeds.tobytes()).decode("ascii")
+                payload["input_embeds_shape"] = list(embeds.shape)
+            else:
+                payload["input_embeds"] = embeds
         response = self.http.post(
             self.endpoint + "/generate",
             data=orjson.dumps(payload, option=orjson.OPT_SERIALIZE_NUMPY),

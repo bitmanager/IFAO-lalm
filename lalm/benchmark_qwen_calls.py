@@ -48,6 +48,7 @@ def main():
     parser.add_argument("output", type=Path)
     parser.add_argument("--limit", type=int)
     parser.add_argument("--sglang-url", help="Use a validated external-embedding SGLang server")
+    parser.add_argument("--sglang-embedding-format", choices=("json", "bytes"), default="json")
     args = parser.parse_args()
     import soundfile as sf
     import torch
@@ -67,7 +68,7 @@ def main():
     args.output.mkdir(parents=True, exist_ok=True)
     if args.sglang_url:
         import benchmark_sglang_client as sglang_client
-        model = sglang_client.SGLangClient(checkpoint, args.sglang_url)
+        model = sglang_client.SGLangClient(checkpoint, args.sglang_url, args.sglang_embedding_format)
         tokenizer = model.tokenizer
         generated = sglang_client.generated
     else:
