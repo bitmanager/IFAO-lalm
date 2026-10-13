@@ -103,13 +103,18 @@ def predispatch_eligibility_transient(stdout, timed_out=False):
     if not isinstance(r, dict):
         return False
     error = r.get('error', '')
+    transport = (r'Eligibility check failed: '
+                 r'(?:failed to get (?:load code assist response|profile picture): )?'
+                 r'(?:Post|Get) "https://[^"\s]+":? '
+                 r'(?:(?:unexpected )?EOF|net/http: TLS handshake timeout)')
+    unavailable = (r'Eligibility check failed: (?:failed to get load code assist response: )?'
+                   r'UNAVAILABLE \(code 503\): The service is currently unavailable\.')
     return (r.get('status') == 'ERROR' and r.get('num_turns') == 0
             and r.get('duration_seconds') == 0 and isinstance(error, str)
-            and (re.fullmatch(r'Eligibility check failed: Post "https://[^"\s]+":? (?:unexpected )?EOF', error) is not None
-                 or re.fullmatch(r'Eligibility check failed: failed to get profile picture: Get "https://[^"\s]+":? (?:unexpected )?EOF', error) is not None
-                 or error == 'Eligibility check failed: failed to fetch user info: 500 Internal Server Error'
-                 or error == 'Eligibility check failed: failed to get load code assist response: '
-                             'UNAVAILABLE (code 503): The service is currently unavailable.'))
+            and (re.fullmatch(transport, error) is not None
+                 or re.fullmatch(unavailable, error) is not None
+                 or error == 'Eligibility check failed: failed to fetch user info: 500 Internal Server Error'))
+
 
 
 def agy_env():

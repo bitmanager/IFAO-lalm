@@ -542,3 +542,21 @@ observed user-info `500 Internal Server Error`. They use the same three-attempt
 queue bound and randomized cooldown, without disabling the account. A 401/403,
 verification requirement, extra native event or started generation still does
 not qualify for this recovery path.
+
+### Восстановление после сбоев проверки доступа (13.10.2026)
+
+Worker автоматически повторяет подтверждённые ошибки до начала генерации:
+eligibility EOF / unexpected EOF, TLS handshake timeout, Google UNAVAILABLE 503
+и user-info 500. Условие: единственный native result, ERROR, ноль turns и нулевая
+длительность; таймауты с неизвестным результатом не повторяются. Пауза с jitter
+30–90 секунд и экспоненциальным увеличением; максимум три попытки задания.
+Артефакты каждой попытки сохраняются в S3. Настоящие 401/403 и запрос
+верификации по-прежнему блокируют аккаунт, исчерпанная квота ждёт reset.
+
+Для аккаунтов, остановленных старой версией: прочитать последний raw result,
+подтвердить этот тип временной ошибки, проверить `probe_auth()` внутри его
+контейнера, затем снять блокировку. Проверить новые сохранённые результаты.
+Не очищать все блокировки без проверки и не менять VPN автоматически.
+Соответствие аккаунтов proxy записано в ACCOUNTS.md: сравнивать ошибки
+аккаунтов на одном proxy и на разных proxy, отличая их от сбоя управляющего
+SSH/Tailscale-соединения. Один EOF или 503 не доказывает неисправность VPN.
