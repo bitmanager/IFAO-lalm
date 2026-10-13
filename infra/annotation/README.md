@@ -547,7 +547,7 @@ not qualify for this recovery path.
 
 Worker автоматически повторяет подтверждённые ошибки до начала генерации:
 eligibility EOF / unexpected EOF, TLS handshake timeout, Google UNAVAILABLE 503
-и user-info 500. Условие: единственный native result, ERROR, ноль turns и нулевая
+и user-info 500, а также точный ответ Google HTML 502. Условие: единственный native result, ERROR, ноль turns и нулевая
 длительность; таймауты с неизвестным результатом не повторяются. Пауза с jitter
 30–90 секунд и экспоненциальным увеличением; максимум три попытки задания.
 Артефакты каждой попытки сохраняются в S3. Настоящие 401/403 и запрос

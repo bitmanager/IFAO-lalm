@@ -7,6 +7,7 @@ class WorkerErrorTests(unittest.TestCase):
     def test_profile_failures_retry_only_before_generation(self):
         import json
         for error in (
+            'Eligibility check failed: request failed (code 502): HTML response "Error 502 (Server Error)!!1"',
             'Eligibility check failed: failed to get load code assist response: Post "https://example.test/check": EOF',
             'Eligibility check failed: UNAVAILABLE (code 503): The service is currently unavailable.',
             'Eligibility check failed: failed to get profile picture: Get "https://example.test/avatar": net/http: TLS handshake timeout',

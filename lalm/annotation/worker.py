@@ -113,6 +113,7 @@ def predispatch_eligibility_transient(stdout, timed_out=False):
             and r.get('duration_seconds') == 0 and isinstance(error, str)
             and (re.fullmatch(transport, error) is not None
                  or re.fullmatch(unavailable, error) is not None
+                 or error == 'Eligibility check failed: request failed (code 502): HTML response "Error 502 (Server Error)!!1"'
                  or error == 'Eligibility check failed: failed to fetch user info: 500 Internal Server Error'))
 
 
