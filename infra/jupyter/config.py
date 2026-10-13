@@ -4,7 +4,7 @@ c = get_config()
 c.JupyterHub.bind_url = 'http://:8000'
 c.Authenticator.allowed_users = {'analyst'}
 c.JupyterHub.authenticator_class = 'jupyterhub.auth.PAMAuthenticator'
-c.Spawner.default_url = '/lab/tree/speech_data_inspection.ipynb'
+c.Spawner.default_url = '/lab/tree/speech_data_progress.ipynb'
 c.Spawner.notebook_dir = '/home/analyst'
 c.Spawner.environment = {'PYTHONPATH': '/opt/speech', 'S3_DATASET_BUCKET': 'speech-datasets'}
 for line in Path('/run/secrets/s3-readonly.env').read_text().splitlines():

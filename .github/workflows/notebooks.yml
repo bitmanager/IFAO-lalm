@@ -1,0 +1,26 @@
+name: Notebook hygiene
+on:
+  pull_request:
+    paths: ['notebooks/**', '.github/workflows/notebooks.yml']
+  push:
+    paths: ['notebooks/**', '.github/workflows/notebooks.yml']
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          paths = list(Path('notebooks').glob('*.ipynb'))
+          assert [p.name for p in paths] == ['speech_data_progress.ipynb'], paths
+          for path in paths:
+              notebook = json.loads(path.read_text())
+              for cell in notebook['cells']:
+                  assert not cell.get('attachments'), 'Embedded attachments must stay out of Git'
+                  if cell['cell_type'] == 'code':
+                      assert not cell.get('outputs'), 'Clear notebook outputs before committing'
+                      assert cell.get('execution_count') is None
+                      compile(''.join(cell['source']), str(path), 'exec')
+          PY

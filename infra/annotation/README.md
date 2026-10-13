@@ -17,7 +17,7 @@ PostgreSQL хранит служебную очередь и состояние 
 Событие Airflow Asset для этого URI содержит ключ manifest и счётчики.
 Снимок предназначен для инспекции, не означает разрешение на обучение.
 
-Для просмотра используйте `notebooks/speech_data_inspection.ipynb` на dev-1
+Для просмотра используйте `notebooks/speech_data_progress.ipynb` на dev-1
 в [JupyterHub](../jupyter/README.md), развёрнутом на том же сервере.
 Airflow и JupyterHub импортируют общий пакет `lalm.annotation` из IFAO-lalm.
 Read-only AWS credentials передаются
@@ -342,7 +342,7 @@ The notebook now identifies the selected slice, exposes languages/error codes,
 and has `matched`, `three_matched`, `flagged`, and `latest` views. Agreement uses
 the same normalization as reconciliation: case, punctuation and ё/е. Two equal
 passes are not three; a source-conditioned pass is marked explicitly. The live
-`speech_data_matches.ipynb` is a separate analyst copy, preserving existing work.
+`speech_data_progress.ipynb` is a separate analyst copy, preserving existing work.
 
 Explicit language aliases such as `Russian` are normalized to `ru`; original
 language strings remain in `language_raw`. Old validation metadata was corrected
@@ -400,7 +400,7 @@ unstable examples, and never use draft-conditioned agreement to clear a conflict
 No automatic acceptance rule or training promotion was enabled. Precision needs a
 separate human-checked evaluation set; these four examples are prompt-development
 controls. The shared diagnostic CLI supports `--profile mixed-language`; its default
-is still dry-run. `notebooks/speech_prompt_review.ipynb` reads the 14 saved results
+is still dry-run. `notebooks/speech_data_progress.ipynb` reads the 14 saved results
 and renders the four audio clips without issuing any inference requests.
 
 ### Exact three-arm precision pilot
@@ -412,7 +412,7 @@ arm sees the source label or the other outputs. The correction arm sees only the
 original annotation and audio. Twelve requests on the same four development clips
 are stored under `debug/precision-triad-6f3319f29d81/`.
 
-`notebooks/speech_prompt_triad.ipynb` shows transcripts, language consistency,
+`notebooks/speech_data_progress.ipynb` shows transcripts, language consistency,
 three-way word agreement, uncertainty, and prior conflicts separately. It never
 accepts or publishes training examples. Language consistency compares the primary
 BCP-47 language (pt and pt-BR are consistent), while word agreement uses the shared
@@ -438,7 +438,7 @@ Five authenticated accounts (01,02,03,04,07) are configured at 20 concurrent
 requests each. Empty slots 05/06 remain disabled. Native rate-limit cooldowns and
 quota/auth circuit breakers remain active. Runtime stays on dev-1. All workers,
 Airflow, and Jupyter import the same read-only source directory; no new service
-was added. `notebooks/speech_data_night.ipynb` shows strict candidates and audio.
+was added. `notebooks/speech_data_progress.ipynb` shows strict candidates and audio.
 
 Night-watch adjustment: paid-tier checks confirmed 01/02 as Pro and 03/07 as
 Ultra; 04 currently reports Free. Limits are 5/5/20/5/20 for 01/02/03/04/07.
@@ -527,3 +527,13 @@ check and inspection of their failure before being re-enabled.
 
 The same bounded pre-generation retry covers the observed eligibility response
 `UNAVAILABLE (code 503): The service is currently unavailable.`
+
+## One maintained notebook
+
+`notebooks/speech_data_progress.ipynb` is the sole maintained notebook. It includes
+progress, corpus yield, source/raw inspection, listening examples and optional
+historical prompt experiments. Retired Jupyter copies are backed up outside the
+visible workspace. Git versions must not contain cell outputs or embedded audio.
+Use `python3 infra/jupyter/sync_notebook.py --check` to detect browser edits,
+`--pull` to bring them into Git for review, or `--push` to deploy the repository
+version. Synchronization preserves a backup before replacement.
