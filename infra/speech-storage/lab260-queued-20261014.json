@@ -1,5 +1,5 @@
 {
-  "service": "speech-data-hf-lab260-queue-20261014.service",
+  "service": "speech-data-hf-lab260-queue-without-golos-20261014.service",
   "execution": "Sequential; stop visibly on first failure",
   "sources": [
     {
@@ -12,7 +12,11 @@
       ],
       "selection_byte_limit": 1786818736,
       "scope": "full pinned source",
-      "job": "/mnt/local/drive1/speech-hf-ingest-20261013/jobs/golos-balalaika.sh"
+      "job": "/mnt/local/drive1/speech-hf-ingest-20261013/jobs/golos-balalaika.sh",
+      "status": "HELD_FOR_CROSS_FORMAT_DEDUP_REVIEW",
+      "reason": "Same original GOLOS family as existing Sh1man/golos_opus; card describes 49.1h filtered subset with additional automatic annotation, not independent new speech",
+      "verified_source_bytes_before_hold": 12073136,
+      "sample_level_overlap": "Not yet measured; archive SHA256 cannot establish audio identity across different packaging"
     },
     {
       "repo": "lab260/espeech_balalaika",
