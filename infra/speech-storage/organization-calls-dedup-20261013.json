@@ -71,9 +71,10 @@
       "source_archive": "/opt/speech-native-source-20261013/patch-ru-meteor-hashtesh-deduplicated-native-source.tar.zst",
       "s3_target": "s3://speech-private-archive/sources/organization-calls/native-20261013/patch-ru-meteor-hashtesh/patch-ru-meteor-hashtesh-deduplicated-native-source.tar.zst",
       "publication_receipt": "s3://speech-datasets/catalog/organization-calls-20261013/patch-ru-meteor-hashtesh/status.json",
-      "transfer_service": "speech-calls-dedup-transfer-patch-ru-meteor-hashtesh-20261013.service",
+      "transfer_service": "speech-calls-dedup-resume-patch-ru-meteor-hashtesh-20261013.service",
       "language": "UNVERIFIED",
-      "labels": "Existing automatic source transcripts; historical per-record producer not established, current project model IDs preserved"
+      "labels": "Existing automatic source transcripts; historical per-record producer not established, current project model IDs preserved",
+      "previous_transfer_service": "speech-calls-dedup-transfer-patch-ru-meteor-hashtesh-20261013.service"
     },
     {
       "id": "patch-uz-veva3",
@@ -104,9 +105,10 @@
       "source_archive": "/opt/speech-native-source-20261013/patch-uz-veva3-deduplicated-native-source.tar.zst",
       "s3_target": "s3://speech-private-archive/sources/organization-calls/native-20261013/patch-uz-veva3/patch-uz-veva3-deduplicated-native-source.tar.zst",
       "publication_receipt": "s3://speech-datasets/catalog/organization-calls-20261013/patch-uz-veva3/status.json",
-      "transfer_service": "speech-calls-dedup-transfer-patch-uz-veva3-20261013.service",
+      "transfer_service": "speech-calls-dedup-resume-patch-uz-veva3-20261013.service",
       "language": "UNVERIFIED",
-      "labels": "Existing automatic role-marked transcripts; dialogs.text_source/text_labeled and native source_record_context retained without inferring human ASR gold"
+      "labels": "Existing automatic role-marked transcripts; dialogs.text_source/text_labeled and native source_record_context retained without inferring human ASR gold",
+      "previous_transfer_service": "speech-calls-dedup-transfer-patch-uz-veva3-20261013.service"
     }
   ],
   "other_completed_audio_audit": {
@@ -130,11 +132,17 @@
   },
   "transport": {
     "initial_stream_transfers": "Stopped own transient copies before cold-snapshot hardlinking; incomplete streams never published",
-    "current_engine": "Stock rsync with partial/append verification, fixed packed-source SHA256, encrypted SSH to dev, native mc upload and complete S3 readback",
+    "current_engine": "Stock rsync append verification for both source-to-controller and controller-to-dev transfers, followed by native mc upload and complete S3 SHA256 readback",
     "controller": "minipc user systemd; local transit cache0700/files0600",
     "root_destination": "/mnt/local/drive2/speech-native-calls-dedup-20261013/incoming",
     "publication_gate": "Packed source readiness does not mean S3 completion; only successful full SHA256 readback emits final publication receipt",
-    "local_cleanup": "Own transit archive removed only after complete source, dev and S3 verification"
+    "local_cleanup": "Own transit archive removed only after complete source, dev and S3 verification",
+    "recovery_20261013": {
+      "veva3_previous_failure": "SSH timeout forwarding complete local archive to dev; incomplete destination preserved",
+      "ru_previous_stream": "Stopped own stream at about 89% and resumed its existing partial with native rsync",
+      "current_state": "Both resumable transfer units launched; final S3 completion still requires publication receipt",
+      "retry": "Native user systemd Restart=on-failure, RestartSec=60; rsync timeout=120 and SSH keepalive"
+    }
   },
   "training_release": false,
   "russian_only_training_admission": "Not admitted until language, source quality and benchmark overlap are checked; user explicitly requested these source exports for inspection",
