@@ -9,7 +9,7 @@
 | agy-01 | elejatoqokim01@gmail.com | Google AI Pro | Первоначальный способ не подтверждён: OAuth или импорт refresh token | Да | 5 |
 | agy-02 | asuxoyikokub51@gmail.com | Google AI Pro | Первоначальный способ не подтверждён: OAuth или импорт refresh token | Да | 5 |
 | agy-03 | anhlanguyen123abcxyz@gmail.com | Google AI Ultra | Первоначальный способ не подтверждён: OAuth или импорт refresh token | Да | 20 |
-| agy-04 | zepunowu59@gmail.com | Antigravity Starter Quota | Первоначальный способ не подтверждён: OAuth или импорт refresh token | Да | 5 |
+| agy-04 | zepunowu59@gmail.com | Google AI Pro | Первоначальный способ не подтверждён: OAuth или импорт refresh token | Да | 5 |
 | agy-05 | art0644857923@gmail.com | Google AI Ultra | OAuth в браузере, добавлен 13.10.2026 | Да | 20 |
 | agy-06 | art0644854407@gmail.com | Google AI Ultra | OAuth в браузере, добавлен 13.10.2026 | Да | 20 |
 | agy-07 | mohammed738255602@gmail.com | Google AI Ultra | Первоначально скопирована действующая авторизация с хоста; см. README | Да | 20 |
@@ -25,7 +25,7 @@
 - Сервис каждого слота: `agy-01` … `agy-10`; у 01–07 соответствующий `agy-XX-proxy`, у 08 общий с 01 французский proxy, у 09 — итальянский proxy слота 02, у 10 — болгарский proxy слота 04; home volume у каждого отдельный.
 - Авторизация изолирована в home volume каждого слота. Путь внутри контейнера: `/home/worker/.gemini/antigravity-cli/antigravity-oauth-token`.
 - Токены, OAuth-коды, пароли и VLESS-ссылки в эту таблицу и Git не помещать.
-- 04 ранее считался Pro по предположению, но API при этой проверке подтвердил **Antigravity Starter Quota**.
+- 04: 13.10.2026 в 14:53 МСК API подтвердил обновление до **Google AI Pro**; `/usage` показал 100% недельного и пятичасового лимита. Старая пауза Starter снята, параллельность 5.
 - У 05 и 06 разные Google subject/email; близкие значения usage не доказывают независимость квот.
 
 ```bash
