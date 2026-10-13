@@ -1,0 +1,81 @@
+{
+  "service": "speech-data-hf-lab260-queue-20261014.service",
+  "execution": "Sequential; stop visibly on first failure",
+  "sources": [
+    {
+      "repo": "lab260/golos_balalaika",
+      "revision": "7b41d4d0030b22ee3d10d6bdc79a43a4a428cecf",
+      "source_bytes": 1786818736,
+      "files": 65,
+      "language": [
+        "ru"
+      ],
+      "selection_byte_limit": 1786818736,
+      "scope": "full pinned source",
+      "job": "/mnt/local/drive1/speech-hf-ingest-20261013/jobs/golos-balalaika.sh"
+    },
+    {
+      "repo": "lab260/espeech_balalaika",
+      "revision": "41f6e4407845c6a5dad60d9b7c877cad5930ed72",
+      "source_bytes": 40393401358,
+      "files": 10,
+      "language": [
+        "ru"
+      ],
+      "selection_byte_limit": 40393401358,
+      "scope": "full pinned source",
+      "job": "/mnt/local/drive1/speech-hf-ingest-20261013/jobs/espeech-balalaika.sh"
+    },
+    {
+      "repo": "lab260/deepspeech_balalaika",
+      "revision": "59d213e4115db4ec3752f72e28cc4c695515d45c",
+      "source_bytes": 25752589326,
+      "files": 4,
+      "language": [
+        "ru"
+      ],
+      "selection_byte_limit": 25752589326,
+      "scope": "full pinned source",
+      "job": "/mnt/local/drive1/speech-hf-ingest-20261013/jobs/deepspeech-balalaika.sh"
+    },
+    {
+      "repo": "lab260/biggest_ru_book_balalaika",
+      "revision": "cf23a97fc51d1c8e35435da994003ec85d23331c",
+      "source_bytes": 28755314766,
+      "files": 4,
+      "language": [
+        "ru"
+      ],
+      "selection_byte_limit": 28755314766,
+      "scope": "full pinned source",
+      "job": "/mnt/local/drive1/speech-hf-ingest-20261013/jobs/biggest-ru-book-balalaika.sh"
+    },
+    {
+      "repo": "lab260/balalaika-sft-rover7-punct",
+      "revision": "ca6a3cd4c392380fa86026daeac696ab2ee1a231",
+      "source_bytes": 1548411834792,
+      "files": 6720,
+      "language": [
+        "ru"
+      ],
+      "selection_byte_limit": 50000000000,
+      "scope": "bounded first batch",
+      "job": "/mnt/local/drive1/speech-hf-ingest-20261013/jobs/balalaika-sft-rover7-punct-first50gb.sh"
+    }
+  ],
+  "monitoring": {
+    "hosts": [
+      "dev-1",
+      "exp-1"
+    ],
+    "timer": "speech-data-storage-monitor-20261014.timer",
+    "period": "10 minutes",
+    "checks": [
+      "filesystem free bytes",
+      "import and MinIO systemd unit states"
+    ],
+    "output": "systemd journal",
+    "alerts_to_chat": false,
+    "persistence": "Transient systemd timers; do not survive reboot"
+  }
+}
