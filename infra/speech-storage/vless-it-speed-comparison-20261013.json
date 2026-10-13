@@ -1,0 +1,25 @@
+{
+  "host": "dev-1",
+  "method": "Four sequential alternating VLESS/direct HTTPS Range GETs of same 32 MiB public HF fragment, 35 second timeout, /dev/null output; active imports unchanged",
+  "client": "Xray-core v26.9.9",
+  "vless_MB_s": [
+    0.493268,
+    0.529595
+  ],
+  "direct_MB_s": [
+    0.603524,
+    0.740019
+  ],
+  "completed_fragments": 0,
+  "vless_firstbyte_seconds": [
+    2.13332,
+    0.80514
+  ],
+  "direct_firstbyte_seconds": [
+    2.972173,
+    1.201464
+  ],
+  "conclusion": "Second user-provided proxy also slower in these tests; retain direct downloads",
+  "causal_limits": "Does not distinguish external route congestion, remote rate limit, shared bandwidth or proxy overhead. MinIO disk writes excluded from these curl tests. Not aggregate HF/Xet throughput.",
+  "cleanup": "Temporary proxy stopped and credential config deleted"
+}
