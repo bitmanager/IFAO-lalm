@@ -464,3 +464,13 @@ metadata while raw artifacts and attempt history are retained.
 Starter account 04 repeatedly reached provider capacity limits in short bursts.
 Its launch interval is now 2 seconds with the same concurrency cap of 5; existing
 provider cooldowns remain in force. Ultra accounts keep their configured limits.
+
+Archive preparation uses bounded S3 range reads with the original ETag and closes
+responses before queue backpressure can pause iteration. A stalled archive can
+resume through its existing source cursor; prepared-audio job uniqueness prevents
+repeated inference. Eight preparation tests cover archive identity, closed range
+responses, changed source rejection, segment coverage, and holdout exclusion.
+For archive JSON sidecars, the correction pass can read an explicit `rover` text
+(or an explicit transcription field). Conflicting sidecars remain for review;
+raw source metadata is preserved. Twelve contract tests cover these cases and
+the existing precision gates.

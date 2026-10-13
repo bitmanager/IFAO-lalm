@@ -8,7 +8,7 @@ import numpy as np
 import soundfile as sf
 import pyarrow as pa
 
-from lalm.annotation.prepare import segments, tar_audio_rows, parquet_source_kind, prepare_asset
+from lalm.annotation.prepare import segments, tar_audio_rows, parquet_source_kind, prepare_asset, audio_rows
 
 
 def wav(values, rate=16000):
@@ -91,6 +91,45 @@ class ArchiveLabelTests(unittest.TestCase):
                          {'member': 'a.txt', 'value': 'original a'})
         self.assertEqual(rows[1][2]['archive_sidecars'][0]['value']['model'], 'legacy')
         self.assertIsNone(rows[2][2])
+
+
+class BoundedArchiveReadTests(unittest.TestCase):
+    def test_generator_pause_does_not_leave_an_http_response_open(self):
+        data = io.BytesIO()
+        entries = [('a.wav', b'a'*1200000), ('b.wav', b'b'*1200000)]
+        with tarfile.open(fileobj=data, mode='w') as archive:
+            for name, content in entries:
+                member = tarfile.TarInfo(name); member.size = len(content)
+                archive.addfile(member, io.BytesIO(content))
+        payload = data.getvalue()
+        class Client:
+            bodies = []
+            def head_object(self, **kwargs):
+                return {'ContentLength': len(payload), 'ETag': 'immutable'}
+            def get_object(self, **kwargs):
+                self.assert_match = kwargs['IfMatch']
+                self.assert_range = kwargs['Range']
+                start, end = map(int, kwargs['Range'].removeprefix('bytes=').split('-'))
+                body = io.BytesIO(payload[start:end+1]); self.bodies.append(body)
+                return {'Body': body}
+        client = Client()
+        rows = audio_rows(client, {'codec': 'tar', 'bucket': 'source', 'object_key': 'audio.tar', 'etag': 'immutable'})
+        first = next(rows)
+        self.assertEqual(first[:2], entries[0])
+        self.assertTrue(all(body.closed for body in client.bodies))
+        self.assertEqual(client.assert_match, 'immutable')
+        # Resume after arbitrary backpressure without keeping a socket alive.
+        self.assertEqual(next(rows)[:2], entries[1])
+        with self.assertRaises(StopIteration): next(rows)
+        self.assertTrue(all(body.closed for body in client.bodies))
+
+    def test_changed_archive_is_rejected_before_reading_members(self):
+        from unittest.mock import Mock
+        client = Mock()
+        client.head_object.return_value = {'ContentLength': 1000, 'ETag': 'changed'}
+        with self.assertRaisesRegex(ValueError, 'source_changed'):
+            next(audio_rows(client, {'codec': 'tar', 'bucket': 'source', 'object_key': 'audio.tar', 'etag': 'original'}))
+        client.get_object.assert_not_called()
 
 
 if __name__ == '__main__':

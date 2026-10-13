@@ -54,7 +54,7 @@ def tar_audio_rows(body):
     """
     pending = None
     labels = {}
-    with tarfile.open(fileobj=body, mode='r|*') as archive:
+    with tarfile.open(fileobj=body, mode='r|*', bufsize=1024*1024) as archive:
         for member in archive:
             if not member.isfile(): continue
             stem, _, suffix = member.name.rpartition('.')
@@ -96,11 +96,9 @@ def audio_rows(client, asset):
                 yield str(index), raw, text
                 index += 1
     elif asset['codec'] == 'tar':
-        body = client.get_object(Bucket=asset['bucket'], Key=asset['object_key'], IfMatch=asset['etag'])['Body']
-        try:
-            yield from tar_audio_rows(body)
-        finally:
-            body.close()
+        with S3File(client, asset['bucket'], asset['object_key']) as remote:
+            if remote.etag != asset['etag']: raise ValueError('source_changed')
+            yield from tar_audio_rows(remote)
     else:
         if asset['bytes'] > 100*1024*1024:
             yield asset['object_key'], None, None

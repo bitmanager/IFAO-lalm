@@ -36,8 +36,14 @@ class S3File(io.RawIOBase):
         if self.pos >= self.size: return b''
         n = self.size - self.pos if n < 0 else min(n, self.size - self.pos)
         if not n: return b''
-        value = self.client.get_object(Bucket=self.bucket, Key=self.key, IfMatch=self.etag,
-             Range=f'bytes={self.pos}-{self.pos+n-1}')['Body'].read()
+        body = self.client.get_object(Bucket=self.bucket, Key=self.key, IfMatch=self.etag,
+             Range=f'bytes={self.pos}-{self.pos+n-1}')['Body']
+        try:
+            value = body.read()
+        finally:
+            body.close()
+        if len(value) != n:
+            raise IOError('incomplete_source_range')
         self.pos += len(value); self.bytes_read += len(value)
         return value
 

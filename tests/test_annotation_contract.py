@@ -106,6 +106,21 @@ class MultiPassContractTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'missing_source_annotation'):
                 job_id(dict(sample, source_provenance={'original_label': label}))
 
+    def test_archive_reference_is_explicit_and_conflicts_are_not_guessed(self):
+        from lalm.annotation.contract import source_text
+        def sample(values):
+            return {'source_provenance': {'original_label': {'archive_sidecars':
+                    [{'member': 'clip.json', 'value': v} for v in values]}}}
+        value = sample([{'rover': 'исходный ASR', 'asr': {'gigaam': 'другой вариант'}}])
+        before = copy.deepcopy(value)
+        self.assertEqual(source_text(value), 'исходный ASR')
+        self.assertEqual(value, before)
+        self.assertEqual(source_text(sample(['plain transcript'])), 'plain transcript')
+        self.assertEqual(source_text(sample([{'text': 'legacy transcript'}])), 'legacy transcript')
+        self.assertIsNone(source_text(sample(['one', 'different'])))
+        self.assertIsNone(source_text(sample([{'speaker_id': 'one'}])))
+        self.assertIsNone(source_text(sample(['x'*12001])))
+
     def test_prompt_variants_have_distinct_job_identity(self):
         from lalm.annotation.contract import contract_sha, prompt
         sample = AnnotationContractTests().sample()

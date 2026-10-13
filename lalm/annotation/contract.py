@@ -22,6 +22,17 @@ def source_text(sample):
     """Only explicitly attached original text; never another model pass."""
     provenance = sample.get('source_provenance') or {}
     value = provenance.get('original_label', provenance.get('source_label'))
+    if isinstance(value, dict) and isinstance(value.get('archive_sidecars'), list):
+        references = []
+        for sidecar in value['archive_sidecars']:
+            candidate = sidecar.get('value') if isinstance(sidecar, dict) else None
+            if isinstance(candidate, dict):
+                candidate = candidate.get('rover', candidate.get('verbatim_text',
+                    candidate.get('transcription', candidate.get('text'))))
+            if isinstance(candidate, str) and candidate.strip():
+                references.append(candidate.strip())
+        # Multiple conflicting source texts remain for review, never guessed.
+        value = references[0] if references and len(set(references)) == 1 else None
     if isinstance(value, str) and 0 < len(value.strip()) <= 12000:
         return value.strip()
     return None
