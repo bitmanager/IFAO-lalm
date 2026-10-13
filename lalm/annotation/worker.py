@@ -26,6 +26,7 @@ def classify(text, timed_out=False):
     # provider failures (e.g. the model can itself say "forbidden").
     failures = []
     service_unavailable = False
+    inference_unavailable = False
     for line in text.splitlines():
         try:
             event = json.loads(line)
@@ -48,6 +49,16 @@ def classify(text, timed_out=False):
                     'UNAVAILABLE (code 503): The service is currently unavailable.',
                     'Eligibility check failed: '
                     'UNAVAILABLE (code 503): The service is currently unavailable.'))
+            inference_unavailable |= (event.get('event') == 'result'
+                and envelope.get('status') == 'ERROR'
+                and isinstance(envelope.get('num_turns'), int)
+                and envelope['num_turns'] > 0 and isinstance(error, str)
+                and (error == 'The stream was interrupted. Please continue the task you were working on.'
+                     or re.fullmatch(
+                         r'API error \(attempt [1-9][0-9]*\): (?:'
+                         r'INTERNAL \(code 500\): Internal error encountered\.|'
+                         r'UNAVAILABLE \(code 503\): No capacity available for model '
+                         r'(?:gemini-3\.8-flash-low|gemini-4-argon-low) on the server)', error) is not None))
             failures.append(json.dumps({k: envelope[k] for k in
                 ('error', 'error_code', 'code') if k in envelope}))
             if isinstance(envelope.get('status'), int):
@@ -67,6 +78,10 @@ def classify(text, timed_out=False):
         return 'NEEDS_REVIEW', 'authentication_or_access_denied', 'authentication_or_access_denied'
     if timed_out:
         return 'NEEDS_REVIEW', 'ambiguous_timeout', None
+    if inference_unavailable:
+        # Generation started: retain the failed job, never replay it. Stop
+        # new dispatches briefly while the native service is overloaded.
+        return 'NEEDS_REVIEW', 'inference_service_unavailable', 'transport_cooldown'
     if (any(x in text for x in ('too many requests', 'rate limit'))
             or re.search(r'\b(?:code|error_code|status|http)\b[\s\"=:()]*429\b', text)):
         return 'RETRYABLE_FAILED', 'rate_limited', None

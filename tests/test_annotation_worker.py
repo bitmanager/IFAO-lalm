@@ -4,6 +4,29 @@ from lalm.annotation.worker import classify, quota_reset_delay, predispatch_auth
 
 
 class WorkerErrorTests(unittest.TestCase):
+    def test_generation_service_errors_cool_account_without_replay(self):
+        import json
+        for message in (
+            'API error (attempt 3): INTERNAL (code 500): Internal error encountered.',
+            'API error (attempt 7): UNAVAILABLE (code 503): No capacity available for model gemini-3.8-flash-low on the server',
+            'The stream was interrupted. Please continue the task you were working on.',
+        ):
+            event = {'event': 'result', 'result': {'status': 'ERROR', 'num_turns': 1, 'error': message}}
+            raw = json.dumps({'event': 'init'})+'\n'+json.dumps(event)
+            self.assertFalse(predispatch_eligibility_transient(raw))
+            self.assertEqual(classify(raw),
+                             ('NEEDS_REVIEW', 'inference_service_unavailable', 'transport_cooldown'))
+            self.assertEqual(classify(raw, True), ('NEEDS_REVIEW', 'ambiguous_timeout', None))
+            event['result']['status'] = 'SUCCESS'
+            self.assertEqual(classify(json.dumps(event)), ('NEEDS_REVIEW', 'native_result_rejected', None))
+            self.assertEqual(classify(message), ('NEEDS_REVIEW', 'native_result_rejected', None))
+
+    def test_generation_cooldown_cannot_hide_real_auth_failure(self):
+        import json
+        message = 'API error (attempt 3): INTERNAL (code 500): Internal error encountered.'
+        raw = json.dumps({'event': 'result', 'result': {'status': 'ERROR', 'num_turns': 1, 'error': message}})
+        self.assertEqual(classify(raw+'\nAuthentication required')[2], 'authentication_or_access_denied')
+
     def test_service_503_after_init_quarantines_job_and_cools_account(self):
         import json
         error = ('failed to send message: send failed; already reported to the user: '
