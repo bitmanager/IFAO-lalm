@@ -25,6 +25,7 @@ def classify(text, timed_out=False):
     # Native streams include model reasoning and transcripts, which are not
     # provider failures (e.g. the model can itself say "forbidden").
     failures = []
+    service_unavailable = False
     for line in text.splitlines():
         try:
             event = json.loads(line)
@@ -35,6 +36,18 @@ def classify(text, timed_out=False):
             continue
         envelope = event.get('result', event)
         if isinstance(envelope, dict):
+            error = envelope.get('error')
+            if isinstance(error, str):
+                error = error.removeprefix(
+                    'failed to send message: send failed; already reported to the user: ')
+            service_unavailable |= (event.get('event') == 'result'
+                and envelope.get('status') == 'ERROR'
+                and envelope.get('num_turns') == 0 and envelope.get('duration_seconds') == 0
+                and error in (
+                    'Eligibility check failed: failed to get load code assist response: '
+                    'UNAVAILABLE (code 503): The service is currently unavailable.',
+                    'Eligibility check failed: '
+                    'UNAVAILABLE (code 503): The service is currently unavailable.'))
             failures.append(json.dumps({k: envelope[k] for k in
                 ('error', 'error_code', 'code') if k in envelope}))
             if isinstance(envelope.get('status'), int):
@@ -42,6 +55,12 @@ def classify(text, timed_out=False):
     text = '\n'.join(failures).lower()
     if any(x in text for x in ('individual quota reached', 'quota exhausted', 'quota exceeded')):
         return 'NEEDS_REVIEW', 'quota_exhausted', 'quota_exhausted'
+    if service_unavailable:
+        if timed_out:
+            return 'NEEDS_REVIEW', 'ambiguous_timeout', None
+        # An init event prevents safe replay. Quarantine the job and cool down
+        # the account; Google's temporary 503 does not revoke authentication.
+        return 'NEEDS_REVIEW', 'eligibility_service_unavailable', 'transport_cooldown'
     if any(x in text for x in ('authentication required', 'unauthenticated', 'permission denied',
                                 'access denied', 'unauthorized', 'forbidden',
                                 'eligibility check failed', 'verify your account')):
@@ -200,8 +219,12 @@ def process(job):
                 return
             state, code, block = classify(stdout + stderr, timed_out)
             delay = quota_reset_delay(stdout + stderr) if block == 'quota_exhausted' else None
+            if block == 'quota_exhausted' and delay is not None:
+                block = 'quota_cooldown'
+            elif block == 'transport_cooldown':
+                delay = random.uniform(30, 90)
             finish(job, state, error_code=code, retry_seconds=delay or 300 * job['attempt'],
-                   block='quota_cooldown' if delay is not None else block)
+                   block=block)
             return
         out = native['structured_output']
         result = {'verbatim_text': out['transcript'], 'language': normalize_language(out['language']), 'language_raw': out['language'],

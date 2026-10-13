@@ -78,7 +78,7 @@ def finish(job, state, result=None, error_code=None, retry_seconds=60, block=Non
         conn.execute('UPDATE attempts SET state=%s,error_code=%s,finished_at=now(),artifact_prefix=%s '
                      'WHERE job_id=%s AND attempt=%s',
                      (state, error_code, f"annotations/raw/{job['id']}/{job['attempt']}", job['id'], job['attempt']))
-        if block == 'quota_cooldown':
+        if block in ('quota_cooldown', 'transport_cooldown'):
             conn.execute("UPDATE accounts SET next_request_at=greatest(next_request_at,now()+%s*interval '1 second') WHERE id=%s",
                          (retry_seconds, job['account_id']))
         elif block:

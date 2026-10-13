@@ -4,6 +4,26 @@ from lalm.annotation.worker import classify, quota_reset_delay, predispatch_auth
 
 
 class WorkerErrorTests(unittest.TestCase):
+    def test_service_503_after_init_quarantines_job_and_cools_account(self):
+        import json
+        error = ('failed to send message: send failed; already reported to the user: '
+                 'Eligibility check failed: failed to get load code assist response: '
+                 'UNAVAILABLE (code 503): The service is currently unavailable.')
+        event = {'event': 'result', 'result': {'status': 'ERROR', 'num_turns': 0,
+                 'duration_seconds': 0, 'error': error}}
+        raw = json.dumps({'event': 'init'})+'\n'+json.dumps(event)
+        self.assertFalse(predispatch_eligibility_transient(raw))
+        self.assertEqual(classify(raw),
+                         ('NEEDS_REVIEW', 'eligibility_service_unavailable', 'transport_cooldown'))
+        self.assertEqual(classify(raw, True), ('NEEDS_REVIEW', 'ambiguous_timeout', None))
+        event['result']['error'] = error.replace('failed to get load code assist response: ', '')
+        self.assertEqual(classify(json.dumps(event)),
+                         ('NEEDS_REVIEW', 'eligibility_service_unavailable', 'transport_cooldown'))
+        for message in ('Eligibility check failed: Verify your account',
+                        'Eligibility check failed: 403 Forbidden'):
+            event['result']['error'] = message
+            self.assertEqual(classify(json.dumps(event))[2], 'authentication_or_access_denied')
+
     def test_profile_failures_retry_only_before_generation(self):
         import json
         for error in (

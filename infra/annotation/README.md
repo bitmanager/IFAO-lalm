@@ -565,7 +565,7 @@ and results as `cli_sha256`.
 The rolling CLI 1.3.4 deployment completed on 2026-10-13. All 21 running
 containers were checked for version, matching pin, and a Flash-only model
 allowlist. Slot 17 remains stopped. Workers mount an immutable copy of the
-annotation modules and native parser under `runtime/cli134-20261013/` on dev-1;
+annotation modules and native parser under `runtime/cli134-service503-v2-20261013/` on dev-1;
 the producer still submits Flash jobs. The upgrade does not establish that
 Google authentication timeouts are resolved; verify actual saved results after
 each recovery.
@@ -577,6 +577,22 @@ with a SUCCESS result. Raising a running container's limit with `docker update`
 does not require interrupting in-flight requests; persist the same limit in
 runtime Compose. A SUCCESS stream followed by a failed process exit remains
 quarantined, without automatically repeating inference.
+
+CLI 1.3.4 can emit an init followed by a zero-turn ERROR for Google's exact
+eligibility `UNAVAILABLE (code 503)` response, with an optional native
+`failed to send message` wrapper. The job stays in NEEDS_REVIEW and is not
+replayed; the account receives a randomized 30–90 second cooldown instead of
+an authentication block. Verification and 401/403 failures keep their blocks.
+The transactional check `tests/annotation_transport_cooldown_check.py` verifies
+that cooldown prevents dispatch and that the next claim cannot replay that job.
+
+When replacing an identity, drain and disable its worker before changing auth.
+Slot 03's first in-place replacement reverted to the previous identity during
+CLI use. Its second import uses a clean home with the old volume retained for
+rollback; audio generation and a subsequent identity/tier check confirmed the
+new Ultra account. Test both an actual response and the identity after it.
+For new code mounts, make public module directories readable to UID 10001,
+then verify an import in the canary container before rolling out other workers.
 
 Eligibility-check transport EOF is handled separately from denied access. A single
 ERROR result with zero turns and zero duration, and the exact HTTPS POST EOF
