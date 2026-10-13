@@ -65,3 +65,16 @@ Motivation measured on this host: approximately 15 of 20 seconds sampled in the
 HTTP process were spent in Pydantic validation of nested float lists. Four JSON
 clients did not outperform the previous serial HF run on the initial matched
 subset. Speed improvements must be measured, not inferred from engine choice.
+
+Initial binary run: 223 matched segments in 76.6 seconds, versus 185.7 seconds
+of recorded serial HF generation for the same segments (approximately 2.43x;
+preliminary, not a full-run comparison). Median request latency was 0.939 seconds
+versus 4.306 seconds in the four-client JSON run on that matched subset.
+
+The three controlled transport cases passed text parity. This does **not** prove
+global deterministic generation: on a separate ambiguous fragment, repeated JSON
+requests with the exact same precomputed vectors produced both `фобия` and
+`фотобанк`; binary requests produced `фобия`. The isolated probe is retained on
+exp as `transport-disagreement-probe.json`. Do not describe all outputs as
+identical or assume checkpoint metrics are backend-invariant; complete WER/judge
+results are exported separately for this runtime.
