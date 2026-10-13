@@ -89,7 +89,7 @@ def probe_auth():
         return False
 
 
-def predispatch_eligibility_eof(stdout, timed_out=False):
+def predispatch_eligibility_transient(stdout, timed_out=False):
     """Retry only the observed transport failure before any model activity."""
     if timed_out:
         return False
@@ -105,7 +105,9 @@ def predispatch_eligibility_eof(stdout, timed_out=False):
     error = r.get('error', '')
     return (r.get('status') == 'ERROR' and r.get('num_turns') == 0
             and r.get('duration_seconds') == 0 and isinstance(error, str)
-            and re.fullmatch(r'Eligibility check failed: Post "https://[^"\s]+":? (?:unexpected )?EOF', error) is not None)
+            and (re.fullmatch(r'Eligibility check failed: Post "https://[^"\s]+":? (?:unexpected )?EOF', error) is not None
+                 or error == 'Eligibility check failed: failed to get load code assist response: '
+                             'UNAVAILABLE (code 503): The service is currently unavailable.'))
 
 
 def agy_env():
@@ -180,10 +182,10 @@ def process(job):
                 raise ValueError('native_exit')
             native = agy_result(stdout, audio)
         except (ValueError, KeyError, TypeError):
-            if rc != 0 and predispatch_eligibility_eof(stdout, timed_out):
+            if rc != 0 and predispatch_eligibility_transient(stdout, timed_out):
                 # Existing queue caps attempts at three and cools down the account.
                 # Raw artifacts above retain every attempt; no sleeping worker slot.
-                finish(job, 'RETRYABLE_FAILED', error_code='eligibility_transport_eof',
+                finish(job, 'RETRYABLE_FAILED', error_code='eligibility_transport_transient',
                        retry_seconds=random.uniform(30, 90) * 2 ** min(job['attempt'] - 1, 2))
                 return
             state, code, block = classify(stdout + stderr, timed_out)

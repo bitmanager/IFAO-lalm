@@ -524,3 +524,6 @@ account also receives the queue cooldown. Raw artifacts remain per attempt.
 Verification requests, forbidden responses, ambiguous output, and any model
 activity do not qualify. Existing blocked accounts require a successful access
 check and inspection of their failure before being re-enabled.
+
+The same bounded pre-generation retry covers the observed eligibility response
+`UNAVAILABLE (code 503): The service is currently unavailable.`

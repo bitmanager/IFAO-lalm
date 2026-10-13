@@ -1,6 +1,6 @@
 """Error handling must not turn failed native results into duplicate requests."""
 import unittest
-from lalm.annotation.worker import classify, quota_reset_delay, predispatch_auth_timeout, probe_auth, predispatch_eligibility_eof
+from lalm.annotation.worker import classify, quota_reset_delay, predispatch_auth_timeout, probe_auth, predispatch_eligibility_transient
 
 
 class WorkerErrorTests(unittest.TestCase):
@@ -9,18 +9,21 @@ class WorkerErrorTests(unittest.TestCase):
         event = {'event': 'result', 'result': {'status': 'ERROR', 'num_turns': 0,
                  'duration_seconds': 0, 'error': 'Eligibility check failed: Post "https://example.test/check": EOF'}}
         raw = json.dumps(event)
-        self.assertTrue(predispatch_eligibility_eof(raw))
-        self.assertFalse(predispatch_eligibility_eof(raw, True))
+        self.assertTrue(predispatch_eligibility_transient(raw))
+        self.assertFalse(predispatch_eligibility_transient(raw, True))
         for other in ('', 'null', 'garbage', raw+'\n'+json.dumps({'event':'init'})):
-            self.assertFalse(predispatch_eligibility_eof(other))
+            self.assertFalse(predispatch_eligibility_transient(other))
         for error in ('Eligibility check failed: Verify your account', 'Authentication required',
                       'Eligibility check failed: Post "https://example.test/check": 403 Forbidden',
                       'Individual quota reached', 'EOF'):
             event['result']['error'] = error
-            self.assertFalse(predispatch_eligibility_eof(json.dumps(event)))
+            self.assertFalse(predispatch_eligibility_transient(json.dumps(event)))
         event['result']['error'] = 'Eligibility check failed: Post "https://example.test/check": EOF'
+        event['result']['error'] = ('Eligibility check failed: failed to get load code assist response: '
+                                    'UNAVAILABLE (code 503): The service is currently unavailable.')
+        self.assertTrue(predispatch_eligibility_transient(json.dumps(event)))
         event['result']['num_turns'] = 1
-        self.assertFalse(predispatch_eligibility_eof(json.dumps(event)))
+        self.assertFalse(predispatch_eligibility_transient(json.dumps(event)))
 
     def test_startup_retry_excludes_any_inference_or_ambiguous_output(self):
         import json
