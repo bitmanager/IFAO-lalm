@@ -565,7 +565,7 @@ and results as `cli_sha256`.
 The rolling CLI 1.3.4 deployment completed on 2026-10-13. All 21 running
 containers were checked for version, matching pin, and a Flash-only model
 allowlist. Slot 17 remains stopped. Workers mount an immutable copy of the
-annotation modules and native parser under `runtime/cli134-service503-v2-20261013/` on dev-1;
+annotation modules and native parser under `runtime/cli134-inference-cooldown-20261014/` on dev-1;
 the producer still submits Flash jobs. The upgrade does not establish that
 Google authentication timeouts are resolved; verify actual saved results after
 each recovery.
@@ -585,6 +585,13 @@ replayed; the account receives a randomized 30–90 second cooldown instead of
 an authentication block. Verification and 401/403 failures keep their blocks.
 The transactional check `tests/annotation_transport_cooldown_check.py` verifies
 that cooldown prevents dispatch and that the next claim cannot replay that job.
+
+Confirmed native ERROR results after generation starts also receive this
+cooldown for the observed `INTERNAL (code 500)`, model-capacity `UNAVAILABLE
+(code 503)`, and interrupted-stream messages. These jobs remain NEEDS_REVIEW
+without replay, under `inference_service_unavailable`. Only exact native error
+messages qualify; model response text cannot trigger the pause. Authentication
+failures and ambiguous timeouts keep their existing handling.
 
 When replacing an identity, drain and disable its worker before changing auth.
 Slot 03's first in-place replacement reverted to the previous identity during
