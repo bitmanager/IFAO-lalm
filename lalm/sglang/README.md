@@ -1,0 +1,41 @@
+# Qwen external embeddings on SGLang
+
+This adapter serves the same Qwen3.8-27B checkpoint (whose config uses the
+`Qwen3_5ForConditionalGeneration` architecture), BF16, with the existing FP32
+GigaAM projector. It does not substitute a text transcript for audio.
+
+SGLang v0.5.21 accepts `/generate.input_embeds`; its Qwen3.5 backbone also accepts
+them, but the inherited Qwen3-VL outer wrapper does not forward them. The included
+four-line patch connects those existing interfaces, restricted to standalone
+`language_model_only=True` model configuration. Model layers, weight loading, logits processor and
+generation remain SGLang's implementation. Apply the patch to the pinned image's
+source and bind mount that file; do not modify the shared image or training code.
+The config is set with `--json-model-override-args`: v0.5.21's separate
+`--language-model-only` CLI flag has an architecture allowlist excluding Qwen,
+while its model-config path and Qwen wrapper already implement this mode.
+
+Existing implementation references:
+
+- [SGLang sampling API](https://github.com/sgl-project/sglang/blob/main/docs/docs/basic_usage/sampling_params.mdx)
+- [NLA inference external-embedding client](https://github.com/kitft/nla-inference):
+  load only the embedding table and use the native generation endpoint.
+- [Analogous Gemma wrapper fix](https://github.com/kitft/natural_language_autoencoders/blob/main/patches/nla_gemma3_mm_input_embeds.patch):
+  a precedent, not a drop-in patch for Qwen.
+- [SGLang Omni prefill adapter](https://github.com/sgl-project/sglang-omni/blob/main/sglang_omni/model_runner/prefill_inputs.py):
+  a larger official speech pipeline, unnecessary for this standalone projector.
+
+`run-server.sh` reserves only the authorized GPU1 by UUID, binds HTTP to loopback,
+disables radix caching (different audio can have identical placeholder IDs), and
+uses a private MPS pipe path. GigaAM/projector run separately on the same card.
+No second 27B model is loaded in the client. Model data and caches stay on exp.
+
+Run `canary.py` before benchmarking: text IDs versus equivalent text embeddings,
+real audio versus silence, and saved HF reference outputs. This is a correctness
+gate, not evidence of improved model quality. Kernels and accumulation differ
+from HF; semantic/metric comparisons must remain separate even when greedy text
+is identical. The native 384-token generation limit and no-thinking chat template
+are retained; SGLang's native logit bias (-1e9) suppresses the two thinking markers.
+
+Use `benchmark_qwen_calls.py --sglang-url http://127.0.0.1:18139` with a separate
+output directory. Backend metadata is recorded in each result fingerprint.
+Never overwrite or combine the completed HF run with these outputs.

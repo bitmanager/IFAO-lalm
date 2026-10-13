@@ -1,0 +1,26 @@
+--- a/sglang/srt/models/qwen3_vl.py
++++ b/sglang/srt/models/qwen3_vl.py
+@@ -1604,6 +1604,7 @@
+         positions: torch.Tensor,
+         forward_batch: ForwardBatch,
+         get_embedding: bool = False,
++        input_embeds: Optional[torch.Tensor] = None,
+         pp_proxy_tensors: Optional[PPProxyTensors] = None,
+     ):
+         """Run forward pass for Qwen3-VL.
+@@ -1618,12 +1619,15 @@
+                 otherwise it will be `(seq_len,).
+                 (Use input_metadata.mrope_positions to replace it)
+         """
++        if input_embeds is not None and not self.language_model_only:
++            raise ValueError("External embeddings require language_model_only=True")
+         if self.is_mrope_enabled:
+             positions = forward_batch.mrope_positions
+ 
+         if self.language_model_only:
+             hidden_states = self.model(
+                 input_ids=input_ids,
++                input_embeds=input_embeds,
+                 forward_batch=forward_batch,
+                 positions=positions,
+                 pp_proxy_tensors=pp_proxy_tensors,

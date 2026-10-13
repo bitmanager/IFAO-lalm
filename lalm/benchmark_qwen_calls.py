@@ -47,6 +47,7 @@ def main():
     parser.add_argument("manifest", type=Path)
     parser.add_argument("output", type=Path)
     parser.add_argument("--limit", type=int)
+    parser.add_argument("--sglang-url", help="Use a validated external-embedding SGLang server")
     args = parser.parse_args()
     import soundfile as sf
     import torch
@@ -58,16 +59,23 @@ def main():
     assert spec["history_mode"] in ("self_transcripts_and_agent", "reference_history_v2", "reference_history_v3", "no_history")
     gpu = spec.get("gpu_uuid", "GPU-de629798-46d4-ac37-e28e-d73f59094ab7")
     assert os.environ["CUDA_VISIBLE_DEVICES"] == gpu
-    assert torch.cuda.mem_get_info()[0] >= 70 * 1024**3, "Selected GPU lacks room; do not disturb existing jobs"
+    if not args.sglang_url:
+        assert torch.cuda.mem_get_info()[0] >= 70 * 1024**3, "Selected GPU lacks room; do not disturb existing jobs"
     runtime.GPUS = [gpu]
     checkpoint = Path(spec["checkpoint"])
     assert runtime.digest(checkpoint) == spec["checkpoint_sha256"]
     args.output.mkdir(parents=True, exist_ok=True)
-    model, processor = runtime.load_model()
-    model.projector.load_state_dict(torch.load(checkpoint, map_location="cpu", weights_only=True)["projector"])
-    model.requires_grad_(False).eval()
-    model.language_model.gradient_checkpointing_disable()
-    tokenizer = processor.tokenizer
+    if args.sglang_url:
+        import benchmark_sglang_client as sglang_client
+        model = sglang_client.SGLangClient(checkpoint, args.sglang_url)
+        tokenizer = model.tokenizer
+        generated = sglang_client.generated
+    else:
+        model, processor = runtime.load_model()
+        model.projector.load_state_dict(torch.load(checkpoint, map_location="cpu", weights_only=True)["projector"])
+        model.requires_grad_(False).eval()
+        model.language_model.gradient_checkpointing_disable()
+        tokenizer = processor.tokenizer
     recipe = {k: spec[k] for k in ("checkpoint_sha256", "system_prompt", "user_suffix", "history_mode")}
     recipe["adapter_sha256"] = runtime.digest(Path(__file__))
     recipe["native_inference_sha256"] = runtime.digest(Path(__import__("evaluate_kl").__file__))
@@ -75,6 +83,10 @@ def main():
     recipe["model_runtime_sha256"] = runtime.digest(Path(__import__("model_runtime").__file__))
     recipe["base_model_manifest_sha256"] = runtime.digest(runtime.ROOT / "model_download.json")
     recipe["gigaam_checkpoint_sha256"] = runtime.digest(Path(runtime.CKPT))
+    if args.sglang_url:
+        recipe["backend"] = "sglang-0.5.21-qwen-input-embeds"
+        recipe["sglang_adapter_sha256"] = runtime.digest(Path(sglang_client.__file__))
+        recipe["sglang_server_args"] = model.server_recipe
     recipe["tokenizer_files"] = {p.name: runtime.digest(p) for p in sorted((runtime.ROOT / "data/tokenizer").iterdir())
                                  if p.is_file()}
     recipe["loaded_model_methods"] = {
