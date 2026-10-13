@@ -8,7 +8,7 @@
 |---|---|---|---|---|---:|
 | agy-01 | elejatoqokim01@gmail.com | Google AI Pro | Первоначальный способ не подтверждён: OAuth или импорт refresh token | Да | 5 |
 | agy-02 | asuxoyikokub51@gmail.com | Google AI Pro | Первоначальный способ не подтверждён: OAuth или импорт refresh token | Да | 5 |
-| agy-03 | anhlanguyen123abcxyz@gmail.com | Google AI Ultra | Первоначальный способ не подтверждён: OAuth или импорт refresh token | Да | 20 |
+| agy-03 | anhlanguyen123abcxyz@gmail.com | Antigravity Starter (ранее Ultra) | Первоначальный способ не подтверждён: OAuth или импорт refresh token | Да | 20 |
 | agy-04 | zepunowu59@gmail.com | Google AI Pro | Первоначальный способ не подтверждён: OAuth или импорт refresh token | Да | 5 |
 | agy-05 | art0644857923@gmail.com | Google AI Ultra | OAuth в браузере, добавлен 13.10.2026 | Да | 20 |
 | agy-06 | art0644854407@gmail.com | Google AI Ultra | OAuth в браузере, добавлен 13.10.2026 | Да | 20 |
@@ -107,3 +107,10 @@ HTTPS-запросами к Google и native `agy models`; прежняя при
 у пары 03/17 (`disabled_duplicate_rate_limit`), контейнер остановлен.
 Исходный 03 остаётся с параллельностью 20 и текущей паузой Google;
 автоматически включать 17 при восстановлении аккаунтов не нужно.
+
+13.10.2026 около 16:55 МСК: повторный `loadCodeAssist` для 03 вернул
+`paidTier.id=free-tier`, `name=Antigravity Starter Quota`; Google subject
+и email прежние. Два опроса `/usage` показали 0% недельной квоты, reset
+около 20.10 16:23 МСК. Причина изменения подписки неизвестна. Последние
+429 содержат `exhausted your capacity` и некорректное `Resets in 0s`;
+не считать это доказательством проблемы VPN или эффектом копии 17.
