@@ -8,7 +8,7 @@
 |---|---|---|---|---|---:|
 | agy-01 | elejatoqokim01@gmail.com | Google AI Pro | Первоначальный способ не подтверждён: OAuth или импорт refresh token | Да | 5 |
 | agy-02 | asuxoyikokub51@gmail.com | Google AI Pro | Первоначальный способ не подтверждён: OAuth или импорт refresh token | Да | 5 |
-| agy-03 | anhlanguyen123abcxyz@gmail.com | Antigravity Starter (ранее Ultra) | Импорт replacement refresh token продавца, 12.10.2026 около 23:09 МСК | Да | 20 |
+| agy-03 | decardoborth@gmail.com | Google AI Ultra | Импорт нового replacement refresh token продавца, 13.10.2026 около 21:50 МСК | Да | 20 |
 | agy-04 | zepunowu59@gmail.com | Google AI Pro | Первоначальный способ не подтверждён: OAuth или импорт refresh token | Да | 5 |
 | agy-05 | art0644857923@gmail.com | Google AI Ultra | OAuth в браузере, добавлен 13.10.2026 | Да | 20 |
 | agy-06 | art0644854407@gmail.com | Google AI Ultra | OAuth в браузере, добавлен 13.10.2026 | Да | 20 |
@@ -16,7 +16,7 @@
 | agy-08 | vipukuma369@gmail.com | Google AI Ultra | Импорт предоставленного refresh token, 13.10.2026 | Да | 20 |
 | agy-09 | wszbit@gmail.com | Google AI Ultra | Импорт предоставленного refresh token, 13.10.2026 | Да | 20 |
 | agy-10 | lenguyen020180@gmail.com | Google AI Ultra | Импорт предоставленного refresh token, 13.10.2026 | Да | 20 |
-| agy-11 | kaisanxuatvideo@gmail.com | Google AI Ultra | Импорт предоставленного refresh token, 13.10.2026 | Да | 20 |
+| agy-11 | kaisanxuatvideo@gmail.com | Google AI Ultra | Импорт предоставленного refresh token, 13.10.2026 | Да | 10, временно после повторных startup auth timeout |
 | agy-12 | chinmayimorris27491@gmail.com | Google AI Ultra | Импорт предоставленного refresh token, 13.10.2026; копия в agy-13 | Да | 20 на каждый из двух воркеров |
 
 Все двенадцать аккаунтов используют `auth_method=consumer`. OAuth также сохраняет refresh token; поэтому по текущему файлу авторизации нельзя отличить вход через браузер от импорта предоставленного токена. Неустановленное происхождение отмечено явно.
@@ -164,3 +164,11 @@ native процессы завершались сигналом 9, иногда 
 а не ожидать обнуления. Renderer задаёт 16 GiB при concurrency > 10.
 После повторного нулевого startup auth timeout и успешного probe слот 11
 возобновлён с concurrency 10; проверять новые результаты и повторные сбои.
+
+Около 21:50 МСК пользователь передал замену для потерявшего Ultra аккаунта.
+В 03 теперь `decardoborth@gmail.com`, subject `114669295880224882756`;
+Google подтвердил `paidTier=g1-ultra-tier`, native каталог доступен,
+`/usage` показал 100% недельного и пятичасового остатка. Старые credentials
+03 сохранены в приватной резервной копии, пауза старого аккаунта снята.
+Копия 17 по-прежнему содержит старый `anhlanguyen123abcxyz@gmail.com`
+и выключена: новый токен в неё не копировали. `useG1Credits=false` в 03.
