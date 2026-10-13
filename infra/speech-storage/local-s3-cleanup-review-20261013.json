@@ -1,7 +1,7 @@
 {
   "host": "dev-1",
   "scope": "Only own completed temporary source downloads",
-  "deletion_performed": false,
+  "deletion_performed": true,
   "candidates": [
     {
       "status": "CURRENT_LOCAL_AND_S3_FULL_SHA256_MATCH",
@@ -108,5 +108,8 @@
     }
   ],
   "physical_disk_bytes_total": 44522352640,
-  "validation": "Current complete local SHA256 and complete S3 file/archive SHA256 checked; source lineage and all native metadata retained in S3"
+  "validation": "Current complete local SHA256 and complete S3 file/archive SHA256 checked; source lineage and all native metadata retained in S3",
+  "deletion_status": "REMOVED_AFTER_REVIEWED_SHA256_VERIFICATION",
+  "removed_at": "2026-10-13T06:45:05Z",
+  "physical_disk_bytes_reclaimed_estimate": 44522352640
 }
