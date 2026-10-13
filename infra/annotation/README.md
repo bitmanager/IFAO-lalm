@@ -608,6 +608,13 @@ the data's observation time. Training publication still depends on reconciliatio
 `max_active_runs=1` keeps inspection publishers from overlapping across DAG runs.
 All Airflow components mount the repository's `airflow/dags` directory read-only.
 
+Reconciliation enqueues follow-up passes in transactions of at most 128 jobs,
+using the same `enqueue` checks and IDs. Reports and cursors are written only
+after all batches succeed. If report publication fails after a batch commits,
+the next reconciliation sees those children and does not duplicate them.
+`tests/annotation_review_batch_check.py` checks this recovery and raw-audio
+holdout rejection against PostgreSQL in a rolled-back schema, without inference.
+
 Eligibility-check transport EOF is handled separately from denied access. A single
 ERROR result with zero turns and zero duration, and the exact HTTPS POST EOF
 message, is retried through the existing queue (at most three total attempts).

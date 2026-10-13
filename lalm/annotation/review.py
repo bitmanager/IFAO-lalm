@@ -18,6 +18,15 @@ def compare(a, b):
             'differences': diffs, 'human_review_required': True}
 
 
+def _enqueue_followups(samples):
+    # Reuse the existing guarded/idempotent enqueue path, committing small
+    # batches instead of opening a connection and committing for every job.
+    for offset in range(0, len(samples), 128):
+        with connect() as conn:
+            for sample in samples[offset:offset + 128]:
+                enqueue(conn, sample)
+
+
 def reconcile():
     with connect() as c:
         started = c.execute('SELECT clock_timestamp() AS stamp').fetchone()['stamp']
@@ -39,7 +48,7 @@ def reconcile():
         s = j['sample']
         groups.setdefault((s['pilot_id'], s['sample_id']), {})[s.get('prompt_variant', 'verbatim')] = j
     reports = {}
-    third_requested = 0
+    followups = []
     for (pilot, sample_id), passes in groups.items():
         source = next(iter(passes.values()))['sample']
         row = {'sample_id': sample_id, 'audio_key': source['audio_key'],
@@ -59,9 +68,7 @@ def reconcile():
             else:
                 for variant in ('coverage', 'source_correction'):
                     if variant not in passes:
-                        with connect() as c:
-                            enqueue(c, dict(source, prompt_variant=variant, review_only=True))
-                        third_requested += 1
+                        followups.append(dict(source, prompt_variant=variant, review_only=True))
         if any(v['state'] in ('NEEDS_REVIEW', 'PERMANENT_FAILED') and not v.get('result')
                for v in passes.values()):
             row['decision'] = 'rejected_failed_pass'
@@ -69,6 +76,8 @@ def reconcile():
             row['normalized_agreement'] = all(compare(results['verbatim']['verbatim_text'],
                 results[v]['verbatim_text'])['normalized_agreement'] for v in ('coverage', 'source_correction'))
         reports.setdefault(pilot, []).append(row)
+    # Do not publish reports or advance cursors if an enqueue guard fails.
+    _enqueue_followups(followups)
     summaries = []
     for pilot, rows in reports.items():
         rows.sort(key=lambda r: r['sample_id'])
@@ -84,4 +93,4 @@ def reconcile():
             c.execute('INSERT INTO annotation_review_cursors(pilot_id,checked_at) VALUES (%s,%s) '
                       'ON CONFLICT(pilot_id) DO UPDATE SET checked_at=excluded.checked_at', (pilot, started))
         summaries.append({**summary, 'report_key': key})
-    return {'reports': summaries, 'third_passes_requested': third_requested}
+    return {'reports': summaries, 'third_passes_requested': len(followups)}
