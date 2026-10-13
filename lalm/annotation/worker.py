@@ -21,7 +21,24 @@ STOP = threading.Event()
 
 
 def classify(text, timed_out=False):
-    text = text.lower()
+    # Native streams include model reasoning and transcripts, which are not
+    # provider failures (e.g. the model can itself say "forbidden").
+    failures = []
+    for line in text.splitlines():
+        try:
+            event = json.loads(line)
+        except ValueError:
+            failures.append(line)
+            continue
+        if not isinstance(event, dict):
+            continue
+        envelope = event.get('result', event)
+        if isinstance(envelope, dict):
+            failures.append(json.dumps({k: envelope[k] for k in
+                ('error', 'error_code', 'code') if k in envelope}))
+            if isinstance(envelope.get('status'), int):
+                failures.append(f"status {envelope['status']}")
+    text = '\n'.join(failures).lower()
     if any(x in text for x in ('individual quota reached', 'quota exhausted', 'quota exceeded')):
         return 'NEEDS_REVIEW', 'quota_exhausted', 'quota_exhausted'
     if any(x in text for x in ('authentication required', 'unauthenticated', 'permission denied',

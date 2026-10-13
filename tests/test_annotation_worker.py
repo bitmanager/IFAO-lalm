@@ -4,6 +4,17 @@ from lalm.annotation.worker import classify, quota_reset_delay
 
 
 class WorkerErrorTests(unittest.TestCase):
+    def test_model_text_cannot_block_an_account(self):
+        import json
+        for text in ('forbidden', 'Authentication required', 'quota exhausted', 'rate limit'):
+            raw = '\n'.join((json.dumps({'event': 'step_update', 'step_update':
+                {'step_type': 'agent_response', 'text_delta': text}}),
+                json.dumps({'event': 'result', 'result': {'status': 'SUCCESS',
+                    'num_turns': 2, 'structured_output': {'transcript': text}}})))
+            self.assertEqual(classify(raw), ('NEEDS_REVIEW', 'native_result_rejected', None))
+        self.assertEqual(classify('{"event":"result","result":{"status":"ERROR",'
+            '"error":"Authentication required"}}')[2], 'authentication_or_access_denied')
+
     def test_conversation_id_digits_are_not_a_rate_limit(self):
         raw = '{"status":"SUCCESS","num_turns":2,"conversation_id":"abc429ef-1234"}'
         self.assertEqual(classify(raw), ('NEEDS_REVIEW', 'native_result_rejected', None))
