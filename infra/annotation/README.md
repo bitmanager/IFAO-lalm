@@ -548,6 +548,20 @@ new schema already uses the model-aware index. The transactional check
 `tests/annotation_model_routing_check.py` exercises real claims and deduplication
 without leaving test rows or a test schema.
 
+CLI 1.3.4 passed six sequential audio calls (three per model) on one isolated
+Ultra identity with all its queue replicas drained and `useG1Credits=false`.
+Native schemas and audio access validated in all six. Quota percentages were
+delayed/non-monotonic, so no Argon/Flash quota multiplier was established.
+Bulk Argon remains off. Raw canary streams and summaries are private S3 objects
+under `evaluation/argon-quota-canary-20261013/` and are not training labels.
+
+The verified CLI1.3.4 binary SHA256 is
+`5b93565c5f04ea4f7b79d49d5c3237449bf6ce47b6779e8cf46c1fae97957c98`.
+When changing the binary mount, update `AGY_EXPECTED_SHA256` in the same
+configuration change; the worker refuses a mismatching binary. The renderer
+pins the supplied binary automatically. Workers record the pin in raw requests
+and results as `cli_sha256`.
+
 Eligibility-check transport EOF is handled separately from denied access. A single
 ERROR result with zero turns and zero duration, and the exact HTTPS POST EOF
 message, is retried through the existing queue (at most three total attempts).

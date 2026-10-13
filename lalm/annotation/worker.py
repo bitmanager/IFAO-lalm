@@ -184,6 +184,7 @@ def process(job):
         for suffix, body in (('stream.jsonl', stdout), ('stderr.log', stderr),
                              ('request.json', json.dumps({'model': model, 'prompt': prompt(audio, variant, reference),
                               'schema': SCHEMA, 'contract_sha256': contract_sha(variant, model),
+                              'cli_sha256': os.environ.get('AGY_EXPECTED_SHA256'),
                               'audio_sha256': sample['audio_sha256'], 'exit_code': rc}))):
             client.put_object(Bucket=bucket(), Key=f'{prefix}/{suffix}', Body=body.encode())
         try:
@@ -206,6 +207,7 @@ def process(job):
         result = {'verbatim_text': out['transcript'], 'language': normalize_language(out['language']), 'language_raw': out['language'],
                   'uncertain_spans': out['uncertain_fragments'], 'native_result': native,
                   'annotation_source': 'agy', 'model': model, 'contract_sha256': contract_sha(variant, model),
+                  'cli_sha256': os.environ.get('AGY_EXPECTED_SHA256'),
                   'raw_prefix': prefix, 'audio_seconds': duration, 'human_gold': False,
                   'prompt_variant': variant, 'inference_seconds': elapsed,
                   'source_conditioned': variant == 'source_correction',
