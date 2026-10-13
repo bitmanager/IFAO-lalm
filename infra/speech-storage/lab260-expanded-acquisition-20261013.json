@@ -1,0 +1,54 @@
+{
+  "date": "2026-10-13",
+  "status": "All four units active; metadata verified and audio transfers started; not completed",
+  "sources": [
+    {
+      "repo": "lab260/sova_balalaika",
+      "revision": "be89f9bbc9908afd34b28e05441bbb9f655c0183",
+      "source_bytes": 3536260560829,
+      "selected_bytes": 199998693309,
+      "selected_files": 380,
+      "scope": "Bounded first batch, not complete repository",
+      "service": "speech-data-hf-sova-balalaika-first200gb-20261013.service"
+    },
+    {
+      "repo": "lab260/Balalaika-longform",
+      "revision": "96a1abc07caf80703e4dc0578aadb4e43811398d",
+      "source_bytes": 25234797225,
+      "selected_bytes": 25234797225,
+      "selected_files": 40,
+      "scope": "Full pinned source",
+      "service": "speech-data-hf-balalaika-longform-20261013.service"
+    },
+    {
+      "repo": "lab260/ToneWebinars_Balalaika",
+      "revision": "3a3eb3e26f6674d2984461baee55520a32ad6988",
+      "source_bytes": 13939288557,
+      "selected_bytes": 13939288557,
+      "selected_files": 4,
+      "scope": "Full pinned source",
+      "service": "speech-data-hf-tonewebinars-balalaika-20261013.service"
+    },
+    {
+      "repo": "lab260/openstt_balalaika",
+      "revision": "c39c8215542af39855943c7ca5c8845bd39650f0",
+      "source_bytes": 10605558709,
+      "selected_bytes": 10605558709,
+      "selected_files": 32,
+      "scope": "Full pinned source",
+      "service": "speech-data-hf-openstt-balalaika-20261013.service"
+    }
+  ],
+  "additional_selected_bytes": 249778337800,
+  "destination_alias": "speech",
+  "engine": "Existing hf + mc per-file streaming template; native awk byte-bounded selection for SOVA",
+  "integrity": "Preserve upstream bytes, verify SHA256 and full S3 readback; delete only verified temporary downloads",
+  "training_release": false,
+  "deferred": [
+    {
+      "repo": "lab260/webinars_balalaika",
+      "bytes": 4154913224,
+      "reason": "No language card or README; inspect native sample metadata before admitting as Russian"
+    }
+  ]
+}
