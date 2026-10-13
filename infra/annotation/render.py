@@ -100,7 +100,8 @@ def build(accounts, agy_path):
                                               f'{REPO}/lalm/benchmark_langfuse_asr.py:/opt/speech/lalm/benchmark_langfuse_asr.py:ro'],
             'tmpfs': ['/work:uid=10001,gid=10001,mode=0700,size=1g', '/tmp:size=256m'],
             'read_only': True, 'cap_drop': ['ALL'], 'security_opt': ['no-new-privileges:true'],
-            'pids_limit': 1024, 'mem_limit': '8g', 'cpus': 4, 'stop_grace_period': '360s'}
+            'pids_limit': 1024, 'mem_limit': '16g' if account['concurrency'] > 10 else '8g',
+            'cpus': 4, 'stop_grace_period': '360s'}
     return {'name': 'speech-data', 'services': services, 'networks': networks, 'volumes': volumes}
 
 

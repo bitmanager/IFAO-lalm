@@ -570,6 +570,14 @@ the producer still submits Flash jobs. The upgrade does not establish that
 Google authentication timeouts are resolved; verify actual saved results after
 each recovery.
 
+Worker memory defaults to 16 GiB for concurrency above 10, otherwise 8 GiB.
+Twenty native CLI processes can exceed 8 GiB. Check cgroup `memory.events`
+for increases in `oom_kill` when investigating signal-9 exits, including streams
+with a SUCCESS result. Raising a running container's limit with `docker update`
+does not require interrupting in-flight requests; persist the same limit in
+runtime Compose. A SUCCESS stream followed by a failed process exit remains
+quarantined, without automatically repeating inference.
+
 Eligibility-check transport EOF is handled separately from denied access. A single
 ERROR result with zero turns and zero duration, and the exact HTTPS POST EOF
 message, is retried through the existing queue (at most three total attempts).
