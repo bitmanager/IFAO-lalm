@@ -1,3 +1,10 @@
+# PR provenance (implementation origin; this update adds comments only):
+# main: Default CE training config.
+# PR #12: Added response_kl/temperature flags and the matching data interpolation.
+# PR #19: Includes those flags unchanged so the recipe can merge directly into main.
+# https://github.com/bitmanager/IFAO-lalm/pull/12
+# https://github.com/bitmanager/IFAO-lalm/pull/19
+
 exp_dir:
 
 hydra:

@@ -1,3 +1,9 @@
+# PR provenance (implementation origin; this update adds comments only):
+# PR #1: Entire regression suite for the shared optional ASR readout.
+# PR #19: Included unchanged to check compatibility of the shared model code.
+# https://github.com/bitmanager/IFAO-lalm/pull/1
+# https://github.com/bitmanager/IFAO-lalm/pull/19
+
 """Intermediate readout uses native Qwen decoding and isolated packed tasks."""
 import sys
 from pathlib import Path

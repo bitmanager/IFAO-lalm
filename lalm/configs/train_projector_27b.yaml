@@ -1,3 +1,7 @@
+# PR provenance (implementation origin; this update adds comments only):
+# PR #19: Portable 27B recipe: external paths, FP32 projector, response KL and epoch saves.
+# https://github.com/bitmanager/IFAO-lalm/pull/19
+
 exp_dir: ${oc.env:PROJECTOR_RUN}
 seed: 114514
 model:

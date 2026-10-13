@@ -1,3 +1,9 @@
+# PR provenance (implementation origin; this update adds comments only):
+# PR #1: Entire linked ASR/answer manifest preparation implementation.
+# PR #19: Included unchanged for the inherited linked-task regression tests.
+# https://github.com/bitmanager/IFAO-lalm/pull/1
+# https://github.com/bitmanager/IFAO-lalm/pull/19
+
 """Prepare linked ASR/answer views from explicit original labels; no teacher calls."""
 import argparse
 import copy

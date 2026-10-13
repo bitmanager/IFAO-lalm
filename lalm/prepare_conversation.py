@@ -1,3 +1,10 @@
+# PR provenance (implementation origin; this update adds comments only):
+# main: Offline student conversation preparation and token estimation.
+# PR #1: Context/system parity, teacher answer import/export and isolated ASR view preparation.
+# PR #19: Includes the #1 implementation unchanged; prepare_projector reuses prepare_cut.
+# https://github.com/bitmanager/IFAO-lalm/pull/1
+# https://github.com/bitmanager/IFAO-lalm/pull/19
+
 """Offline prepare cut.conversation for LALM training.
 
 This script reads a Lhotse CutSet manifest, builds a conversation object for each

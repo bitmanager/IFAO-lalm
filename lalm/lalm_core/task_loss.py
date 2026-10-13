@@ -1,3 +1,11 @@
+# PR provenance (implementation origin; this update adds comments only):
+# PR #1: separate_task_ce and distributed task-token means.
+# PR #12: response_kl_loss, shifted response masks and global token mean (43c2b02).
+# PR #19: Both functions are included unchanged; the portable launcher reuses them.
+# https://github.com/bitmanager/IFAO-lalm/pull/1
+# https://github.com/bitmanager/IFAO-lalm/pull/12
+# https://github.com/bitmanager/IFAO-lalm/pull/19
+
 """Opt-in task-normalized causal CE; inference and default pooled CE are unchanged."""
 import math
 
@@ -7,6 +15,7 @@ import torch.nn.functional as F
 
 
 def separate_task_ce(logits, labels, asr_positions, answer_weight, sync_counts=False):
+    # PR #1 objective; response-KL training does not call this CE function.
     if not math.isfinite(answer_weight) or answer_weight < 0:
         raise ValueError("answer_loss_weight must be finite and nonnegative")
     targets = labels[..., 1:].reshape(-1)
@@ -40,6 +49,7 @@ def response_kl_loss(student_logits, teacher_logits, student_labels, teacher_lab
     Shifted labels select predictions of first answer token through EOS, not the
     distribution after EOS. Packed segment starts must be masked by the caller.
     """
+    # PR #12 objective, reused unchanged by the portable PR #19 launcher.
     if not math.isfinite(temperature) or temperature <= 0:
         raise ValueError("Response KL temperature must be positive and finite")
     smask = student_labels[..., 1:] != -100

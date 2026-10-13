@@ -1,3 +1,10 @@
+# PR provenance (implementation origin; this update adds comments only):
+# main: Processor feature packing, audio placeholder expansion and label preparation.
+# PR #1: GigaAM raw waveform/length support; only final assistant response has labels.
+# PR #19: Includes the #1 implementation unchanged; no new processor algorithm here.
+# https://github.com/bitmanager/IFAO-lalm/pull/1
+# https://github.com/bitmanager/IFAO-lalm/pull/19
+
 import torch
 from transformers.audio_utils import AudioInput
 from transformers.feature_extraction_utils import BatchFeature

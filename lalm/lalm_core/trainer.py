@@ -1,3 +1,12 @@
+# PR provenance (implementation origin; this update adds comments only):
+# main: Native optimizer/accumulation/EMA infrastructure through Auden BaseTrainer.
+# PR #1: GigaAM feature dtype handling, separate-task CE and task-normalized validation.
+# PR #12: Response-KL mode, freeze validation, teacher device transfer and KL metrics (43c2b02).
+# PR #19: Includes this trainer unchanged; ProjectorTrainer supplies compact saves/EMA.
+# https://github.com/bitmanager/IFAO-lalm/pull/1
+# https://github.com/bitmanager/IFAO-lalm/pull/12
+# https://github.com/bitmanager/IFAO-lalm/pull/19
+
 from __future__ import annotations
 
 import copy

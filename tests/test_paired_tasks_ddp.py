@@ -1,3 +1,11 @@
+# PR provenance (implementation origin; this update adds comments only):
+# PR #1: Two-rank task-CE gradients and unequal validation loader test.
+# PR #12: Initializes the response_kl flags on the manually constructed trainer (43c2b02).
+# PR #19: Included unchanged from #12; no new test logic here.
+# https://github.com/bitmanager/IFAO-lalm/pull/1
+# https://github.com/bitmanager/IFAO-lalm/pull/12
+# https://github.com/bitmanager/IFAO-lalm/pull/19
+
 """Two CPU/Gloo ranks: unequal task counts and an empty validation rank."""
 from datetime import timedelta
 from pathlib import Path

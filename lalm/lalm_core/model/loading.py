@@ -1,3 +1,7 @@
+# PR provenance (implementation origin; this update adds comments only):
+# PR #19: Loads original Qwen text weights via HF; validates checkpoint key mapping.
+# https://github.com/bitmanager/IFAO-lalm/pull/19
+
 """Load the original language weights, including text-only Qwen3.8 checkpoints."""
 
 from transformers import AutoConfig, AutoModelForCausalLM

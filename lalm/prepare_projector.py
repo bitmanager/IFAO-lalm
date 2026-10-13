@@ -1,3 +1,7 @@
+# PR provenance (implementation origin; this update adds comments only):
+# PR #19: Portable teacher generation/reuse and native answer-only CutSet preparation.
+# https://github.com/bitmanager/IFAO-lalm/pull/19
+
 """Generate frozen-Qwen answers and prepare native answer-only Lhotse cuts."""
 
 import argparse

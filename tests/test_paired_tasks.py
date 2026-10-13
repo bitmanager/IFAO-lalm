@@ -1,3 +1,9 @@
+# PR provenance (implementation origin; this update adds comments only):
+# PR #1: Entire linked-view/CE/packing regression suite and shared test fixtures.
+# PR #19: Included unchanged for the inherited datamodule/model dependencies.
+# https://github.com/bitmanager/IFAO-lalm/pull/1
+# https://github.com/bitmanager/IFAO-lalm/pull/19
+
 """Atomic linked views, missing labels, native packing and independently normalized CE."""
 import copy
 import sys

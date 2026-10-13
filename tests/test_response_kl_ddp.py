@@ -1,3 +1,9 @@
+# PR provenance (implementation origin; this update adds comments only):
+# PR #12: Entire two-rank response-token normalization/validation test (43c2b02).
+# PR #19: Included unchanged for distributed KL regression coverage.
+# https://github.com/bitmanager/IFAO-lalm/pull/12
+# https://github.com/bitmanager/IFAO-lalm/pull/19
+
 """CPU/Gloo global response-token mean and unequal validation batch counts."""
 from datetime import timedelta
 from pathlib import Path

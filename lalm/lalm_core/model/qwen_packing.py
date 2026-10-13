@@ -1,3 +1,7 @@
+# PR provenance (implementation origin; this update adds comments only):
+# PR #19: Hybrid Qwen sequence-boundary compatibility, using upstream conv/DeltaNet kernels.
+# https://github.com/bitmanager/IFAO-lalm/pull/19
+
 """Keep packed Qwen3.8 samples isolated in its temporal convolution and DeltaNet.
 
 The stock reference kernels accept extra kwargs but ignore sequence boundaries.

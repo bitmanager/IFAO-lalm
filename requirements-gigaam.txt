@@ -1,3 +1,9 @@
+# PR provenance (implementation origin; this update adds comments only):
+# PR #1: Pinned Auden/GigaAM dependencies and jiwer version.
+# PR #19: Included unchanged as dependencies of the standalone projector recipe.
+# https://github.com/bitmanager/IFAO-lalm/pull/1
+# https://github.com/bitmanager/IFAO-lalm/pull/19
+
 # Auden's lalm_hf branch matches IFAO's trainer/batch/checkpoint interfaces.
 auden @ git+https://github.com/AudenAI/Auden.git@fd16685f204de3abe4d6753423bc56aadd5cfb7a
 gigaam @ git+https://github.com/salute-developers/GigaAM.git@7447938d791c4f3e643386ee22c33777004293a5
