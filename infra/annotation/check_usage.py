@@ -40,7 +40,7 @@ if __name__ == '__main__':
  parser.add_argument('--ssh',default=str(Path.home()/'.local/bin/ssh-gpu'))
  parser.add_argument('--host',default='dev-1')
  parser.add_argument('--remote-dir',default='/mnt/local/drive2/speech-annotation-20261012/code')
- parser.add_argument('--accounts',nargs='+',type=int,choices=range(1,14),default=list(range(1,8)))
+ parser.add_argument('--accounts',nargs='+',type=int,choices=range(1,14),default=list(range(1,9)))
  parser.add_argument('--output',type=Path)
  ARGS=parser.parse_args()
  with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
