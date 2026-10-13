@@ -7,6 +7,7 @@ RUN pip install --no-cache-dir -r /tmp/speech-requirements.txt
 RUN useradd --create-home --uid 10002 analyst
 COPY --chmod=644 lalm/benchmark_langfuse_asr.py /opt/speech/lalm/benchmark_langfuse_asr.py
 COPY lalm/annotation /opt/speech/lalm/annotation
+RUN chmod -R a+rX /opt/speech
 COPY notebooks /opt/notebooks
 COPY infra/jupyter/config.py /etc/jupyterhub/config.py
 COPY infra/jupyter/start.py /opt/start.py
