@@ -474,3 +474,19 @@ For archive JSON sidecars, the correction pass can read an explicit `rover` text
 (or an explicit transcription field). Conflicting sidecars remain for review;
 raw source metadata is preserved. Twelve contract tests cover these cases and
 the existing precision gates.
+
+## Native account usage
+
+From the operator host with `pexpect` installed, run:
+
+```bash
+python3 infra/annotation/check_usage.py --output /tmp/agy-usage-latest.json
+```
+
+Reads native `/usage` for slots 01–07 through `ssh-gpu dev-1`, with three
+concurrent read sessions. It does not submit model prompts or change worker
+limits. Output includes UTC timestamps and remaining weekly/five-hour quota;
+account emails are redacted. `--accounts 5 6` restricts the check. Interactive
+CLI setup must already be complete; failures produce an error and nonzero exit
+status rather than guessing quota. This is an on-demand check, not a scheduled
+collector. The output path is for operational data, not a Git artifact.
