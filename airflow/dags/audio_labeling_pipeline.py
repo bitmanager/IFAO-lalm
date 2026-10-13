@@ -43,7 +43,14 @@ def audio_labeling_pipeline():
         }
         return result
 
-    discover_source_objects() >> queue_source_preparation() >> ingest_manifests() >> compare_independent_passes() >> publish_validated() >> publish_inspection_parquet()
+    ingested = ingest_manifests()
+    compared = compare_independent_passes()
+    inspection = publish_inspection_parquet()
+    discover_source_objects() >> queue_source_preparation() >> ingested
+    # Inspection reads its own consistent, read-only database snapshot.
+    # Reconciliation reports are not an input to these Parquet tables.
+    ingested >> [compared, inspection]
+    compared >> publish_validated()
 
 
 audio_labeling_pipeline()

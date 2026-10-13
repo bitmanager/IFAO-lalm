@@ -36,7 +36,8 @@ def build(accounts, agy_path):
     af = {'image': 'speech-airflow:local', 'build': {'context': str(REPO),
           'dockerfile': 'infra/annotation/Dockerfile.airflow'}, 'environment': afenv,
           'networks': ['backend'], 'volumes': ['airflow-logs:/opt/airflow/logs',
-           './runtime/airflow-auth:/opt/airflow/auth'], 'restart': 'unless-stopped'}
+           './runtime/airflow-auth:/opt/airflow/auth',
+           f'{REPO}/airflow/dags:/opt/airflow/dags:ro'], 'restart': 'unless-stopped'}
     services = {
       'postgres': {'image': 'postgres:17.10-alpine', 'environment': {'POSTGRES_USER': 'speech',
         'POSTGRES_PASSWORD': '${POSTGRES_PASSWORD}', 'POSTGRES_DB': 'speech'},

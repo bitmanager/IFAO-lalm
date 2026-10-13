@@ -594,6 +594,13 @@ new Ultra account. Test both an actual response and the identity after it.
 For new code mounts, make public module directories readable to UID 10001,
 then verify an import in the canary container before rolling out other workers.
 
+Inspection Parquet publication and pass reconciliation run in parallel after
+manifest ingestion. Inspection reads its own REPEATABLE READ, READ ONLY database
+snapshot and does not consume reconciliation reports; `snapshot_at` identifies
+the data's observation time. Training publication still depends on reconciliation.
+`max_active_runs=1` keeps inspection publishers from overlapping across DAG runs.
+All Airflow components mount the repository's `airflow/dags` directory read-only.
+
 Eligibility-check transport EOF is handled separately from denied access. A single
 ERROR result with zero turns and zero duration, and the exact HTTPS POST EOF
 message, is retried through the existing queue (at most three total attempts).
