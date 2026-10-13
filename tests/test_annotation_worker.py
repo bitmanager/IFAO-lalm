@@ -1,9 +1,38 @@
 """Error handling must not turn failed native results into duplicate requests."""
 import unittest
-from lalm.annotation.worker import classify, quota_reset_delay
+from lalm.annotation.worker import classify, quota_reset_delay, predispatch_auth_timeout, probe_auth
 
 
 class WorkerErrorTests(unittest.TestCase):
+    def test_startup_retry_excludes_any_inference_or_ambiguous_output(self):
+        import json
+        error = {'event': 'result', 'result': {'status': 'ERROR', 'num_turns': 0,
+                 'duration_seconds': 0, 'error': 'authentication failed or timed out'}}
+        raw = json.dumps(error)
+        stderr = 'Authentication required. Error: authentication timed out.'
+        self.assertTrue(predispatch_auth_timeout(raw, stderr, 65))
+        for other in ('', 'garbage', 'null', raw+'\n'+json.dumps({'event':'init'}),
+                      json.dumps({'event':'result','result':None})):
+            self.assertFalse(predispatch_auth_timeout(other, stderr, 65))
+        self.assertFalse(predispatch_auth_timeout(raw, stderr, 120))
+        self.assertFalse(predispatch_auth_timeout(raw, 'Verify your account', 65))
+        error['result']['num_turns'] = 1
+        self.assertFalse(predispatch_auth_timeout(json.dumps(error), stderr, 65))
+
+    def test_probe_requires_success_and_expected_model(self):
+        from unittest.mock import patch
+        from subprocess import CompletedProcess, TimeoutExpired
+        from lalm.annotation.contract import MODEL
+        for rc, text, expected in [(0, MODEL, True), (1, MODEL, False), (0, '', False)]:
+            with patch('lalm.annotation.worker.subprocess.run', return_value=CompletedProcess([],rc,text,'')):
+                self.assertEqual(probe_auth(), expected)
+        with patch('lalm.annotation.worker.subprocess.run', side_effect=TimeoutExpired('agy',40)):
+            self.assertFalse(probe_auth())
+
+    def test_verification_required_blocks_account(self):
+        self.assertEqual(classify('Eligibility check failed: Verify your account')[2],
+                         'authentication_or_access_denied')
+
     def test_model_text_cannot_block_an_account(self):
         import json
         for text in ('forbidden', 'Authentication required', 'quota exhausted', 'rate limit'):

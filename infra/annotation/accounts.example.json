@@ -22,13 +22,13 @@
     },
     {
       "id": "agy-05",
-      "concurrency": 5,
-      "min_interval_seconds": 1
+      "concurrency": 20,
+      "min_interval_seconds": 0.2
     },
     {
       "id": "agy-06",
-      "concurrency": 5,
-      "min_interval_seconds": 1
+      "concurrency": 20,
+      "min_interval_seconds": 0.2
     },
     {
       "id": "agy-07",

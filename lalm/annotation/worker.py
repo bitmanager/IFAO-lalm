@@ -42,7 +42,8 @@ def classify(text, timed_out=False):
     if any(x in text for x in ('individual quota reached', 'quota exhausted', 'quota exceeded')):
         return 'NEEDS_REVIEW', 'quota_exhausted', 'quota_exhausted'
     if any(x in text for x in ('authentication required', 'unauthenticated', 'permission denied',
-                                'access denied', 'unauthorized', 'forbidden')):
+                                'access denied', 'unauthorized', 'forbidden',
+                                'eligibility check failed', 'verify your account')):
         return 'NEEDS_REVIEW', 'authentication_or_access_denied', 'authentication_or_access_denied'
     if timed_out:
         return 'NEEDS_REVIEW', 'ambiguous_timeout', None
@@ -61,14 +62,44 @@ def quota_reset_delay(text):
     return seconds + 60 if 0 < seconds <= 7 * 86400 else None
 
 
+def predispatch_auth_timeout(stdout, stderr, elapsed):
+    """Only the observed zero-turn startup failure is safe for one retry."""
+    if elapsed >= 120 or 'authentication timed out' not in stderr.lower():
+        return False
+    try:
+        events = [json.loads(line) for line in stdout.splitlines() if line.strip()]
+    except ValueError:
+        return False
+    if len(events) != 1 or not isinstance(events[0], dict) or events[0].get('event') != 'result':
+        return False
+    r = events[0].get('result', {})
+    return (isinstance(r, dict) and r.get('status') == 'ERROR' and r.get('num_turns') == 0
+            and r.get('duration_seconds') == 0
+            and r.get('error') == 'authentication failed or timed out')
+
+
+def probe_auth():
+    """Native read-only catalog lookup, no prompt and no credential logging."""
+    try:
+        result = subprocess.run(['agy', 'models'], env=agy_env(),
+                                capture_output=True, text=True, timeout=40)
+        return result.returncode == 0 and MODEL in result.stdout
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+
+
+def agy_env():
+    return {k: v for k, v in os.environ.items() if k in {
+        'PATH', 'HOME', 'LANG', 'LC_ALL', 'TZ', 'HTTP_PROXY', 'HTTPS_PROXY', 'NO_PROXY',
+        'SSL_CERT_FILE', 'SSL_CERT_DIR'}}
+
+
 def run_agy(audio, workspace, variant="verbatim", reference=None):
     command = ['agy', '--model', MODEL, '--disable-slash-commands',
                '--output-format', 'stream-json', '--json-schema', json.dumps(SCHEMA),
                '--print-timeout', '5m', '--add-dir', str(workspace), '-p', prompt(audio, variant, reference)]
     # The model process has its own AGY login but does not inherit DB/S3 credentials.
-    child_env = {k: v for k, v in os.environ.items() if k in {
-        'PATH', 'HOME', 'LANG', 'LC_ALL', 'TZ', 'HTTP_PROXY', 'HTTPS_PROXY', 'NO_PROXY',
-        'SSL_CERT_FILE', 'SSL_CERT_DIR'}}
+    child_env = agy_env()
     proc = subprocess.Popen(command, cwd=workspace, env=child_env, stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE, text=True, start_new_session=True)
     timed_out = False
@@ -107,6 +138,17 @@ def process(job):
         started = time.monotonic()
         rc, stdout, stderr, timed_out = run_agy(audio, workspace, variant, reference)
         elapsed = time.monotonic() - started
+        # Preserve the failed startup before one bounded recovery. No init/tool/
+        # generation event is allowed; ambiguous inference is never repeated.
+        if (rc != 0 and not timed_out and predispatch_auth_timeout(stdout, stderr, elapsed)):
+            for suffix, body in (('stream.jsonl', stdout), ('stderr.log', stderr)):
+                client.put_object(Bucket=bucket(), Key=f'{prefix}/auth-startup-failure/{suffix}', Body=body.encode())
+            recovered = probe_auth()
+            client.put_object(Bucket=bucket(), Key=f'{prefix}/auth-startup-failure/probe.json',
+                              Body=json.dumps({'models_access_ok': recovered}).encode())
+            if recovered:
+                rc, stdout, stderr, timed_out = run_agy(audio, workspace, variant, reference)
+                elapsed = time.monotonic() - started
         # Native raw output can contain transcript/PII: private S3, never stdout.
         for suffix, body in (('stream.jsonl', stdout), ('stderr.log', stderr),
                              ('request.json', json.dumps({'model': MODEL, 'prompt': prompt(audio, variant, reference),

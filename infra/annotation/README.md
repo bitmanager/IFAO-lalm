@@ -490,3 +490,28 @@ account emails are redacted. `--accounts 5 6` restricts the check. Interactive
 CLI setup must already be complete; failures produce an error and nonzero exit
 status rather than guessing quota. This is an on-demand check, not a scheduled
 collector. The output path is for operational data, not a Git artifact.
+
+## Intermittent headless authentication (2026-10-13)
+
+Observed on pinned AGY 1.3.3: a fresh print process enters OAuth and times out,
+while adjacent requests and `agy models` authenticate without a new login.
+Upstream reports a matching intermittent startup failure in
+https://github.com/google-antigravity/antigravity-cli/issues/944 and related
+container credential initialization failures in
+https://github.com/google-antigravity/antigravity-cli/issues/479.
+These reports do not prove our internal root cause or a token-refresh race.
+
+The worker now permits one recovery only when the entire stream is one ERROR
+result with zero turns, zero native duration and the exact authentication timeout,
+with no init/tool/generation events and less than 120 seconds elapsed. It saves
+that failed startup under `auth-startup-failure/`, checks native `agy models`
+(timeout 40s), and retries once only after access to the configured model succeeds.
+A second failure follows the existing account breaker. Ambiguous inference,
+permission failures, quota, and verification-required failures are not retried
+by this path. Eligibility/verification errors now explicitly block the account.
+This mitigates the observed startup case; it is not a claim that AGY internals
+are fixed. Raw failed and recovered outputs remain auditable in private S3.
+
+Six extra slots 08–13 are staged (not enabled) using existing VPN proxies and
+independent home volumes. See `ACCOUNTS.md` and `pending-ultra-slots.json`.
+`check_usage.py --accounts 8 9 10 11 12 13` supports them after authentication.
