@@ -2,8 +2,9 @@ import copy
 import importlib.util
 from pathlib import Path
 import unittest
+from unittest.mock import patch
 
-from lalm.annotation.contract import PREPROCESSING, job_id, validate_sample, normalize_language
+from lalm.annotation.contract import MODEL, PREPROCESSING, job_id, validate_sample, normalize_language, triad_seed, sample_model
 
 
 def load_script(name):
@@ -43,6 +44,19 @@ class AnnotationContractTests(unittest.TestCase):
         other = copy.deepcopy(sample)
         other['audio_sha256'] = other['speech_qc']['audio_sha256'] = 'b' * 64
         self.assertNotEqual(job_id(sample), job_id(other))
+
+    def test_model_switch_preserves_legacy_identity_and_separates_new_passes(self):
+        sample = self.sample()
+        self.assertEqual(job_id(sample), job_id(dict(sample, annotation_model=MODEL)))
+        with patch.dict('os.environ', {'ANNOTATION_MODEL': 'gemini-4-argon-low'}):
+            seed = triad_seed(sample)
+            self.assertEqual(sample_model(seed), 'gemini-4-argon-low')
+            self.assertNotEqual(job_id(sample), job_id(seed))
+            self.assertTrue(seed['pilot_id'].endswith('-gemini-4-argon-low'))
+            self.assertEqual(triad_seed(seed), seed)
+            self.assertEqual(sample_model(triad_seed(dict(sample, annotation_model=MODEL))), MODEL)
+        with self.assertRaisesRegex(ValueError, 'unsupported_annotation_model'):
+            job_id(dict(sample, annotation_model='unknown-model'))
 
     def test_accounts_have_separate_internal_networks_and_homes(self):
         compose = load_script('render').build([{'id': 'agy-01', 'concurrency': 20},

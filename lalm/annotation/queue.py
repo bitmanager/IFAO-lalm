@@ -3,7 +3,7 @@ import uuid
 
 from psycopg.types.json import Jsonb
 
-from .contract import job_id
+from .contract import MODEL, allowed_models, job_id
 from .store import connect
 
 
@@ -41,8 +41,10 @@ def claim(account):
         if active >= row['concurrency']:
             return None
         job = conn.execute("SELECT * FROM jobs WHERE state IN ('PENDING','RETRYABLE_FAILED') "
-                           "AND next_attempt_at<=now() AND attempt<3 ORDER BY (sample->>'prompt_variant'='verbatim'), created_at "
-                           'FOR UPDATE SKIP LOCKED LIMIT 1').fetchone()
+                           "AND next_attempt_at<=now() AND attempt<3 "
+                           "AND COALESCE(sample->>'annotation_model',%s)=ANY(%s) "
+                           "ORDER BY (sample->>'prompt_variant'='verbatim'), created_at "
+                           'FOR UPDATE SKIP LOCKED LIMIT 1', (MODEL, list(allowed_models()))).fetchone()
         if not job:
             return None
         if protected(conn, job['sample']):

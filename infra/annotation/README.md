@@ -509,7 +509,8 @@ These reports do not prove our internal root cause or a token-refresh race.
 
 The worker now permits one recovery only when the entire stream is one ERROR
 result with zero turns, zero native duration and the exact authentication timeout,
-with no init/tool/generation events and less than 120 seconds elapsed. It saves
+with no init/tool/generation events and less than 180 seconds elapsed. The bound
+includes observed 126–134 second startup timeouts that previously bypassed recovery. It saves
 that failed startup under `auth-startup-failure/`, checks native `agy models`
 (timeout 40s), and retries once only after access to the configured model succeeds.
 A second failure follows the existing account breaker. Ambiguous inference,
@@ -521,6 +522,31 @@ are fixed. Raw failed and recovered outputs remain auditable in private S3.
 Six extra slots 08–13 are staged (not enabled) using existing VPN proxies and
 independent home volumes. See `ACCOUNTS.md` and `pending-ultra-slots.json`.
 `check_usage.py --accounts 8 9 10 11 12 13` supports them after authentication.
+
+## Model routing, 2026-10-13
+
+Routing support is prepared and tested; bulk Argon ingestion remains disabled
+pending an isolated quota comparison. Three manual Argon audio smoke calls
+passed native audio/schema checks, which does not establish better ASR quality.
+
+Ultra accounts expose `gemini-4-argon-low`; Pro account 02 does not. New
+manifests can target Argon through `ANNOTATION_MODEL=gemini-4-argon-low` in
+the Airflow scheduler. Each queued sample records `annotation_model`; absent
+values mean the original `gemini-3.8-flash-low`. Follow-up passes inherit that
+field, and job IDs, contract hashes and deduplication include the model.
+Argon batches append the model ID to `pilot_id`, preserving older reports.
+
+Workers use `ANNOTATION_ALLOWED_MODELS`, a comma-separated list (default Flash).
+Set Ultra workers to both Flash and Argon while old queued samples drain;
+Pro workers remain Flash-only. The render account config supports a `models`
+list. Native validation checks the requested model in the init envelope and
+rejects fallback to a different model. Existing results are immutable.
+
+Existing databases need `precision_v1_audio_pass_model_uq` created concurrently
+before the older `precision_v1_audio_pass_uq` is dropped concurrently. The
+new schema already uses the model-aware index. The transactional check
+`tests/annotation_model_routing_check.py` exercises real claims and deduplication
+without leaving test rows or a test schema.
 
 Eligibility-check transport EOF is handled separately from denied access. A single
 ERROR result with zero turns and zero duration, and the exact HTTPS POST EOF

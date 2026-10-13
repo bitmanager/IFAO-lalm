@@ -83,6 +83,7 @@ CREATE INDEX IF NOT EXISTS jobs_conversation_identity ON jobs ((sample->>'conver
 CREATE INDEX IF NOT EXISTS jobs_audio_identity ON jobs ((sample->>'audio_sha256'));
 -- One inference per exact prepared audio and pass in this prompt version,
 -- even when two source manifests reference the same audio under different calls.
-CREATE UNIQUE INDEX IF NOT EXISTS precision_v1_audio_pass_uq
-ON jobs ((sample->>'audio_sha256'), (sample->>'prompt_variant'))
+CREATE UNIQUE INDEX IF NOT EXISTS precision_v1_audio_pass_model_uq
+ON jobs ((sample->>'audio_sha256'), (sample->>'prompt_variant'),
+         (COALESCE(sample->>'annotation_model','gemini-3.8-flash-low')))
 WHERE sample->>'pilot_id' LIKE 'precision-ru-triad-v1-%';

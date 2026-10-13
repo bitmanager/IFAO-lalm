@@ -61,7 +61,8 @@ class WorkerErrorTests(unittest.TestCase):
         for other in ('', 'garbage', 'null', raw+'\n'+json.dumps({'event':'init'}),
                       json.dumps({'event':'result','result':None})):
             self.assertFalse(predispatch_auth_timeout(other, stderr, 65))
-        self.assertFalse(predispatch_auth_timeout(raw, stderr, 120))
+        self.assertTrue(predispatch_auth_timeout(raw, stderr, 134))
+        self.assertFalse(predispatch_auth_timeout(raw, stderr, 180))
         self.assertFalse(predispatch_auth_timeout(raw, 'Verify your account', 65))
         error['result']['num_turns'] = 1
         self.assertFalse(predispatch_auth_timeout(json.dumps(error), stderr, 65))

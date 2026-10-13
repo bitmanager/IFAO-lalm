@@ -24,6 +24,7 @@ def build(accounts, agy_path):
              'dockerfile': 'infra/annotation/Dockerfile'}}
     common = {**image, 'environment': env, 'networks': ['backend'], 'depends_on': deps}
     afenv = {**env, 'AIRFLOW__CORE__EXECUTOR': 'LocalExecutor',
+             'ANNOTATION_MODEL': '${ANNOTATION_MODEL:-gemini-3.8-flash-low}',
              'AIRFLOW__DATABASE__SQL_ALCHEMY_CONN': '${AIRFLOW_DATABASE_URL}',
              'AIRFLOW__CORE__LOAD_EXAMPLES': 'false',
              'AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION': 'true',
@@ -71,6 +72,10 @@ def build(accounts, agy_path):
     volumes = {x: {} for x in ['postgres-data', 's3-data', 'airflow-logs']}
     for account in accounts:
         aid = account['id']
+        models = account.get('models', ['gemini-3.8-flash-low'])
+        if (not isinstance(models, list) or not models or
+                any(m not in ('gemini-3.8-flash-low', 'gemini-4-argon-low') for m in models)):
+            raise ValueError('invalid annotation models')
         if not isinstance(account['concurrency'], int) or not 1 <= account['concurrency'] <= 64:
             raise ValueError('invalid concurrency')
         private = aid + '-private'
@@ -86,11 +91,13 @@ def build(accounts, agy_path):
         volumes[aid + '-home'] = {}
         services[aid] = {**image, 'profiles': [aid], 'restart': 'unless-stopped',
             'environment': {**env, 'ACCOUNT_ID': aid, 'WORKER_CONCURRENCY': str(account['concurrency']),
+                'ANNOTATION_ALLOWED_MODELS': ','.join(models),
                 'HTTPS_PROXY': f'http://{aid}-proxy:1080', 'HTTP_PROXY': f'http://{aid}-proxy:1080',
                 'NO_PROXY': 'postgres,minio,127.0.0.1,localhost'},
             'depends_on': {**deps, aid + '-proxy': {'condition': 'service_started'}},
             'networks': [private], 'volumes': [f'{agy_path}:/opt/bin/agy:ro',
-                                              f'{aid}-home:/home/worker'],
+                                              f'{aid}-home:/home/worker',
+                                              f'{REPO}/lalm/benchmark_langfuse_asr.py:/opt/speech/lalm/benchmark_langfuse_asr.py:ro'],
             'tmpfs': ['/work:uid=10001,gid=10001,mode=0700,size=1g', '/tmp:size=256m'],
             'read_only': True, 'cap_drop': ['ALL'], 'security_opt': ['no-new-privileges:true'],
             'pids_limit': 1024, 'mem_limit': '8g', 'cpus': 4, 'stop_grace_period': '360s'}

@@ -1,6 +1,7 @@
 """Versioned transcription contracts, shared by ingestion and workers."""
 import hashlib
 import json
+import os
 import re
 
 from lalm.benchmark_langfuse_asr import MODEL, SCHEMA
@@ -39,6 +40,21 @@ def source_text(sample):
 
 
 TRIAD_VERSION = 'precision-ru-triad-v1'
+SUPPORTED_MODELS = (MODEL, 'gemini-4-argon-low')
+
+
+def sample_model(sample):
+    model = sample.get('annotation_model', MODEL)
+    if model not in SUPPORTED_MODELS:
+        raise ValueError('unsupported_annotation_model')
+    return model
+
+
+def allowed_models():
+    models = tuple(os.environ.get('ANNOTATION_ALLOWED_MODELS', MODEL).split(','))
+    if not models or any(m not in SUPPORTED_MODELS for m in models):
+        raise ValueError('unsupported_annotation_model')
+    return models
 
 
 def prompt(path, variant="verbatim", reference=None):
@@ -75,8 +91,14 @@ def triad_seed(sample):
     pilot = sample.get('pilot_id', 'unbatched')
     if not pilot.startswith(TRIAD_VERSION + '-'):
         pilot = TRIAD_VERSION + '-' + pilot
-    return dict(sample, pilot_id=pilot, prompt_variant='verbatim', review_only=True,
+    model = sample_model({'annotation_model': sample.get('annotation_model', os.environ.get('ANNOTATION_MODEL', MODEL))})
+    if model != MODEL and not pilot.endswith('-' + model):
+        pilot += '-' + model
+    seed = dict(sample, pilot_id=pilot, prompt_variant='verbatim', review_only=True,
                 adaptive_third_pass=False)
+    if model != MODEL or 'annotation_model' in sample:
+        seed['annotation_model'] = model
+    return seed
 
 
 def digest(value):
@@ -88,15 +110,17 @@ CONTRACT_SHA = digest({'prompt': prompt('/workspace/audio.wav'), 'schema': SCHEM
                        'model': MODEL, 'preprocessing': PREPROCESSING})
 
 
-def contract_sha(variant="verbatim"):
-    if variant == "verbatim":
+def contract_sha(variant="verbatim", model=MODEL):
+    sample_model({'annotation_model': model})
+    if variant == "verbatim" and model == MODEL:
         return CONTRACT_SHA
     return digest({"prompt": prompt("/workspace/audio.wav", variant,
                                    '<SOURCE_TEXT>' if variant == 'source_correction' else None), "schema": SCHEMA,
-                   "model": MODEL, "preprocessing": PREPROCESSING})
+                   "model": model, "preprocessing": PREPROCESSING})
 
 
 def validate_sample(sample):
+    sample_model(sample)
     if sample.get("prompt_variant", "verbatim") not in VARIANTS:
         raise ValueError("unknown_prompt_variant")
     if sample.get('prompt_variant') == 'source_correction' and source_text(sample) is None:
@@ -130,7 +154,7 @@ def job_id(sample):
     validate_sample(sample)
     identity = {'conversation_id': sample['conversation_id'], 'sample_id': sample['sample_id'],
                    'audio_sha256': sample['audio_sha256'], 'split': sample['split'],
-                   'contract': contract_sha(sample.get('prompt_variant', 'verbatim'))}
+                   'contract': contract_sha(sample.get('prompt_variant', 'verbatim'), sample_model(sample))}
     if sample.get('prompt_variant') == 'source_correction':
         identity['source_text_sha256'] = digest(source_text(sample))
     return digest(identity)

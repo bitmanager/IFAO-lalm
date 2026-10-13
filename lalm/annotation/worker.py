@@ -14,7 +14,7 @@ import time
 import wave
 
 from lalm.benchmark_langfuse_asr import agy_result, zero_user_audio
-from .contract import CONTRACT_SHA, MODEL, SCHEMA, prompt, contract_sha, source_text, digest, normalize_language
+from .contract import CONTRACT_SHA, MODEL, SCHEMA, prompt, contract_sha, source_text, digest, normalize_language, sample_model
 from .queue import claim, finish
 from .store import bucket, s3
 
@@ -65,7 +65,7 @@ def quota_reset_delay(text):
 
 def predispatch_auth_timeout(stdout, stderr, elapsed):
     """Only the observed zero-turn startup failure is safe for one retry."""
-    if elapsed >= 120 or 'authentication timed out' not in stderr.lower():
+    if elapsed >= 180 or 'authentication timed out' not in stderr.lower():
         return False
     try:
         events = [json.loads(line) for line in stdout.splitlines() if line.strip()]
@@ -79,12 +79,12 @@ def predispatch_auth_timeout(stdout, stderr, elapsed):
             and r.get('error') == 'authentication failed or timed out')
 
 
-def probe_auth():
+def probe_auth(model=MODEL):
     """Native read-only catalog lookup, no prompt and no credential logging."""
     try:
         result = subprocess.run(['agy', 'models'], env=agy_env(),
                                 capture_output=True, text=True, timeout=40)
-        return result.returncode == 0 and MODEL in result.stdout
+        return result.returncode == 0 and model in result.stdout
     except (OSError, subprocess.TimeoutExpired):
         return False
 
@@ -124,8 +124,8 @@ def agy_env():
         'SSL_CERT_FILE', 'SSL_CERT_DIR'}}
 
 
-def run_agy(audio, workspace, variant="verbatim", reference=None):
-    command = ['agy', '--model', MODEL, '--disable-slash-commands',
+def run_agy(audio, workspace, variant="verbatim", reference=None, model=MODEL):
+    command = ['agy', '--model', model, '--disable-slash-commands',
                '--output-format', 'stream-json', '--json-schema', json.dumps(SCHEMA),
                '--print-timeout', '5m', '--add-dir', str(workspace), '-p', prompt(audio, variant, reference)]
     # The model process has its own AGY login but does not inherit DB/S3 credentials.
@@ -149,6 +149,7 @@ def process(job):
         workspace = Path(temp)
         audio = workspace / 'audio.wav'
         sample = job['sample']
+        model = sample_model(sample)
         # Cap inputs before downloading; preprocessor must publish immutable normalized WAVs.
         head = client.head_object(Bucket=sample.get('audio_bucket', bucket()), Key=sample['audio_key'])
         if not 44 < head['ContentLength'] < 100 * 1024 * 1024:
@@ -166,29 +167,29 @@ def process(job):
         variant = sample.get("prompt_variant", "verbatim")
         reference = source_text(sample) if variant == "source_correction" else None
         started = time.monotonic()
-        rc, stdout, stderr, timed_out = run_agy(audio, workspace, variant, reference)
+        rc, stdout, stderr, timed_out = run_agy(audio, workspace, variant, reference, model)
         elapsed = time.monotonic() - started
         # Preserve the failed startup before one bounded recovery. No init/tool/
         # generation event is allowed; ambiguous inference is never repeated.
         if (rc != 0 and not timed_out and predispatch_auth_timeout(stdout, stderr, elapsed)):
             for suffix, body in (('stream.jsonl', stdout), ('stderr.log', stderr)):
                 client.put_object(Bucket=bucket(), Key=f'{prefix}/auth-startup-failure/{suffix}', Body=body.encode())
-            recovered = probe_auth()
+            recovered = probe_auth(model)
             client.put_object(Bucket=bucket(), Key=f'{prefix}/auth-startup-failure/probe.json',
                               Body=json.dumps({'models_access_ok': recovered}).encode())
             if recovered:
-                rc, stdout, stderr, timed_out = run_agy(audio, workspace, variant, reference)
+                rc, stdout, stderr, timed_out = run_agy(audio, workspace, variant, reference, model)
                 elapsed = time.monotonic() - started
         # Native raw output can contain transcript/PII: private S3, never stdout.
         for suffix, body in (('stream.jsonl', stdout), ('stderr.log', stderr),
-                             ('request.json', json.dumps({'model': MODEL, 'prompt': prompt(audio, variant, reference),
-                              'schema': SCHEMA, 'contract_sha256': contract_sha(variant),
+                             ('request.json', json.dumps({'model': model, 'prompt': prompt(audio, variant, reference),
+                              'schema': SCHEMA, 'contract_sha256': contract_sha(variant, model),
                               'audio_sha256': sample['audio_sha256'], 'exit_code': rc}))):
             client.put_object(Bucket=bucket(), Key=f'{prefix}/{suffix}', Body=body.encode())
         try:
             if rc != 0 or timed_out:
                 raise ValueError('native_exit')
-            native = agy_result(stdout, audio)
+            native = agy_result(stdout, audio, expected_model=model)
         except (ValueError, KeyError, TypeError):
             if rc != 0 and predispatch_eligibility_transient(stdout, timed_out):
                 # Existing queue caps attempts at three and cools down the account.
@@ -204,7 +205,7 @@ def process(job):
         out = native['structured_output']
         result = {'verbatim_text': out['transcript'], 'language': normalize_language(out['language']), 'language_raw': out['language'],
                   'uncertain_spans': out['uncertain_fragments'], 'native_result': native,
-                  'annotation_source': 'agy', 'model': MODEL, 'contract_sha256': contract_sha(variant),
+                  'annotation_source': 'agy', 'model': model, 'contract_sha256': contract_sha(variant, model),
                   'raw_prefix': prefix, 'audio_seconds': duration, 'human_gold': False,
                   'prompt_variant': variant, 'inference_seconds': elapsed,
                   'source_conditioned': variant == 'source_correction',
