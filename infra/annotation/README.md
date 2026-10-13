@@ -562,6 +562,14 @@ configuration change; the worker refuses a mismatching binary. The renderer
 pins the supplied binary automatically. Workers record the pin in raw requests
 and results as `cli_sha256`.
 
+The rolling CLI 1.3.4 deployment completed on 2026-10-13. All 21 running
+containers were checked for version, matching pin, and a Flash-only model
+allowlist. Slot 17 remains stopped. Workers mount an immutable copy of the
+annotation modules and native parser under `runtime/cli134-20261013/` on dev-1;
+the producer still submits Flash jobs. The upgrade does not establish that
+Google authentication timeouts are resolved; verify actual saved results after
+each recovery.
+
 Eligibility-check transport EOF is handled separately from denied access. A single
 ERROR result with zero turns and zero duration, and the exact HTTPS POST EOF
 message, is retried through the existing queue (at most three total attempts).
