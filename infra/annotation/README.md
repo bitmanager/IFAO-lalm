@@ -537,3 +537,8 @@ visible workspace. Git versions must not contain cell outputs or embedded audio.
 Use `python3 infra/jupyter/sync_notebook.py --check` to detect browser edits,
 `--pull` to bring them into Git for review, or `--push` to deploy the repository
 version. Synchronization preserves a backup before replacement.
+The pre-generation allowlist also includes profile-picture HTTPS GET EOF and the
+observed user-info `500 Internal Server Error`. They use the same three-attempt
+queue bound and randomized cooldown, without disabling the account. A 401/403,
+verification requirement, extra native event or started generation still does
+not qualify for this recovery path.

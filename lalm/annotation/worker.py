@@ -106,6 +106,8 @@ def predispatch_eligibility_transient(stdout, timed_out=False):
     return (r.get('status') == 'ERROR' and r.get('num_turns') == 0
             and r.get('duration_seconds') == 0 and isinstance(error, str)
             and (re.fullmatch(r'Eligibility check failed: Post "https://[^"\s]+":? (?:unexpected )?EOF', error) is not None
+                 or re.fullmatch(r'Eligibility check failed: failed to get profile picture: Get "https://[^"\s]+":? (?:unexpected )?EOF', error) is not None
+                 or error == 'Eligibility check failed: failed to fetch user info: 500 Internal Server Error'
                  or error == 'Eligibility check failed: failed to get load code assist response: '
                              'UNAVAILABLE (code 503): The service is currently unavailable.'))
 

@@ -4,6 +4,28 @@ from lalm.annotation.worker import classify, quota_reset_delay, predispatch_auth
 
 
 class WorkerErrorTests(unittest.TestCase):
+    def test_profile_failures_retry_only_before_generation(self):
+        import json
+        for error in (
+            'Eligibility check failed: failed to get profile picture: Get "https://example.test/avatar": unexpected EOF',
+            'Eligibility check failed: failed to fetch user info: 500 Internal Server Error',
+        ):
+            event = {'event': 'result', 'result': {'status': 'ERROR', 'num_turns': 0,
+                     'duration_seconds': 0, 'error': error}}
+            raw = json.dumps(event)
+            self.assertTrue(predispatch_eligibility_transient(raw))
+            self.assertFalse(predispatch_eligibility_transient(raw, True))
+            self.assertFalse(predispatch_eligibility_transient(raw+'\n'+json.dumps({'event':'init'})))
+            event['result']['num_turns'] = 1
+            self.assertFalse(predispatch_eligibility_transient(json.dumps(event)))
+        for error in (
+            'Eligibility check failed: failed to fetch user info: 401 Unauthorized',
+            'Eligibility check failed: failed to fetch user info: 403 Forbidden',
+            'Eligibility check failed: failed to get profile picture: Get "https://example.test/avatar": 403 Forbidden',
+        ):
+            event['result'].update(num_turns=0, error=error)
+            self.assertFalse(predispatch_eligibility_transient(json.dumps(event)))
+
     def test_eligibility_eof_requires_zero_activity_and_exact_transport_error(self):
         import json
         event = {'event': 'result', 'result': {'status': 'ERROR', 'num_turns': 0,
