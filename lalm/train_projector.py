@@ -1,9 +1,3 @@
-# PR provenance (implementation origin; this update adds comments only):
-# PR #19: Portable torchrun entry point and compact projector/EMA checkpoint trainer.
-# PR #12: Optimization/loss/validation are reused through LALMTrainer, not reimplemented here.
-# https://github.com/bitmanager/IFAO-lalm/pull/19
-# https://github.com/bitmanager/IFAO-lalm/pull/12
-
 """Portable response-KL projector recipe; optimization stays in LALMTrainer."""
 
 import copy

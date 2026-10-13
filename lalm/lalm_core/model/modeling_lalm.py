@@ -1,12 +1,3 @@
-# PR provenance (implementation origin; this update adds comments only):
-# main: LALM projector, audio embedding merge and packed causal LM forward.
-# PR #1: GigaAM integration, optional ASR readout and separate task CE routing.
-# PR #12: Frozen teacher/student response KL and projector-only freeze guards (43c2b02).
-# PR #19: Configurable projector width/FP32 math, hybrid Qwen packing routes and checkpoint-safe merge.
-# https://github.com/bitmanager/IFAO-lalm/pull/1
-# https://github.com/bitmanager/IFAO-lalm/pull/12
-# https://github.com/bitmanager/IFAO-lalm/pull/19
-
 import copy
 
 import torch
@@ -32,7 +23,6 @@ class LALMProjector(nn.Module):
     def __init__(self, audio_dim: int, text_dim: int, downsample_rate: int = 5, hidden_size: int | None = None):
         super().__init__()
         self.downsample_rate = downsample_rate
-        # PR #19: configurable historical MLP width; main used text_dim.
         hidden_size = hidden_size or text_dim
         self.linear1 = nn.Linear(audio_dim * downsample_rate, hidden_size)
         self.act = nn.GELU()
@@ -44,7 +34,6 @@ class LALMProjector(nn.Module):
         if remainder:
             x = x[:, :-remainder, :]
         x = x.reshape(B, T // self.downsample_rate, D * self.downsample_rate)
-        # PR #19: retain the projector parameter dtype (FP32) under backbone AMP.
         with torch.autocast(device_type=x.device.type, enabled=False):
             return self.linear2(self.act(self.linear1(x.to(self.linear1.weight.dtype))))
 
@@ -95,7 +84,6 @@ class LALMForConditionalGeneration(PreTrainedModel):
             install_segment_linear_routes(self.language_model)
 
     def enable_asr(self, layer: int):
-        # PR #1: inherited optional readout; response KL requires it to be frozen.
         """Initialize an independent ASR readout from Qwen; backbone stays shared."""
         if self.config.text_config.model_type != "qwen3":
             raise ValueError("The intermediate ASR readout currently supports Qwen3 only")
@@ -218,7 +206,6 @@ class LALMForConditionalGeneration(PreTrainedModel):
         **kwargs,
     ):
         if response_kl:
-            # PR #12: answer-only student/teacher route and projector freeze guard.
             self.validate_response_kl_freeze()
             if (answer_loss_weight is not None or asr_mask is None or asr_mask.any()
                     or labels is None or attention_mask is None or teacher_inputs is None
@@ -271,7 +258,6 @@ class LALMForConditionalGeneration(PreTrainedModel):
         )
 
     def validate_response_kl_freeze(self):
-        # PR #12: prevent optimization from changing the teacher or encoder.
         trainable = [name for name, p in self.named_parameters() if p.requires_grad]
         if not trainable or any(not name.startswith("projector.") for name in trainable):
             raise ValueError("Response KL requires only projector parameters trainable; freeze audio/LLM/ASR heads")
@@ -387,7 +373,7 @@ class LALMForConditionalGeneration(PreTrainedModel):
             segment_lens, device=device, dtype=inputs_embeds.dtype
         )
         if self.config.text_config.model_type == "qwen3_5_text":
-            # PR #19: every flattened token is valid. Linear layers need reset
+            # Every flattened token is valid. Linear layers need explicit reset
             # boundaries; a full-attention mask cannot reset recurrent state.
             attn_mask = {"full_attention": attn_mask, "linear_attention": None}
             kwargs["packed_segment_lens"] = tuple(segment_lens)
@@ -405,7 +391,6 @@ class LALMForConditionalGeneration(PreTrainedModel):
             **kwargs,
         )
         if self.config.asr_layer is not None and not response_kl:
-            # PR #1 added this readout; PR #12 bypasses it during response KL.
             if asr_mask is None:
                 raise ValueError("Training an ASR readout requires explicit task routing")
             asr_positions = torch.repeat_interleave(asr_mask, seq_lens)
@@ -439,7 +424,7 @@ class LALMForConditionalGeneration(PreTrainedModel):
         """Replace audio token positions in inputs_embeds with projected audio embeddings."""
         encoded = self.encode_audio(audio_features, feature_lens=feature_lens)
         if self.config.text_config.model_type == "qwen3_5_text":
-            # PR #19: match independent projector GEMM shapes before BF16 conversion.
+            # Match independent projector GEMM shapes before BF16 conversion.
             lengths = self._get_audio_output_lengths(feature_lens).tolist()
             projected = [self.projector(encoded[i:i+1, :n]).squeeze(0)
                          for i, n in enumerate(lengths)]
@@ -469,7 +454,7 @@ class LALMForConditionalGeneration(PreTrainedModel):
             1, gather_index.unsqueeze(-1).expand(-1, -1, D)
         ).to(inputs_embeds.dtype)
 
-        # PR #19: HF checkpointing marks input embeddings as gradient leaves.
+        # HF checkpointing marks input embeddings as gradient leaves.
         out = inputs_embeds.reshape(-1, D).clone()
         src = gathered_audio.reshape(-1, D)
         flat_valid = valid.reshape(-1)

@@ -1,7 +1,3 @@
-# PR provenance (implementation origin; this update adds comments only):
-# PR #19: Added while targeting main: tiny hybrid packing/recomputation and portable trainer lifecycle.
-# https://github.com/bitmanager/IFAO-lalm/pull/19
-
 """Portable trainer lifecycle and hybrid packing without external model weights."""
 
 import sys

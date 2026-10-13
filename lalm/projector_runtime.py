@@ -1,7 +1,3 @@
-# PR provenance (implementation origin; this update adds comments only):
-# PR #19: 27B no-thinking rendering/labels and frozen-LM activation recomputation.
-# https://github.com/bitmanager/IFAO-lalm/pull/19
-
 """No-thinking response rendering and frozen-backbone activation recomputation."""
 
 import torch

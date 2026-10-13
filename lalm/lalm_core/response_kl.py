@@ -1,9 +1,3 @@
-# PR provenance (implementation origin; this update adds comments only):
-# PR #12: Entire teacher preparation/response target alignment implementation (43c2b02).
-# PR #19: Included unchanged; projector_runtime installs the 27B no-thinking renderer.
-# https://github.com/bitmanager/IFAO-lalm/pull/12
-# https://github.com/bitmanager/IFAO-lalm/pull/19
-
 """Response-only BLSP-style KD; native rendering, labels and packed LM are reused."""
 import copy
 

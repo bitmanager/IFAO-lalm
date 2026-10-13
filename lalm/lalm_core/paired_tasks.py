@@ -1,9 +1,3 @@
-# PR provenance (implementation origin; this update adds comments only):
-# PR #1: Entire linked-task-view validation/expansion implementation.
-# PR #19: Included unchanged because the shared datamodule imports it; KL uses answer-only cuts.
-# https://github.com/bitmanager/IFAO-lalm/pull/1
-# https://github.com/bitmanager/IFAO-lalm/pull/19
-
 """Atomic sampler units with explicitly labelled, linked training views."""
 import copy
 

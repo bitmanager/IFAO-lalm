@@ -1,10 +1,3 @@
-# PR provenance (implementation origin; this update adds comments only):
-# main: Base HF audio/text configuration and config resolution.
-# PR #1: asr_layer and GigaAM config resolution.
-# PR #19: projector_hidden_size; other additions are inherited dependencies.
-# https://github.com/bitmanager/IFAO-lalm/pull/1
-# https://github.com/bitmanager/IFAO-lalm/pull/19
-
 """
 LALM (Language-Audio Language Model) configuration.
 
@@ -54,9 +47,9 @@ class LALMConfig(PretrainedConfig):
         audio_dim: Optional[int] = None,
         text_dim: Optional[int] = None,
         projector_downsample_rate: int = 4,
-        projector_hidden_size: Optional[int] = None,  # PR #19: independent MLP width.
+        projector_hidden_size: Optional[int] = None,
         audio_token_id: Optional[int] = None,
-        asr_layer: Optional[int] = None,  # PR #1: intermediate ASR readout.
+        asr_layer: Optional[int] = None,
         **kwargs: Any,
     ) -> None:
         self.text_config = _resolve_config(text_config, DEFAULT_TEXT_MODEL_TYPE)
@@ -97,7 +90,6 @@ def _resolve_config(
 def _resolve_known_config(config: dict, model_type: str) -> PretrainedConfig:
     """Handle HF config classes that exist but are not AutoConfig-registered."""
     if model_type == "gigaam":
-        # PR #1: native checkpoint config represented through the LALM wrapper.
         from .gigaam_adapter import GigaAMConfig
 
         return GigaAMConfig.from_dict(config)

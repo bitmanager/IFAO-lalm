@@ -1,9 +1,3 @@
-# PR provenance (implementation origin; this update adds comments only):
-# PR #12: Entire response-KL target/freeze/gradient/teacher regression suite (43c2b02).
-# PR #19: Included unchanged as validation of the imported KL implementation.
-# https://github.com/bitmanager/IFAO-lalm/pull/12
-# https://github.com/bitmanager/IFAO-lalm/pull/19
-
 """Shifted response KD, unequal prefixes, native teacher rendering and freeze guards."""
 import copy
 from pathlib import Path

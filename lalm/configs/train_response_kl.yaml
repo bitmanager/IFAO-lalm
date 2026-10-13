@@ -1,9 +1,3 @@
-# PR provenance (implementation origin; this update adds comments only):
-# PR #12: Entire response-KL overlay config (43c2b02).
-# PR #19: Included unchanged as a dependency; the portable 27B config is separate.
-# https://github.com/bitmanager/IFAO-lalm/pull/12
-# https://github.com/bitmanager/IFAO-lalm/pull/19
-
 # Stage A only: answer-only train AND validation manifests, no inference change.
 # Usage: train.py --config-name=train_response_kl model.pretrained_model=... \
 #   exp_dir=... data.train_data_config=... data.valid_data_config=...

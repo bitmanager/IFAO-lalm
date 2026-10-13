@@ -1,12 +1,3 @@
-# PR provenance (implementation origin; this update adds comments only):
-# main: Lhotse datamodule and student feature/token batching.
-# PR #1: GigaAM raw-sample lengths, task routing and linked task views.
-# PR #12: response_kl mode and prepare_response_teacher calls (43c2b02).
-# PR #19: Includes the #1/#12 implementation unchanged; reuses this datamodule.
-# https://github.com/bitmanager/IFAO-lalm/pull/1
-# https://github.com/bitmanager/IFAO-lalm/pull/12
-# https://github.com/bitmanager/IFAO-lalm/pull/19
-
 from __future__ import annotations
 
 import logging
