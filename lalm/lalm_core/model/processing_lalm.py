@@ -4,6 +4,8 @@ from transformers.feature_extraction_utils import BatchFeature
 from transformers.processing_utils import ProcessingKwargs, ProcessorMixin
 from transformers.tokenization_utils_base import TextInput
 
+from .gigaam_adapter import gigaam_output_length
+
 _ENCODER_LENGTH_FNS: dict[str, callable] = {}
 _AUDIO_TOKEN_LENGTH_FNS: dict[str, callable] = {}
 
@@ -24,6 +26,7 @@ def _qwen3_aut_output_length(mel_frames: int) -> int:
 
 
 _ENCODER_LENGTH_FNS = {
+    "gigaam": gigaam_output_length,
     "whisper": _whisper_output_length,
     "qwen2_5_omni_audio_encoder": _qwen25_ae_output_length,
     "qwen3_omni_moe_audio_encoder": _qwen3_aut_output_length,
@@ -165,7 +168,8 @@ class LALMProcessor(ProcessorMixin):
             feature_lens = out.attention_mask.sum(dim=-1).long()
             feature_lens_list = feature_lens.tolist()
             # Pack padded (N, C, T_max) → flat (C, T_total) as the audio encoders expect
-            packed_features = self._pack_from_padded(out.input_features, feature_lens)
+            features = out.input_values.unsqueeze(1) if self.encoder_name == "gigaam" else out.input_features
+            packed_features = self._pack_from_padded(features, feature_lens)
             audio_lengths = iter(
                 self.audio_token_length_fn(int(length)) for length in feature_lens_list
             )
@@ -175,6 +179,8 @@ class LALMProcessor(ProcessorMixin):
             }
         elif audio_feature is not None:
             features, feature_lens = audio_feature
+            if self.encoder_name == "gigaam":
+                features = features.unsqueeze(1)
             if torch.is_tensor(feature_lens):
                 feature_lens = feature_lens.to(dtype=torch.long)
                 feature_lens_list = feature_lens.tolist()
@@ -245,6 +251,8 @@ class LALMProcessor(ProcessorMixin):
             )[0]  # positions of matching <|im_start|>
             if len(assistant_starts) == 0:
                 continue
+            # Earlier assistant turns are context, not targets for this audio cut.
+            assistant_starts = assistant_starts[-1:]
 
             # response content starts right after "<|im_start|>assistant\n"
             response_starts = (assistant_starts + 1 + header_len).clamp(max=L)
@@ -276,7 +284,7 @@ class LALMProcessor(ProcessorMixin):
             )
             label_mask = signal[:L].cumsum(0).bool()  # [L]
 
-            labels[b] = ids.masked_fill(~label_mask, -100)
+            labels[b] = ids.masked_fill(~(label_mask & attention_mask[b].bool()), -100)
 
         return labels
 

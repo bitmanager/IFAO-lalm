@@ -47,7 +47,9 @@ class LALMConfig(PretrainedConfig):
         audio_dim: Optional[int] = None,
         text_dim: Optional[int] = None,
         projector_downsample_rate: int = 4,
+        projector_hidden_size: Optional[int] = None,
         audio_token_id: Optional[int] = None,
+        asr_layer: Optional[int] = None,
         **kwargs: Any,
     ) -> None:
         self.text_config = _resolve_config(text_config, DEFAULT_TEXT_MODEL_TYPE)
@@ -55,7 +57,9 @@ class LALMConfig(PretrainedConfig):
         self.audio_dim = audio_dim
         self.text_dim = text_dim
         self.projector_downsample_rate = projector_downsample_rate
+        self.projector_hidden_size = projector_hidden_size or text_dim
         self.audio_token_id = audio_token_id
+        self.asr_layer = asr_layer
         super().__init__(**kwargs)
 
     def to_dict(self) -> dict:
@@ -85,6 +89,11 @@ def _resolve_config(
 
 def _resolve_known_config(config: dict, model_type: str) -> PretrainedConfig:
     """Handle HF config classes that exist but are not AutoConfig-registered."""
+    if model_type == "gigaam":
+        from .gigaam_adapter import GigaAMConfig
+
+        return GigaAMConfig.from_dict(config)
+
     if model_type == "whisper":
         from transformers.models.whisper.configuration_whisper import WhisperConfig
 

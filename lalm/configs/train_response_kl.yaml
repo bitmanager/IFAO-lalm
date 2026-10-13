@@ -1,0 +1,16 @@
+# Stage A only: answer-only train AND validation manifests, no inference change.
+# Usage: train.py --config-name=train_response_kl model.pretrained_model=... \
+#   exp_dir=... data.train_data_config=... data.valid_data_config=...
+# Batch budget still counts student tokens. Teacher text forward is extra work;
+# set a reviewed memory budget after CPU token accounting, never truncate history.
+defaults:
+  - train
+  - _self_
+
+trainer:
+  response_kl: true
+  response_kl_temperature: 2.0
+  frozen_modules: [audio_tower, language_model, asr_head, asr_norm]
+
+data:
+  paired_tasks: false
