@@ -1,0 +1,112 @@
+{
+  "host": "dev-1",
+  "scope": "Only own completed temporary source downloads",
+  "deletion_performed": false,
+  "candidates": [
+    {
+      "status": "CURRENT_LOCAL_AND_S3_FULL_SHA256_MATCH",
+      "id": "golos",
+      "local_dir": "/mnt/local/drive2/speech-source-downloads-20261012/golos",
+      "verified_files": 22,
+      "verified_payload_bytes": 23583116739,
+      "deletion_performed": false,
+      "physical_disk_bytes": 24522469376
+    },
+    {
+      "status": "CURRENT_LOCAL_AND_S3_FULL_SHA256_MATCH",
+      "id": "sova",
+      "local_dir": "/mnt/local/drive2/speech-source-downloads-20261012/sova",
+      "verified_files": 7,
+      "verified_payload_bytes": 1323287769,
+      "deletion_performed": false,
+      "physical_disk_bytes": 1323388928
+    },
+    {
+      "status": "CURRENT_LOCAL_AND_S3_FULL_SHA256_MATCH",
+      "id": "gemini",
+      "local_dir": "/mnt/local/drive2/speech-source-downloads-20261012/gemini",
+      "verified_files": 159,
+      "verified_payload_bytes": 1814709456,
+      "deletion_performed": false,
+      "physical_disk_bytes": 1815879680
+    },
+    {
+      "status": "CURRENT_LOCAL_AND_S3_FULL_SHA256_MATCH",
+      "id": "sova-kaggle",
+      "local_dir": "/mnt/local/drive2/speech-source-downloads-20261012/sova-kaggle",
+      "verified_files": 1,
+      "physical_disk_bytes": 8824504320,
+      "s3_target": "speech/speech-private-archive/sources/sova-rudevices/kaggle-alexcumder-v1/RuDevices-kaggle-v1.zip",
+      "sha256": "1c0b3df1ba3f08f606199d02ea74374e9ebd8be5e4026869f9f38fc4b8278397",
+      "deletion_performed": false
+    },
+    {
+      "status": "CURRENT_LOCAL_HASHES_AND_S3_COMPLETE_ARCHIVE_SHA256_MATCH",
+      "id": "kopesc1",
+      "local_dir": "/mnt/local/drive2/speech-source-downloads-20261012/kopesc1",
+      "verified_source_checksum_entries": 7,
+      "physical_disk_bytes": 522567680,
+      "s3_verified_archive": "speech/speech-private-archive/sources/kopesc1-ru/clarino-11509-150/KoPeSC1-all-original-files.tar.zst",
+      "archive_sha256": "1113a8a40d7e5d9bae05a5e47b72f4bf86865110dd6d19bb333f5b15ef5e4cca",
+      "archive_all_source_file_coverage_previously_verified": true,
+      "deletion_performed": false
+    },
+    {
+      "status": "CURRENT_LOCAL_HASHES_AND_S3_COMPLETE_ARCHIVE_SHA256_MATCH",
+      "id": "mtsair-phone-benchmark",
+      "local_dir": "/mnt/local/drive2/speech-source-downloads-20261012/mtsair-phone-benchmark",
+      "verified_source_checksum_entries": 12120,
+      "physical_disk_bytes": 2267279360,
+      "s3_verified_archive": "speech/speech-benchmarks/upstream-mtsair-21301635963415883d3868fd88b26d1df19881e9/compressed/mtsair-native-source.tar.zst",
+      "archive_sha256": "dc4411c835d8638326f635ec1383f15b7c572b859aeb67443f302a85df1f414b",
+      "archive_all_source_file_coverage_previously_verified": true,
+      "deletion_performed": false
+    },
+    {
+      "status": "CURRENT_LOCAL_HASHES_AND_S3_COMPLETE_ARCHIVE_SHA256_MATCH",
+      "id": "rinco",
+      "local_dir": "/mnt/local/drive2/speech-source-downloads-20261012/rinco-8119302",
+      "verified_source_checksum_entries": 5,
+      "physical_disk_bytes": 291688448,
+      "s3_verified_archive": "speech/speech-private-archive/sources/rinco-ru/zenodo-8119302/RINCO-v01-all-original-files.tar.zst",
+      "archive_sha256": "bd6ab07bff9b3b827fa34b09bd4ac7904284094eb48ebe377ae479ce07a0c09c",
+      "archive_all_source_file_coverage_previously_verified": true,
+      "deletion_performed": false
+    },
+    {
+      "status": "CURRENT_LOCAL_HASHES_AND_S3_COMPLETE_ARCHIVE_SHA256_MATCH",
+      "id": "sessions",
+      "local_dir": "/mnt/local/drive2/speech-source-downloads-20261012/sessions",
+      "verified_source_checksum_entries": 27187,
+      "physical_disk_bytes": 2163630080,
+      "s3_verified_archive": "speech/speech-corpora/staging/bitmanager-sessions/hf-52644a10afb6dd0651ed002809cdd24493f409ec/compressed/bitmanager-sessions-original-source.tar.zst",
+      "archive_sha256": "e7de77a6d681941fd49d7e1ec20360cef1470577da41b27d84732d87fd89019e",
+      "archive_all_source_file_coverage_previously_verified": true,
+      "deletion_performed": false
+    },
+    {
+      "status": "CURRENT_LOCAL_HASHES_AND_S3_COMPLETE_ARCHIVE_SHA256_MATCH",
+      "id": "spokencorpora",
+      "local_dir": "/mnt/local/drive2/speech-source-downloads-20261012/spokencorpora-ru",
+      "verified_source_checksum_entries": 95,
+      "physical_disk_bytes": 438841344,
+      "s3_verified_archive": "speech/speech-private-archive/sources/spokencorpora-ru/native-20261013/spokencorpora-RU-all-original-files.tar.zst",
+      "archive_sha256": "f11bb7c182b30b6de0561e75a24670e13bd045d765f5b668df0a16aa6cc34dcf",
+      "archive_all_source_file_coverage_previously_verified": true,
+      "deletion_performed": false
+    },
+    {
+      "status": "CURRENT_LOCAL_HASHES_AND_S3_COMPLETE_ARCHIVE_SHA256_MATCH",
+      "id": "yo-cpt-ru-pilot",
+      "local_dir": "/mnt/local/drive2/speech-source-downloads-20261012/yo-cpt-ru-pilot",
+      "verified_source_checksum_entries": 8,
+      "physical_disk_bytes": 2352103424,
+      "s3_verified_archive": "speech/speech-private-archive/sources/yo-cpt-ru-pilot/hf-f2f92c5ecf6b0323cf7e7f9599f0e4852f6c536b/YO-CPT-ru-pinned-pilot-with-all-metadata.tar.zst",
+      "archive_sha256": "72cadfc51af85f085212ab00f6aee2c530fbfd49cca92bb44288eebe5df9d89c",
+      "archive_all_source_file_coverage_previously_verified": true,
+      "deletion_performed": false
+    }
+  ],
+  "physical_disk_bytes_total": 44522352640,
+  "validation": "Current complete local SHA256 and complete S3 file/archive SHA256 checked; source lineage and all native metadata retained in S3"
+}
