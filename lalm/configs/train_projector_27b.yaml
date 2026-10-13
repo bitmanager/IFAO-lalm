@@ -1,0 +1,73 @@
+exp_dir: ${oc.env:PROJECTOR_RUN}
+seed: 114514
+model:
+  language_model: ${oc.env:QWEN_MODEL}
+  gigaam_checkpoint: ${oc.env:GIGAAM_CHECKPOINT}
+  tokenizer: ${oc.env:QWEN_MODEL}
+  initial_projector: null
+  projector_hidden_size: 6144
+  projector_downsample_rate: 2
+trainer:
+  optimizer:
+    type: adamw
+    lr: 1.0e-05
+    weight_decay: 0.0
+    betas:
+    - 0.9
+    - 0.95
+    eps: 1.0e-08
+    fused: true
+  scheduler:
+    type: cosine
+    t_max: 10
+    eta_min: 1.0e-05
+  num_epochs: 8
+  start_epoch: 1
+  num_steps: 1000000000
+  start_batch: 0
+  mixed_precision: bf16
+  frozen_modules:
+  - audio_tower
+  - language_model
+  - asr_head
+  - asr_norm
+  use_averaged_model: true
+  average_period: 100
+  ema_decay: 0.9999
+  grad_accum_steps: 1
+  max_grad_norm: 1.0
+  valid_interval: 0
+  save_every_n: 1
+  keep_last_k: 2
+  log_interval: 5
+  reset_interval: 200
+  tensorboard: true
+  find_unused_parameters: false
+  response_kl: true
+  response_kl_temperature: 2.0
+  checkpoint_interval: 0
+data:
+  train_data_config: ${oc.env:TRAIN_DATA_CONFIG}
+  valid_data_config: ${oc.env:VALID_DATA_CONFIG}
+  on_the_fly_feats: true
+  sampling_rate: 16000
+  feature: wav
+  fault_tolerant: false
+  audio_token_rate: 12.5
+  min_duration: 0.5
+  max_duration: 30.0
+  data_augmentation:
+    enable_spec_aug: false
+    enable_musan: false
+    enable_speed_perturb: false
+    musan: null
+  sampler:
+    num_buckets: 4
+    max_tokens: 2000
+    max_duration: null
+    shuffle: true
+    drop_last: false
+  num_workers: 2
+  use_infinite_dataset: false
+  paired_tasks: false
+  response_kl: true
