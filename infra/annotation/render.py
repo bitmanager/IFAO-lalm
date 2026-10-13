@@ -52,6 +52,7 @@ def build(accounts, agy_path):
           'build': {'context': str(REPO), 'dockerfile': 'infra/annotation/Dockerfile.airflow'},
           'entrypoint': ['python', '-m', 'lalm.annotation.cli'], 'command': ['init'], 'restart': 'on-failure'},
       'source-preparer': {**common, 'profiles': ['sources'],
+          'environment': {**env, 'PREPARE_MAX_PENDING': '${PREPARE_MAX_PENDING:-6000}'},
           'command': ['python', '-m', 'lalm.annotation.prepare'],
           'restart': 'unless-stopped', 'mem_limit': '4g', 'cpus': 2,
           'stop_grace_period': '60s'},

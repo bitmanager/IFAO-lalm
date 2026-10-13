@@ -8,7 +8,7 @@
 |---|---|---|---|---|---:|
 | agy-01 | elejatoqokim01@gmail.com | Google AI Pro | Первоначальный способ не подтверждён: OAuth или импорт refresh token | Да | 5 |
 | agy-02 | asuxoyikokub51@gmail.com | Google AI Pro | Первоначальный способ не подтверждён: OAuth или импорт refresh token | Да | 5 |
-| agy-03 | anhlanguyen123abcxyz@gmail.com | Antigravity Starter (ранее Ultra) | Первоначальный способ не подтверждён: OAuth или импорт refresh token | Да | 20 |
+| agy-03 | anhlanguyen123abcxyz@gmail.com | Antigravity Starter (ранее Ultra) | Импорт replacement refresh token продавца, 12.10.2026 около 23:09 МСК | Да | 20 |
 | agy-04 | zepunowu59@gmail.com | Google AI Pro | Первоначальный способ не подтверждён: OAuth или импорт refresh token | Да | 5 |
 | agy-05 | art0644857923@gmail.com | Google AI Ultra | OAuth в браузере, добавлен 13.10.2026 | Да | 20 |
 | agy-06 | art0644854407@gmail.com | Google AI Ultra | OAuth в браузере, добавлен 13.10.2026 | Да | 20 |
@@ -121,3 +121,9 @@ HTTPS-запросами к Google и native `agy models`; прежняя при
 около 20.10 16:23 МСК. Причина изменения подписки неизвестна. Последние
 429 содержат `exhausted your capacity` и некорректное `Resets in 0s`;
 не считать это доказательством проблемы VPN или эффектом копии 17.
+
+История 03 уточнена по сессии `01a130dd-da67-7092-a8a2-fe2b28a4c861`:
+12.10 в 23:08 МСК пользователь передал замену токена с фразой
+«Please change to this token». В 23:09 аккаунт импортирован непосредственно
+в AGY CLI через PO; API вернул `g1-ultra-tier`, тест `AGY_CONTAINER_OK`
+успешно завершился за 6,4 с. Cockpit GUI и браузерный OAuth для него не использовались.
