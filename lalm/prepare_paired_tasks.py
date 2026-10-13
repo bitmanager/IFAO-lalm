@@ -5,7 +5,7 @@ from pathlib import Path
 
 from lhotse import CutSet, MonoCut
 from lalm_core.model import LALMProcessor
-from prepare_conversation import prepare_cut, prepare_asr_cut, _render_conversation, _estimate_text_tokens
+from prepare_conversation import ASR_INSTRUCTION, prepare_cut, prepare_asr_cut, _render_conversation, _estimate_text_tokens
 from lalm_core.paired_tasks import task_views
 
 
@@ -45,6 +45,16 @@ def replace_mixed_answer(answer_view, foreground, original_answer, tokenizer):
     return result
 
 
+def _task_view_source(cut):
+    """Fields shared by corresponding task views, without per-task rendering."""
+    value = copy.deepcopy(cut.to_dict())
+    value.pop("id")
+    for key in ("task", "conversation", "rendered_conversation", "num_text_tokens", "num_tokens"):
+        value["custom"].pop(key, None)
+    value["supervisions"][0].get("custom", {}).pop("answer", None)
+    return value
+
+
 def pack_existing_task_views(asr, answer, tokenizer):
     """Pack prepared corresponding views, preserving their policy and targets."""
     for cut, task in ((asr, "asr"), (answer, "answer")):
@@ -66,14 +76,7 @@ def pack_existing_task_views(asr, answer, tokenizer):
     if asr.id[:-4] != answer.id[:-7]:
         raise ValueError("Task view IDs are not a corresponding pair")
     # Compare every other field, including audio, history, split and mixture QC.
-    def common(cut):
-        value = copy.deepcopy(cut.to_dict())
-        value.pop("id")
-        for key in ("task", "conversation", "rendered_conversation", "num_text_tokens", "num_tokens"):
-            value["custom"].pop(key, None)
-        value["supervisions"][0].get("custom", {}).pop("answer", None)
-        return value
-    if common(asr) != common(answer):
+    if _task_view_source(asr) != _task_view_source(answer):
         raise ValueError("Task views differ in audio/history/source metadata")
     if asr.conversation[:-2] != answer.conversation[:-2]:
         raise ValueError("Prepared task history differs")
@@ -81,11 +84,10 @@ def pack_existing_task_views(asr, answer, tokenizer):
     if asr_user["role"] != "user" or answer_user["role"] != "user":
         raise ValueError("Expected native current user turns")
     a, b = asr_user["content"], answer_user["content"]
-    instruction = "Дословно расшифруй текущую аудиозапись. Выведи только её текст."
     if not (len(a) == 2 and len(b) in (1, 2) and a[0] == b[0]
             and a[0].get("type") == "audio"):
         raise ValueError("Current audio/policy structure differs")
-    expected = instruction + ("\n" + b[1]["text"] if len(b) == 2 else "")
+    expected = ASR_INSTRUCTION + ("\n" + b[1]["text"] if len(b) == 2 else "")
     if a[1] != {"type": "text", "text": expected}:
         raise ValueError("ASR and answer foreground policies differ")
     unit = copy.deepcopy(answer)

@@ -5,15 +5,17 @@ import torch
 import torch.distributed as dist
 import torch.nn.functional as F
 
+IGNORE_INDEX = torch.nn.CrossEntropyLoss().ignore_index
+
 
 def separate_task_ce(logits, labels, asr_positions, answer_weight, sync_counts=False):
     if not math.isfinite(answer_weight) or answer_weight < 0:
         raise ValueError("answer_loss_weight must be finite and nonnegative")
     targets = labels[..., 1:].reshape(-1)
     positions = asr_positions[1:].reshape(-1)
-    valid = targets != -100
+    valid = targets != IGNORE_INDEX
     nll = F.cross_entropy(logits[..., :-1, :].float().reshape(-1, logits.size(-1)),
-                         targets, ignore_index=-100, reduction="none")
+                         targets, ignore_index=IGNORE_INDEX, reduction="none")
     masks = torch.stack((valid & positions, valid & ~positions))
     sums = (masks * nll).sum(dim=1)
     counts = masks.sum(dim=1)
@@ -42,8 +44,8 @@ def response_kl_loss(student_logits, teacher_logits, student_labels, teacher_lab
     """
     if not math.isfinite(temperature) or temperature <= 0:
         raise ValueError("Response KL temperature must be positive and finite")
-    smask = student_labels[..., 1:] != -100
-    tmask = teacher_labels[..., 1:] != -100
+    smask = student_labels[..., 1:] != IGNORE_INDEX
+    tmask = teacher_labels[..., 1:] != IGNORE_INDEX
     if not torch.equal(student_labels[..., 1:][smask], teacher_labels[..., 1:][tmask]):
         raise ValueError("Response KL packed targets differ")
     student = student_logits[..., :-1, :][smask].float() / temperature

@@ -16,11 +16,11 @@ def load_language_model(model_path, torch_dtype=None, **kwargs):
             output_loading_info=True,
             **kwargs,
         )
-        if info.get("missing_keys") or info.get("mismatched_keys"):
+        if info["missing_keys"] or info["mismatched_keys"]:
             raise RuntimeError("Incomplete language weights: " + str(info))
         unexpected = [
             k
-            for k in info.get("unexpected_keys", [])
+            for k in info["unexpected_keys"]
             if not k.startswith(("model.visual.", "visual.", "mtp."))
         ]
         if unexpected:

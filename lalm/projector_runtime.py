@@ -1,7 +1,11 @@
 """No-thinking response rendering and frozen-backbone activation recomputation."""
 
+from functools import partial
+
 import torch
 from lalm_core.model import LALMProcessor
+from lalm_core.task_loss import IGNORE_INDEX
+from torch.utils.checkpoint import checkpoint
 from transformers import AutoTokenizer, Wav2Vec2FeatureExtractor
 
 
@@ -41,12 +45,12 @@ class KLProcessor(LALMProcessor):
             "<think>\n\n</think>\n\n", add_special_tokens=False
         )
         for row in labels:
-            pos = (row != -100).nonzero().flatten()
+            pos = (row != IGNORE_INDEX).nonzero().flatten()
             assert len(pos) > len(scaffold)
             assert row[pos[: len(scaffold)]].tolist() == scaffold, (
                 "Expected masked no-thinking scaffold"
             )
-            row[pos[: len(scaffold)]] = -100
+            row[pos[: len(scaffold)]] = IGNORE_INDEX
         return labels
 
 
@@ -66,17 +70,13 @@ def processor(tokenizer_path, downsample_rate=2):
     )
 
 
+def _checkpointed_eval_forward(original, hidden_states, *args, **kwargs):
+    if torch.is_grad_enabled() and hidden_states.requires_grad:
+        return checkpoint(original, hidden_states, *args, use_reentrant=False, **kwargs)
+    return original(hidden_states, *args, **kwargs)
+
+
 def install_eval_checkpointing(lm):
     """Activation recomputation works while frozen LM remains eval (no dropout)."""
-    from torch.utils.checkpoint import checkpoint
-
     for layer in lm.model.layers:
-        original = layer.forward
-
-        def forward(*args, _original=original, **kwargs):
-            hidden = args[0] if args else kwargs.get("hidden_states")
-            if torch.is_grad_enabled() and hidden is not None and hidden.requires_grad:
-                return checkpoint(_original, *args, use_reentrant=False, **kwargs)
-            return _original(*args, **kwargs)
-
-        layer.forward = forward
+        layer.forward = partial(_checkpointed_eval_forward, layer.forward)

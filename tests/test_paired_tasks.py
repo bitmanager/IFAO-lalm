@@ -56,6 +56,17 @@ def test_pair_preserves_audio_history_and_does_not_leak_current_targets():
     assert views[1].supervisions[0].custom['answer'] == 'Точный ответ'
 
 
+def test_builtin_asr_prompt_is_english_without_translating_the_target():
+    cut = source()
+    asr = prepare_asr_cut(cut, Tokenizer())
+    assert asr.conversation[-2]['content'][1]['text'] == (
+        'Transcribe the current audio verbatim in its original language. '
+        'Output only the transcription.'
+    )
+    assert asr.conversation[-1]['content'] == cut.supervisions[0].text
+    assert asr.history == cut.history
+
+
 @pytest.mark.parametrize('transcript,answer,tasks', [
     ('Текст', None, ['asr']), ('Текст', '', ['asr']),
     (None, 'Ответ', ['answer']), ('', 'Ответ', ['answer']),

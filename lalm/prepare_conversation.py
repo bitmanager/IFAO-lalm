@@ -15,6 +15,11 @@ from lhotse import CutSet
 from tqdm import tqdm
 from transformers import AutoTokenizer
 
+ASR_INSTRUCTION = (
+    "Transcribe the current audio verbatim in its original language. "
+    "Output only the transcription."
+)
+
 def _build_conversation(cut, instruction=None, system=None):
     supervision = cut.supervisions[0]
     response = (supervision.custom or {}).get("answer", supervision.text)
@@ -185,7 +190,7 @@ def prepare_asr_cut(cut, tokenizer):
     cut.id += "-asr"
     cut.custom["task"] = "asr"
     cut.supervisions[0].custom = {**(cut.supervisions[0].custom or {}), "answer": cut.supervisions[0].text}
-    return prepare_cut(cut, tokenizer, instruction="Дословно расшифруй текущую аудиозапись. Выведи только её текст.")
+    return prepare_cut(cut, tokenizer, instruction=ASR_INSTRUCTION)
 
 
 if __name__ == "__main__":

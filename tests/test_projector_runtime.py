@@ -1,16 +1,22 @@
 """Portable trainer lifecycle and hybrid packing without external model weights."""
 
 import sys
+import pickle
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
 import torch
+import pytest
 from omegaconf import OmegaConf
-from transformers import Qwen3_5ForCausalLM, Qwen3_5TextConfig
+from safetensors.torch import save_file
+from transformers import Qwen3_5Config, Qwen3_5ForCausalLM, Qwen3_5TextConfig
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "lalm"))
 from lalm_core.model import LALMConfig, LALMForConditionalGeneration
+from lalm_core.model.loading import load_language_model
+from lalm_core.model.modeling_lalm import LALMProjector
+from lalm_core.model.processing_lalm import make_audio_token_length_fn
 from projector_runtime import install_eval_checkpointing
 from train_projector import ProjectorTrainer
 
@@ -38,6 +44,44 @@ def tiny_model():
     model.encode_audio = lambda audio_features, feature_lens: audio_features
     model._get_audio_output_lengths = lambda feature_lens: feature_lens
     return model
+
+
+@pytest.mark.parametrize("width", [0, -1, False, 1.5, ""])
+def test_invalid_projector_width_is_rejected_instead_of_defaulted(width):
+    with pytest.raises(ValueError, match="positive integer"):
+        LALMConfig(audio_dim=8, text_dim=32, projector_hidden_size=width)
+    with pytest.raises(ValueError, match="positive integer"):
+        LALMProjector(8, 32, downsample_rate=2, hidden_size=width)
+
+
+def test_audio_length_callable_survives_worker_pickling():
+    length = make_audio_token_length_fn("gigaam", projector_downsample_rate=2)
+    restored = pickle.loads(pickle.dumps(length))
+    assert restored(16000) == length(16000) == 12
+
+
+@pytest.mark.parametrize("corruption", [None, "missing", "unexpected"])
+def test_original_qwen_text_weights_load_strictly(tmp_path, corruption):
+    lm = tiny_model().language_model
+    Qwen3_5Config(text_config=lm.config.to_dict()).save_pretrained(tmp_path)
+    weights = {
+        name.replace("model.", "model.language_model.", 1) if name.startswith("model.") else name:
+        value.detach().clone().contiguous()
+        for name, value in lm.state_dict().items()
+    }
+    weights["model.visual.placeholder"] = torch.ones(1)
+    if corruption == "missing":
+        weights.pop("model.language_model.embed_tokens.weight")
+    elif corruption == "unexpected":
+        weights["unrelated.weight"] = torch.ones(1)
+    save_file(weights, str(tmp_path / "model.safetensors"), metadata={"format": "pt"})
+    if corruption is not None:
+        with pytest.raises(RuntimeError, match="Incomplete language weights|Unexpected language weight keys"):
+            load_language_model(tmp_path, torch_dtype=torch.float32, local_files_only=True)
+    else:
+        loaded = load_language_model(tmp_path, torch_dtype=torch.float32, local_files_only=True)
+        for name, value in lm.state_dict().items():
+            torch.testing.assert_close(loaded.state_dict()[name], value, atol=0, rtol=0)
 
 
 def test_hybrid_packing_preserves_logits_gradients_and_recomputation():

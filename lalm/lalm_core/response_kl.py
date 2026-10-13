@@ -4,6 +4,7 @@ import copy
 import torch
 
 from prepare_conversation import _render_conversation, teacher_messages
+from .task_loss import IGNORE_INDEX
 
 
 def validate_response_targets(student, teacher, student_mask, teacher_mask):
@@ -11,16 +12,16 @@ def validate_response_targets(student, teacher, student_mask, teacher_mask):
     if student.shape[0] != teacher.shape[0]:
         raise ValueError("Response KL batch sizes differ")
     for labels, mask in ((student, student_mask), (teacher, teacher_mask)):
-        if labels.shape != mask.shape or ((labels != -100) & ~mask.bool()).any():
+        if labels.shape != mask.shape or ((labels != IGNORE_INDEX) & ~mask.bool()).any():
             raise ValueError("Response KL labels must exclude padding")
         for row in labels:
-            pos = (row != -100).nonzero().flatten()
+            pos = (row != IGNORE_INDEX).nonzero().flatten()
             if not len(pos) or pos[0] == 0 or not torch.equal(
                 pos, torch.arange(pos[0], pos[-1] + 1, device=pos.device)
             ):
                 raise ValueError("Response KL requires one nonempty response after a masked prefix")
     for left, right in zip(student, teacher):
-        if not torch.equal(left[left != -100], right[right != -100]):
+        if not torch.equal(left[left != IGNORE_INDEX], right[right != IGNORE_INDEX]):
             raise ValueError("Response KL target token IDs differ within an example")
 
 
@@ -58,6 +59,6 @@ def prepare_response_teacher(cuts, processor, student):
                               student["attention_mask"], teacher["attention_mask"])
     eos = processor.tokenizer.convert_tokens_to_ids("<|im_end|>")
     for row in teacher["labels"]:
-        if row[row != -100][-1].item() != eos:
+        if row[row != IGNORE_INDEX][-1].item() != eos:
             raise ValueError("Response KL target must include final assistant EOS")
     return {key: teacher[key] for key in ("input_ids", "attention_mask", "labels")}

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from functools import partial
 
 import torch
 import yaml
@@ -128,6 +129,10 @@ class LALMDataset(torch.utils.data.Dataset):
         return 0
 
 
+def _duration_in_range(cut, *, min_duration, max_duration):
+    return min_duration <= cut.duration <= max_duration
+
+
 class LALMDataModule(BaseLhotseDatamodule):
     def __init__(self, cfg, processor):
         set_audio_duration_mismatch_tolerance(1)
@@ -138,13 +143,12 @@ class LALMDataModule(BaseLhotseDatamodule):
         min_dur = float(self.cfg.get("min_duration", 0.5))
         max_dur = float(self.cfg.get("max_duration", 30.0))
 
-        def keep(c):
-            return min_dur <= c.duration <= max_dur
-
         audio_token_rate = float(self.cfg.get("audio_token_rate", 12.5))
-        return cutset.filter(keep).map(
-            lambda cut: estimate_cut_tokens(cut, audio_token_rate=audio_token_rate,
-                paired_tasks=self.cfg.get("paired_tasks", False))
+        return cutset.filter(
+            partial(_duration_in_range, min_duration=min_dur, max_duration=max_dur)
+        ).map(
+            partial(estimate_cut_tokens, audio_token_rate=audio_token_rate,
+                    paired_tasks=self.cfg.get("paired_tasks", False))
         )
 
     def setup_train(self):

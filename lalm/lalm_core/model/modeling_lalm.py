@@ -5,7 +5,7 @@ import torch.nn as nn
 from transformers import AutoModel, AutoModelForCausalLM, PreTrainedModel
 
 from .configuration_lalm import LALMConfig
-from ..task_loss import separate_task_ce, response_kl_loss
+from ..task_loss import IGNORE_INDEX, separate_task_ce, response_kl_loss
 from ..response_kl import validate_response_targets
 
 
@@ -23,7 +23,10 @@ class LALMProjector(nn.Module):
     def __init__(self, audio_dim: int, text_dim: int, downsample_rate: int = 5, hidden_size: int | None = None):
         super().__init__()
         self.downsample_rate = downsample_rate
-        hidden_size = hidden_size or text_dim
+        if hidden_size is None:
+            hidden_size = text_dim
+        if isinstance(hidden_size, bool) or not isinstance(hidden_size, int) or hidden_size <= 0:
+            raise ValueError("Projector hidden_size must be a positive integer")
         self.linear1 = nn.Linear(audio_dim * downsample_rate, hidden_size)
         self.act = nn.GELU()
         self.linear2 = nn.Linear(hidden_size, text_dim)
@@ -360,7 +363,7 @@ class LALMForConditionalGeneration(PreTrainedModel):
                 raise ValueError("Separate task CE requires explicit task routing")
             # No sequence's first token may be predicted by the previous sequence.
             packed_labels = packed_labels.clone()
-            packed_labels[:, torch.cat((seq_lens.new_zeros(1), seq_lens.cumsum(0)[:-1]))] = -100
+            packed_labels[:, torch.cat((seq_lens.new_zeros(1), seq_lens.cumsum(0)[:-1]))] = IGNORE_INDEX
 
         T_total = packed_embeds.size(1)
         ones = torch.ones(T_total, device=device, dtype=torch.long)

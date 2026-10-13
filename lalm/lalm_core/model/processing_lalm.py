@@ -1,3 +1,5 @@
+from functools import partial
+
 import torch
 from transformers.audio_utils import AudioInput
 from transformers.feature_extraction_utils import BatchFeature
@@ -5,6 +7,7 @@ from transformers.processing_utils import ProcessingKwargs, ProcessorMixin
 from transformers.tokenization_utils_base import TextInput
 
 from .gigaam_adapter import gigaam_output_length
+from ..task_loss import IGNORE_INDEX
 
 _ENCODER_LENGTH_FNS: dict[str, callable] = {}
 _AUDIO_TOKEN_LENGTH_FNS: dict[str, callable] = {}
@@ -34,6 +37,10 @@ _ENCODER_LENGTH_FNS = {
 }
 
 
+def _audio_token_length(mel_frames, *, encoder_fn, downsample_rate):
+    return encoder_fn(mel_frames) // downsample_rate
+
+
 def make_audio_token_length_fn(
     encoder_name: str, projector_downsample_rate: int = 4
 ) -> callable:
@@ -49,12 +56,8 @@ def make_audio_token_length_fn(
         raise ValueError("projector_downsample_rate must be a positive integer.")
     name = f"{encoder_name}_ds{projector_downsample_rate}"
     if name not in _AUDIO_TOKEN_LENGTH_FNS:
-        encoder_fn = _ENCODER_LENGTH_FNS[encoder_name]
-        ds = projector_downsample_rate
-
-        def fn(mel_frames: int) -> int:
-            return encoder_fn(mel_frames) // ds
-
+        fn = partial(_audio_token_length, encoder_fn=_ENCODER_LENGTH_FNS[encoder_name],
+                     downsample_rate=projector_downsample_rate)
         fn.__name__ = name
         _AUDIO_TOKEN_LENGTH_FNS[name] = fn
     return _AUDIO_TOKEN_LENGTH_FNS[name]
@@ -216,7 +219,7 @@ class LALMProcessor(ProcessorMixin):
         )
 
     def _prepare_labels(self, input_ids, attention_mask):
-        labels = torch.full_like(input_ids, -100)
+        labels = torch.full_like(input_ids, IGNORE_INDEX)
 
         im_start_id = self.tokenizer.convert_tokens_to_ids("<|im_start|>")
         im_end_id = self.tokenizer.convert_tokens_to_ids("<|im_end|>")
@@ -284,7 +287,7 @@ class LALMProcessor(ProcessorMixin):
             )
             label_mask = signal[:L].cumsum(0).bool()  # [L]
 
-            labels[b] = ids.masked_fill(~(label_mask & attention_mask[b].bool()), -100)
+            labels[b] = ids.masked_fill(~(label_mask & attention_mask[b].bool()), IGNORE_INDEX)
 
         return labels
 

@@ -10,6 +10,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 
 from auden.trainer.ddp_trainer import BaseTrainer
 from auden.utils.metric_tracker import MetricsTracker
+from .task_loss import IGNORE_INDEX
 
 
 class LALMTrainer(BaseTrainer):
@@ -241,7 +242,7 @@ class LALMTrainer(BaseTrainer):
     def _token_accuracy(logits: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
         shift_logits = logits[..., :-1, :]
         shift_labels = labels[..., 1:]
-        valid = shift_labels != -100
+        valid = shift_labels != IGNORE_INDEX
         n = valid.sum()
         if n == 0:
             return logits.new_zeros(())

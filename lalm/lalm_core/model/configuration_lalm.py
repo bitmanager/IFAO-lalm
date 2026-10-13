@@ -57,7 +57,15 @@ class LALMConfig(PretrainedConfig):
         self.audio_dim = audio_dim
         self.text_dim = text_dim
         self.projector_downsample_rate = projector_downsample_rate
-        self.projector_hidden_size = projector_hidden_size or text_dim
+        if projector_hidden_size is not None and (
+            isinstance(projector_hidden_size, bool)
+            or not isinstance(projector_hidden_size, int)
+            or projector_hidden_size <= 0
+        ):
+            raise ValueError("projector_hidden_size must be a positive integer")
+        self.projector_hidden_size = (
+            text_dim if projector_hidden_size is None else projector_hidden_size
+        )
         self.audio_token_id = audio_token_id
         self.asr_layer = asr_layer
         super().__init__(**kwargs)
