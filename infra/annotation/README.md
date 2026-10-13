@@ -515,3 +515,12 @@ are fixed. Raw failed and recovered outputs remain auditable in private S3.
 Six extra slots 08–13 are staged (not enabled) using existing VPN proxies and
 independent home volumes. See `ACCOUNTS.md` and `pending-ultra-slots.json`.
 `check_usage.py --accounts 8 9 10 11 12 13` supports them after authentication.
+
+Eligibility-check transport EOF is handled separately from denied access. A single
+ERROR result with zero turns and zero duration, and the exact HTTPS POST EOF
+message, is retried through the existing queue (at most three total attempts).
+The delay is random 30–90 seconds, doubled for each subsequent attempt; the
+account also receives the queue cooldown. Raw artifacts remain per attempt.
+Verification requests, forbidden responses, ambiguous output, and any model
+activity do not qualify. Existing blocked accounts require a successful access
+check and inspection of their failure before being re-enabled.

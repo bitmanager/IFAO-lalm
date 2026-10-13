@@ -3,6 +3,7 @@ import concurrent.futures
 import hashlib
 import json
 import os
+import random
 import re
 from pathlib import Path
 import signal
@@ -88,6 +89,25 @@ def probe_auth():
         return False
 
 
+def predispatch_eligibility_eof(stdout, timed_out=False):
+    """Retry only the observed transport failure before any model activity."""
+    if timed_out:
+        return False
+    try:
+        events = [json.loads(line) for line in stdout.splitlines() if line.strip()]
+    except ValueError:
+        return False
+    if len(events) != 1 or not isinstance(events[0], dict) or events[0].get('event') != 'result':
+        return False
+    r = events[0].get('result')
+    if not isinstance(r, dict):
+        return False
+    error = r.get('error', '')
+    return (r.get('status') == 'ERROR' and r.get('num_turns') == 0
+            and r.get('duration_seconds') == 0 and isinstance(error, str)
+            and re.fullmatch(r'Eligibility check failed: Post "https://[^"\s]+":? (?:unexpected )?EOF', error) is not None)
+
+
 def agy_env():
     return {k: v for k, v in os.environ.items() if k in {
         'PATH', 'HOME', 'LANG', 'LC_ALL', 'TZ', 'HTTP_PROXY', 'HTTPS_PROXY', 'NO_PROXY',
@@ -160,6 +180,12 @@ def process(job):
                 raise ValueError('native_exit')
             native = agy_result(stdout, audio)
         except (ValueError, KeyError, TypeError):
+            if rc != 0 and predispatch_eligibility_eof(stdout, timed_out):
+                # Existing queue caps attempts at three and cools down the account.
+                # Raw artifacts above retain every attempt; no sleeping worker slot.
+                finish(job, 'RETRYABLE_FAILED', error_code='eligibility_transport_eof',
+                       retry_seconds=random.uniform(30, 90) * 2 ** min(job['attempt'] - 1, 2))
+                return
             state, code, block = classify(stdout + stderr, timed_out)
             delay = quota_reset_delay(stdout + stderr) if block == 'quota_exhausted' else None
             finish(job, state, error_code=code, retry_seconds=delay or 300 * job['attempt'],
