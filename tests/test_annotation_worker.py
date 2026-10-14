@@ -97,6 +97,17 @@ class WorkerErrorTests(unittest.TestCase):
              patch.object(worker, 'NATIVE_API_GOOD_COUNT', 100):
             self.assertFalse(worker.native_api_selected(twenty_five, 4, 1000, 'verbatim', None, 'gemini-3.8-flash-low'))
 
+    def test_native_route_can_use_higher_verified_account_share(self):
+        from unittest.mock import patch
+        import lalm.annotation.worker as worker
+        sixty_five = {'id': '00000041'+'0'*56, 'sample': {'review_only': True}}
+        with patch.dict('os.environ', {'ACCOUNT_ID': 'agy-08', 'NATIVE_API_PERCENT': '70',
+                                      'NATIVE_API_MAX_PERCENT': '70'}), \
+             patch.object(worker, 'NATIVE_API_DISABLED_UNTIL', 0), \
+             patch.object(worker, 'NATIVE_API_DEGRADED', False), \
+             patch.object(worker, 'NATIVE_API_GOOD_COUNT', 100):
+            self.assertTrue(worker.native_api_selected(sixty_five, 4, 1000, 'verbatim', None, 'gemini-3.8-flash-low'))
+
     def test_stable_restart_floor_falls_back_after_bad_api_response(self):
         from unittest.mock import patch
         import lalm.annotation.worker as worker

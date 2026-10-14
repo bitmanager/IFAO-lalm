@@ -819,8 +819,13 @@ schema validation and was not retried; both listened non-Russian controls were
 rejected, and the listened Russian control was also rejected. An account-local
 `NATIVE_API_MAX_PERCENT=20` holds its route at 20% despite the normal successful
 response ramp until further review.
+After several error-free operational snapshots, AGY-08 and AGY-25 route up to
+70% of eligible short review-only jobs via API, while AGY-21 routes up to 60%.
+The five-call-per-container semaphore still limits simultaneous API requests;
+overflow takes the CLI route. This increases throughput, but one API result
+still consumes a model generation request and quota savings are unproven.
 After live error-free ramps, the configured restart floors are 50% for AGY-03,
-35% for AGY-16, and 20% for AGY-08, AGY-19, AGY-21, and AGY-25. This keeps a container restart from
+35% for AGY-16, 20% for AGY-19, 60% for AGY-21, and 70% for AGY-08 and AGY-25. This keeps a container restart from
 resetting a proven route to the original 20%. A bad API response temporarily
 reduces the effective share to 20% until 25 fresh valid responses; quota/auth
 or server errors additionally suspend the API route for ten minutes.
