@@ -1,0 +1,32 @@
+{
+  "date": "2026-10-14",
+  "scope": "Reconcile older catalogs with operational receipts; not a complete live inventory",
+  "training_release": false,
+  "sources": [
+    {
+      "id": "lemas-ru",
+      "repo": "LEMAS-Project/LEMAS-Dataset-train",
+      "revision": "91f0c1b9a29f8d1c5bad18182a43975255512cce",
+      "status": "PARTIAL_COPY_REMAINDER_NOT_QUEUED",
+      "copied_files": 2,
+      "copied_bytes": 24039570517,
+      "copied_selection": "train/ru/ru000.tar.gz and train/ru/ru000.jsonl",
+      "reported_full_ru_bytes": 550841845976,
+      "reported_remaining_bytes": 526802275459,
+      "receipt": "/mnt/local/drive2/speech-data-storage-20261012/audit/full-download-20261012/lemas-ru000/status.json",
+      "receipt_status": "COPIED_AND_FULL_SHA256_READBACK_VERIFIED",
+      "next_action": "Revalidate pinned upstream inventory and capacity reservations before scheduling additional shards; already queued explicit user sources retain priority",
+      "quality": "Subtitles and automatic alignment; overlap with Golos/YouTube and upstream holdouts unresolved"
+    },
+    {
+      "id": "sova-rudevices",
+      "reconciliation": "native-corpus-catalog.json is an older train-only snapshot. full-download-plan.json records the complete 26-file pinned HF source, including separately routed evaluation files.",
+      "additional_files_receipt": "/mnt/local/drive2/speech-data-storage-20261012/audit/local-s3-cleanup-review-20261013/sova-status.json",
+      "additional_files_verified": 7,
+      "additional_bytes_verified": 1323287769,
+      "kaggle_receipt": "/mnt/local/drive2/speech-data-storage-20261012/audit/local-s3-cleanup-review-20261013/sova-kaggle-status.json",
+      "kaggle_receipt_status": "CURRENT_LOCAL_AND_S3_FULL_SHA256_MATCH",
+      "limitation": "Receipts inspected today; no fresh full S3 hash pass in this follow-up. Original author TAR provider failure remains unresolved."
+    }
+  ]
+}
