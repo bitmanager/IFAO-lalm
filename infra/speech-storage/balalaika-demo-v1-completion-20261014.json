@@ -1,0 +1,15 @@
+{
+  "status": "COPIED_AND_FULL_SHA256_READBACK_VERIFIED",
+  "repo": "bitmanagerai/balalaika-demo_v1",
+  "revision": "32411389a4aff7b43635b6714cbcf582ad4b1619",
+  "files": 13,
+  "source_bytes": 91501174,
+  "archive_member_extensions": {
+    ".flac": 122,
+    ".json": 122
+  },
+  "exact_audio_duplicate_occurrences": 0,
+  "completed_at": "2026-10-14T05:40:40.138617+00:00",
+  "training_release": false,
+  "dedup_scope": "No original archive LFS-hash matches found in existing receipts; checked within-corpus audio bytes; sample-level cross-corpus overlap unresolved"
+}
