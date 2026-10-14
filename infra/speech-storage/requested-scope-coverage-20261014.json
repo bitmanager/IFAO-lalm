@@ -209,18 +209,26 @@
     {
       "repo": "lab260/tuchniyzhab_balalaika",
       "training_release": false,
-      "status": "RUNNING",
+      "status": "COPIED_AND_FULL_SHA256_READBACK_VERIFIED",
       "source_bytes": 82813384,
-      "receipt_coverage_complete": false,
+      "receipt_coverage_complete": true,
       "status_observed_date": "2026-10-14",
-      "audit_path": "/mnt/local/drive1/speech-hf-ingest-20261013/audit/tuchniyzhab-balalaika"
+      "audit_path": "/mnt/local/drive1/speech-hf-ingest-20261013/audit/tuchniyzhab-balalaika",
+      "mapped_source_bytes": 82813384,
+      "expected_files": 33,
+      "mapped_files": 33,
+      "missing_files": 0,
+      "completion_verified_at": "2026-10-14T05:20:34.762624+00:00",
+      "completion_audit": "tuchniyzhab-completion-quality-20261014.json"
     },
     {
       "repo": "lab260/igm_balalaika",
       "training_release": false,
-      "status": "QUEUED",
+      "status": "RUNNING",
       "source_bytes": 3925404104,
-      "receipt_coverage_complete": false
+      "receipt_coverage_complete": false,
+      "status_observed_date": "2026-10-14",
+      "audit_path": "/mnt/local/drive1/speech-hf-ingest-20261013/audit/igm-balalaika"
     },
     {
       "repo": "lab260/upvote_balalaika",
@@ -238,12 +246,12 @@
     }
   ],
   "status_counts": {
-    "COPIED_AND_FULL_SHA256_READBACK_VERIFIED": 11,
+    "COPIED_AND_FULL_SHA256_READBACK_VERIFIED": 12,
     "RUNNING": 7,
     "DELETED_BY_USER_REQUEST": 1,
-    "QUEUED": 3
+    "QUEUED": 2
   },
   "complete": false,
   "verification_scope": "Pinned upstream filenames vs import receipts, not a fresh full readback of all objects or sample-level uniqueness audit",
-  "incremental_update_note": "Webinars completion and Tuchniyzhab start verified after original snapshot. Other counters retain their individual observation times; this is not a fresh global inventory."
+  "incremental_update_note": "Golos, webinars and Tuchniyzhab completions plus IGM start verified after original snapshot. Other counters retain earlier observation times; not a fresh global inventory."
 }
