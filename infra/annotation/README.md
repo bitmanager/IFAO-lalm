@@ -843,6 +843,8 @@ One AGY-06 native call later timed out after 90 seconds without an HTTP
 response. The account-local safeguard paused its API route, and AGY-18 was
 returned to CLI after an in-flight drain to test whether the shared VPN remains
 stable without the extra API workload. Causality between the two is unproven.
+After its ten-minute pause, AGY-06 automatically resumed and saved three
+new API responses without another API failure by 19:42 UTC.
 
 The 100-audio shadow comparison paired 99 native blind results with saved
 earlier CLI blind results. Raw strings matched in 40/99, normalized word
