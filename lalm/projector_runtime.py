@@ -54,7 +54,7 @@ class KLProcessor(LALMProcessor):
         return labels
 
 
-def processor(tokenizer_path, downsample_rate=2):
+def processor(tokenizer_path, downsample_rate=2, encoder_name="gigaam"):
     install_rendering()
     tok = AutoTokenizer.from_pretrained(tokenizer_path)
     tok.add_special_tokens({"additional_special_tokens": ["<|audio|>"]})
@@ -66,7 +66,7 @@ def processor(tokenizer_path, downsample_rate=2):
         return_attention_mask=True,
     )
     return KLProcessor(
-        feature, tok, encoder_name="gigaam", projector_downsample_rate=downsample_rate
+        feature, tok, encoder_name=encoder_name, projector_downsample_rate=downsample_rate
     )
 
 

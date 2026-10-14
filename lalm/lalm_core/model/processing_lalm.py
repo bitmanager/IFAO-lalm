@@ -7,6 +7,7 @@ from transformers.processing_utils import ProcessingKwargs, ProcessorMixin
 from transformers.tokenization_utils_base import TextInput
 
 from .gigaam_adapter import gigaam_output_length
+from .gemma_adapter import gemma_output_length
 from ..task_loss import IGNORE_INDEX
 
 _ENCODER_LENGTH_FNS: dict[str, callable] = {}
@@ -30,6 +31,7 @@ def _qwen3_aut_output_length(mel_frames: int) -> int:
 
 _ENCODER_LENGTH_FNS = {
     "gigaam": gigaam_output_length,
+    "embeddinggemma_audio": gemma_output_length,
     "whisper": _whisper_output_length,
     "qwen2_5_omni_audio_encoder": _qwen25_ae_output_length,
     "qwen3_omni_moe_audio_encoder": _qwen3_aut_output_length,
@@ -171,7 +173,7 @@ class LALMProcessor(ProcessorMixin):
             feature_lens = out.attention_mask.sum(dim=-1).long()
             feature_lens_list = feature_lens.tolist()
             # Pack padded (N, C, T_max) → flat (C, T_total) as the audio encoders expect
-            features = out.input_values.unsqueeze(1) if self.encoder_name == "gigaam" else out.input_features
+            features = out.input_values.unsqueeze(1) if self.encoder_name in {"gigaam", "embeddinggemma_audio"} else out.input_features
             packed_features = self._pack_from_padded(features, feature_lens)
             audio_lengths = iter(
                 self.audio_token_length_fn(int(length)) for length in feature_lens_list
@@ -182,7 +184,7 @@ class LALMProcessor(ProcessorMixin):
             }
         elif audio_feature is not None:
             features, feature_lens = audio_feature
-            if self.encoder_name == "gigaam":
+            if self.encoder_name in {"gigaam", "embeddinggemma_audio"}:
                 features = features.unsqueeze(1)
             if torch.is_tensor(feature_lens):
                 feature_lens = feature_lens.to(dtype=torch.long)
