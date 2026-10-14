@@ -213,7 +213,7 @@ def process(job):
         elapsed = time.monotonic() - started
         # Preserve the failed startup before one bounded recovery. No init/tool/
         # generation event is allowed; ambiguous inference is never repeated.
-        if (rc != 0 and not timed_out and predispatch_auth_timeout(stdout, stderr, elapsed)):
+        if not timed_out and predispatch_auth_timeout(stdout, stderr, elapsed):
             for suffix, body in (('stream.jsonl', stdout), ('stderr.log', stderr)):
                 client.put_object(Bucket=bucket(), Key=f'{prefix}/auth-startup-failure/{suffix}', Body=body.encode())
             recovered = probe_auth(model)
@@ -222,6 +222,14 @@ def process(job):
             if recovered:
                 rc, stdout, stderr, timed_out = run_agy(audio, workspace, variant, reference, model)
                 elapsed = time.monotonic() - started
+            if not recovered or (not timed_out and predispatch_auth_timeout(stdout, stderr, elapsed)):
+                # A failed read-only probe is inconclusive during a network/auth
+                # outage. Retry this zero-turn job later and cool down the slot;
+                # only explicit access-denial responses block the account.
+                finish(job, 'RETRYABLE_FAILED', error_code='auth_startup_transport_transient',
+                       retry_seconds=random.uniform(30, 90) * 2 ** min(job['attempt'] - 1, 2),
+                       block='transport_cooldown')
+                return
         # Native raw output can contain transcript/PII: private S3, never stdout.
         for suffix, body in (('stream.jsonl', stdout), ('stderr.log', stderr),
                              ('request.json', json.dumps({'model': model, 'prompt': prompt(audio, variant, reference),
