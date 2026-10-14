@@ -43,7 +43,9 @@ def claim(account):
         job = conn.execute("SELECT * FROM jobs WHERE state IN ('PENDING','RETRYABLE_FAILED') "
                            "AND next_attempt_at<=now() AND attempt<3 "
                            "AND COALESCE(sample->>'annotation_model',%s)=ANY(%s) "
-                           "ORDER BY (sample->>'prompt_variant'='verbatim'), created_at "
+                           # Follow-up passes are enqueued after the first blind pass.
+                           # FIFO prevents this steady stream from starving old audio.
+                           "ORDER BY created_at, id "
                            'FOR UPDATE SKIP LOCKED LIMIT 1', (MODEL, list(allowed_models()))).fetchone()
         if not job:
             return None
