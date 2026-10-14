@@ -34,7 +34,8 @@ def native_api_concurrency():
 
 
 NATIVE_API_SLOTS = threading.BoundedSemaphore(native_api_concurrency())
-NATIVE_API_BASE_PERCENT = {'agy-03': 50, 'agy-08': 70, 'agy-16': 35, 'agy-19': 20, 'agy-21': 60, 'agy-25': 70}
+NATIVE_API_BASE_PERCENT = {'agy-03': 50, 'agy-06': 20, 'agy-08': 70, 'agy-14': 20,
+                           'agy-16': 35, 'agy-19': 20, 'agy-21': 60, 'agy-25': 70}
 
 
 def classify(text, timed_out=False):

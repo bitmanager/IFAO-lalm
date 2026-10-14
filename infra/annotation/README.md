@@ -830,6 +830,12 @@ that account remains at five. Both changes used a pause of new claims and a
 complete in-flight drain before recreation. The worker enforces a hard ceiling
 of eight; all other accounts remain at five. HTTP 429 and server failures suspend that
 account's API route and new jobs fall back to CLI.
+AGY-06 and AGY-14 were then added as 20%-capped pilots after adaptive
+six-audio canaries (12/12 and 14/14 valid generation responses respectively)
+and account-local in-flight drains. The known foreign controls were rejected;
+the known Russian control was also rejected by disagreement, so these canaries
+show transport viability, not measured transcription recall. AGY-18 passed
+14/14 canary responses but remains on CLI while AGY-06's shared VPN is observed.
 
 For a VPN migration, probe audio through the target proxy with the account's
 own OAuth before changing Compose. `route_account.py` checks that the target
