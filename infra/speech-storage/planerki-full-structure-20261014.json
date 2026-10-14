@@ -1,0 +1,370 @@
+{
+  "source": "NikiPshg/planerki",
+  "wav_unique_files": 18,
+  "wav_logical_paths": 22,
+  "audio_unique_bytes": 12934729340,
+  "hours_byte_deduplicated": 18.713434074074076,
+  "shortest_sec": 1173.2053333333333,
+  "longest_sec": 5316.672,
+  "sheets": [
+    {
+      "file": "data/диаризация аудио спикеров/1870922517105_cropped.mp4 (2).xlsx",
+      "sheet": "xl/worksheets/sheet1.xml",
+      "columns": [
+        "segment_id",
+        "id",
+        "start",
+        "end"
+      ],
+      "rows": 14
+    },
+    {
+      "file": "data/диаризация аудио спикеров/5675570039302_cropped_left_part_1.mp4 (2).xlsx",
+      "sheet": "xl/worksheets/sheet1.xml",
+      "columns": [
+        "segment_id",
+        "id",
+        "start",
+        "end"
+      ],
+      "rows": 20
+    },
+    {
+      "file": "data/диаризация аудио спикеров/5675570039302_cropped_left_part_2.mp4 (2).xlsx",
+      "sheet": "xl/worksheets/sheet1.xml",
+      "columns": [
+        "segment_id",
+        "id",
+        "start",
+        "end"
+      ],
+      "rows": 34
+    },
+    {
+      "file": "data/диаризация аудио спикеров/5675570039302_cropped_left_part_3.mp4 (2).xlsx",
+      "sheet": "xl/worksheets/sheet1.xml",
+      "columns": [
+        "segment_id",
+        "id",
+        "start",
+        "end"
+      ],
+      "rows": 34
+    },
+    {
+      "file": "data/диаризация аудио спикеров/5675570039302_cropped_left_part_4.mp4 (2).xlsx",
+      "sheet": "xl/worksheets/sheet1.xml",
+      "columns": [
+        "segment_id",
+        "id",
+        "start",
+        "end"
+      ],
+      "rows": 64
+    },
+    {
+      "file": "data/диаризация аудио спикеров/5773321570973_cropped_patrt_1.mp4 (2).xlsx",
+      "sheet": "xl/worksheets/sheet1.xml",
+      "columns": [
+        "segment_id",
+        "id",
+        "start",
+        "end"
+      ],
+      "rows": 26
+    },
+    {
+      "file": "data/диаризация аудио спикеров/5812855704303_cropped_part_1.mp4 (2).xlsx",
+      "sheet": "xl/worksheets/sheet1.xml",
+      "columns": [
+        "segment_id",
+        "id",
+        "start",
+        "end"
+      ],
+      "rows": 109
+    },
+    {
+      "file": "data/диаризация аудио спикеров/5812855704303_cropped_part_2.mp4 (2).xlsx",
+      "sheet": "xl/worksheets/sheet1.xml",
+      "columns": [
+        "segment_id",
+        "id",
+        "start",
+        "end"
+      ],
+      "rows": 168
+    },
+    {
+      "file": "data/диаризация аудио спикеров/5812855704303_cropped_part_3.mp4 (2).xlsx",
+      "sheet": "xl/worksheets/sheet1.xml",
+      "columns": [
+        "segment_id",
+        "id",
+        "start",
+        "end"
+      ],
+      "rows": 208
+    },
+    {
+      "file": "data/диаризация аудио спикеров/7263531174601_cropped_x3.mp4 (2).xlsx",
+      "sheet": "xl/worksheets/sheet1.xml",
+      "columns": [
+        "segment_id",
+        "id",
+        "start",
+        "end"
+      ],
+      "rows": 67
+    },
+    {
+      "file": "data/диаризация аудио спикеров/7820870289933_cropped_part1.mp4 (2).xlsx",
+      "sheet": "xl/worksheets/sheet1.xml",
+      "columns": [
+        "segment_id",
+        "id",
+        "start",
+        "end"
+      ],
+      "rows": 50
+    },
+    {
+      "file": "data/диаризация аудио спикеров/NUPI's Russia Conference 2024_ PANEL 1_ State-society relations_cropped_part_1.mp4 (2).xlsx",
+      "sheet": "xl/worksheets/sheet1.xml",
+      "columns": [
+        "segment_id",
+        "id",
+        "start",
+        "end"
+      ],
+      "rows": 40
+    },
+    {
+      "file": "data/диаризация аудио спикеров/Panel discussion _A Space of Opportunities for Young Artists in Russia_ Rethinking the Future_cropped.mp4 (2).xlsx",
+      "sheet": "xl/worksheets/sheet1.xml",
+      "columns": [
+        "segment_id",
+        "id",
+        "start",
+        "end"
+      ],
+      "rows": 30
+    },
+    {
+      "file": "data/диаризация аудио спикеров/SPIEF_2024_LIVE：_Vladimir_Putin_Delivers_Speech_at_St_Petersburg_cropped_part1.mp4 (2).xlsx",
+      "sheet": "xl/worksheets/sheet1.xml",
+      "columns": [
+        "segment_id",
+        "id",
+        "start",
+        "end"
+      ],
+      "rows": 17
+    },
+    {
+      "file": "data/диаризация аудио спикеров/SPIEF_2024_LIVE：_Vladimir_Putin_Delivers_Speech_at_St_Petersburg_cropped_part_2.mp4 (2).xlsx",
+      "sheet": "xl/worksheets/sheet1.xml",
+      "columns": [
+        "segment_id",
+        "id",
+        "start",
+        "end"
+      ],
+      "rows": 30
+    },
+    {
+      "file": "data/диаризация аудио спикеров/SPIEF_2024_LIVE：_Vladimir_Putin_Delivers_Speech_at_St_Petersburg_cropped_part_3.mp4 (2).xlsx",
+      "sheet": "xl/worksheets/sheet1.xml",
+      "columns": [
+        "segment_id",
+        "id",
+        "start",
+        "end"
+      ],
+      "rows": 43
+    },
+    {
+      "file": "data/диаризация аудио спикеров/The Future of Leadership_ A Fractional Executive Panel D_part_1.mp4 (2).xlsx",
+      "sheet": "xl/worksheets/sheet1.xml",
+      "columns": [
+        "segment_id",
+        "id",
+        "start",
+        "end"
+      ],
+      "rows": 57
+    },
+    {
+      "file": "data/диаризация аудио спикеров/Панельная_дискуссия_со_спикерами_Митап_＂Код_рекрутера＂_cropped_part_1.mp4 (2).xlsx",
+      "sheet": "xl/worksheets/sheet1.xml",
+      "columns": [
+        "segment_id",
+        "id",
+        "start",
+        "end"
+      ],
+      "rows": 119
+    },
+    {
+      "file": "data/диаризация аудио спикеров/пленарное-заседание-международной-конференции-ai-journey-2024-прямая-трансляция_cropped.mp4 (2).xlsx",
+      "sheet": "xl/worksheets/sheet1.xml",
+      "columns": [
+        "segment_id",
+        "id",
+        "start",
+        "end"
+      ],
+      "rows": 30
+    }
+  ],
+  "wave_headers": [
+    {
+      "file": "data/audio/1870922517105_cropped.wav",
+      "sha256": "a23b9544448df7cfa7508bd5d8bff978b923f19afb1821e98d35811a39ce309c",
+      "bytes": 225255630,
+      "channels": 2,
+      "sample_rate": 48000,
+      "duration_sec": 1173.2053333333333
+    },
+    {
+      "file": "data/audio/5675570039302_cropped_left_part_1.wav",
+      "sha256": "0db32f57d3a8502f2f559217f91808c8e0b24dba554b123eadddb550624ab608",
+      "bytes": 773034190,
+      "channels": 2,
+      "sample_rate": 48000,
+      "duration_sec": 4026.2186666666666
+    },
+    {
+      "file": "data/audio/5675570039302_cropped_left_part_2.wav",
+      "sha256": "59cddba744ac67b3edbe6493c54aa361d6002a7f8e07bb67a90493b1c92f83c8",
+      "bytes": 706224334,
+      "channels": 2,
+      "sample_rate": 48000,
+      "duration_sec": 3678.250666666667
+    },
+    {
+      "file": "data/audio/5675570039302_cropped_left_part_4.wav",
+      "sha256": "095e54db118bfafbcfed3af2dfa81324246d4746fbe11df0cd9d99adfe403186",
+      "bytes": 867598542,
+      "channels": 2,
+      "sample_rate": 48000,
+      "duration_sec": 4518.741333333333
+    },
+    {
+      "file": "data/audio/5773321570973_cropped_patrt_1.wav",
+      "sha256": "99f3efd74f377576414692711768ba5c5d85a23398f5bbf36dfa60f8e4ac4cec",
+      "bytes": 674189518,
+      "channels": 2,
+      "sample_rate": 48000,
+      "duration_sec": 3511.402666666667
+    },
+    {
+      "file": "data/audio/5812855704303_cropped_part_1.wav",
+      "sha256": "52cdf5000221d8493eda5f37d1d2be083355f7a6b2102ce549553e4d3feb5552",
+      "bytes": 754974926,
+      "channels": 2,
+      "sample_rate": 48000,
+      "duration_sec": 3932.16
+    },
+    {
+      "file": "data/audio/5812855704303_cropped_part_2.wav",
+      "sha256": "4d6edb0cb2b2950489b3035d9a4c62a78ed187d18f78adf7424d20eab3cbdd83",
+      "bytes": 914182350,
+      "channels": 2,
+      "sample_rate": 48000,
+      "duration_sec": 4761.365333333333
+    },
+    {
+      "file": "data/audio/5812855704303_cropped_part_3.wav",
+      "sha256": "b8d0ecae3b009d59c713cca46e95c7afc54146c353eb7fe98b7dbcb5e656575f",
+      "bytes": 722612430,
+      "channels": 2,
+      "sample_rate": 48000,
+      "duration_sec": 3763.6053333333334
+    },
+    {
+      "file": "data/audio/7263531174601_cropped_x3.wav",
+      "sha256": "408056206f2f5fbb9c0970c34c888cd78556b581b269becbf25584a8a785a69d",
+      "bytes": 237826254,
+      "channels": 2,
+      "sample_rate": 48000,
+      "duration_sec": 1238.6773333333333
+    },
+    {
+      "file": "data/audio/7820870289933_cropped_part1.wav",
+      "sha256": "b388c07ab1eacf0d7f7636df18f708fe9215cb7930f494e2f515ad77b7559ef3",
+      "bytes": 862228686,
+      "channels": 2,
+      "sample_rate": 48000,
+      "duration_sec": 4490.7733333333335
+    },
+    {
+      "file": "data/audio/NUPI's Russia Conference 2024_ PANEL 1_ State-society relations_cropped_part_1.wav",
+      "sha256": "3e953996aad70873995e7f14422faeb7ab0bd2da3685fb40b3a00010cdc2178b",
+      "bytes": 873459918,
+      "channels": 2,
+      "sample_rate": 48000,
+      "duration_sec": 4549.269333333334
+    },
+    {
+      "file": "data/audio/Panel discussion _A Space of Opportunities for Young Artists in Russia_ Rethinking the Future_cropped.wav",
+      "sha256": "c605363060a138533803cf84caf72b3b9aee39d07ce3a5505e8baae3a9e782e7",
+      "bytes": 691085518,
+      "channels": 2,
+      "sample_rate": 48000,
+      "duration_sec": 3599.402666666667
+    },
+    {
+      "file": "data/audio/SPIEF_2024_LIVE#Uff1a_Vladimir_Putin_Delivers_Speech_at_St_Petersburg_cropped_part1.wav",
+      "sha256": "ffcdf6f6ba7ae516c0b586b7b7d67cdac1dfa9d41c60297e9188491f9f7d43a5",
+      "bytes": 765305038,
+      "channels": 2,
+      "sample_rate": 48000,
+      "duration_sec": 3985.962666666667
+    },
+    {
+      "file": "data/audio/SPIEF_2024_LIVE#Uff1a_Vladimir_Putin_Delivers_Speech_at_St_Petersburg_cropped_part_2.wav",
+      "sha256": "f80c828b69d7409fcfeb9f117b40333862ef0a5d6d068f347ff5bc5618a88cf3",
+      "bytes": 687886542,
+      "channels": 2,
+      "sample_rate": 48000,
+      "duration_sec": 3582.7413333333334
+    },
+    {
+      "file": "data/audio/SPIEF_2024_LIVE#Uff1a_Vladimir_Putin_Delivers_Speech_at_St_Petersburg_cropped_part_3.wav",
+      "sha256": "c1d921f5b396eb6fe5f947281b8f75c03e24707e150ba73b2a807c484d5ae745",
+      "bytes": 734478542,
+      "channels": 2,
+      "sample_rate": 48000,
+      "duration_sec": 3825.408
+    },
+    {
+      "file": "data/audio/The Future of Leadership_ A Fractional Executive Panel D_part_1.wav",
+      "sha256": "ce9ee339424913dcad3ab82b6096797c7881664dc3113345af28ca0145090017",
+      "bytes": 598700238,
+      "channels": 2,
+      "sample_rate": 48000,
+      "duration_sec": 3118.229333333333
+    },
+    {
+      "file": "data/audio/Панельная_дискуссия_со_спикерами_Митап_＂Код_рекрутера＂_cropped_part_1.wav",
+      "sha256": "d5484ddfccc7e750fac9241a33add219bcc8c4f6b286bc7a4dc8b4a660596824",
+      "bytes": 824885454,
+      "channels": 2,
+      "sample_rate": 48000,
+      "duration_sec": 4296.277333333333
+    },
+    {
+      "file": "data/audio/🔴пленарное-заседание-международной-конференции-ai-journey-2024-прямая-трансляция_cropped.wav",
+      "sha256": "ffc469858dd0775c639f80964b206bd482171c64a1ef379bc0ed56d04e7ec795",
+      "bytes": 1020801230,
+      "channels": 2,
+      "sample_rate": 48000,
+      "duration_sec": 5316.672
+    }
+  ],
+  "language": "Not certified per recording; English-titled sources present; requires per-record language review",
+  "text_transcription_fields_found": false,
+  "training_release": false,
+  "scope": "All unique XLSX worksheets and WAV headers; no listening or full audio decode"
+}
