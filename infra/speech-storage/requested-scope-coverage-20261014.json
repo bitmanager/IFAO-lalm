@@ -194,14 +194,15 @@
     {
       "repo": "lab260/golos_balalaika",
       "training_release": false,
-      "status": "HELD_FOR_CROSS_FORMAT_DEDUP_REVIEW",
+      "status": "COPIED_AND_FULL_SHA256_READBACK_VERIFIED",
+      "completion_verified_at": "2026-10-14T04:39:43.165918+00:00",
       "audit_path": "/mnt/local/drive1/speech-hf-ingest-20261013/audit/golos-balalaika",
-      "mapped_source_bytes": 12073136,
+      "mapped_source_bytes": 1786818736,
       "expected_files": 65,
-      "mapped_files": 23,
-      "missing_files": 42,
-      "receipt_coverage_complete": false,
-      "scope": "Held for cross-format source dedup; existing original retained"
+      "mapped_files": 65,
+      "missing_files": 0,
+      "receipt_coverage_complete": true,
+      "scope": "Complete derived version; original retained. All 424 derived test IDs overlap original crowd test. Do not count as independent new audio."
     },
     {
       "repo": "lab260/tuchniyzhab_balalaika",
@@ -233,10 +234,9 @@
     }
   ],
   "status_counts": {
-    "COPIED_AND_FULL_SHA256_READBACK_VERIFIED": 9,
+    "COPIED_AND_FULL_SHA256_READBACK_VERIFIED": 10,
     "RUNNING": 7,
     "DELETED_BY_USER_REQUEST": 1,
-    "HELD_FOR_CROSS_FORMAT_DEDUP_REVIEW": 1,
     "QUEUED": 4
   },
   "complete": false,
