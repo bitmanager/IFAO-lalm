@@ -20,7 +20,8 @@ class WorkerErrorTests(unittest.TestCase):
         from unittest.mock import patch
         from lalm.annotation.worker import native_api_selected
         job = {'id': '0'*64, 'sample': {'review_only': True}}
-        with patch.dict('os.environ', {'ACCOUNT_ID': 'agy-03', 'NATIVE_API_PERCENT': '20'}), \
+        with patch.dict('os.environ', {'ACCOUNT_ID': 'agy-03', 'NATIVE_API_PERCENT': '20',
+                                      'NATIVE_API_MAX_PERCENT': '50'}), \
              patch('lalm.annotation.worker.NATIVE_API_DISABLED_UNTIL', 0):
             self.assertTrue(native_api_selected(job, 4, 1000, 'verbatim', None, 'gemini-3.8-flash-low'))
             self.assertFalse(native_api_selected(job, 21, 1000, 'verbatim', None, 'gemini-3.8-flash-low'))
@@ -104,9 +105,11 @@ class WorkerErrorTests(unittest.TestCase):
         sample = {'review_only': True}
         thirty = {'id': '0000001e'+'0'*56, 'sample': sample}
         forty_five = {'id': '0000002d'+'0'*56, 'sample': sample}
-        with patch.dict('os.environ', {'ACCOUNT_ID': 'agy-03', 'NATIVE_API_PERCENT': '20'}), \
+        with patch.dict('os.environ', {'ACCOUNT_ID': 'agy-03', 'NATIVE_API_PERCENT': '20',
+                                      'NATIVE_API_MAX_PERCENT': '50'}), \
              patch.object(worker, 'NATIVE_API_DISABLED_UNTIL', 0), \
-             patch.object(worker, 'NATIVE_API_GOOD_COUNT', 0):
+             patch.object(worker, 'NATIVE_API_GOOD_COUNT', 0), \
+             patch.object(worker, 'NATIVE_API_DEGRADED', False):
             self.assertFalse(worker.native_api_selected(thirty, 4, 1000, 'verbatim', None, 'gemini-3.8-flash-low'))
             worker.NATIVE_API_GOOD_COUNT = 25
             self.assertTrue(worker.native_api_selected(thirty, 4, 1000, 'verbatim', None, 'gemini-3.8-flash-low'))

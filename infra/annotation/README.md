@@ -835,7 +835,20 @@ six-audio canaries (12/12 and 14/14 valid generation responses respectively)
 and account-local in-flight drains. The known foreign controls were rejected;
 the known Russian control was also rejected by disagreement, so these canaries
 show transport viability, not measured transcription recall. AGY-18 passed
-14/14 canary responses but remains on CLI while AGY-06's shared VPN is observed.
+14/14 canary responses and was then added at the same 20% cap after AGY-06's
+shared VPN remained error-free. AGY-14 had one immediate post-dispatch
+transport disconnect; its API route paused for ten minutes and new work
+continued through CLI without replaying the uncertain attempt.
+One AGY-06 native call later timed out after 90 seconds without an HTTP
+response. The account-local safeguard paused its API route, and AGY-18 was
+returned to CLI after an in-flight drain to test whether the shared VPN remains
+stable without the extra API workload. Causality between the two is unproven.
+
+The 100-audio shadow comparison paired 99 native blind results with saved
+earlier CLI blind results. Raw strings matched in 40/99, normalized word
+sequences in 62/99, and language tags in 86/99. The calls were not simultaneous;
+agreement is not a human-gold accuracy measure. The native API remains
+review-only while these differences are audited.
 
 For a VPN migration, probe audio through the target proxy with the account's
 own OAuth before changing Compose. `route_account.py` checks that the target
