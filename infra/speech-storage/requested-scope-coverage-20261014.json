@@ -183,13 +183,15 @@
     {
       "repo": "lab260/webinars_balalaika",
       "training_release": false,
-      "status": "RUNNING",
+      "status": "COPIED_AND_FULL_SHA256_READBACK_VERIFIED",
       "audit_path": "/mnt/local/drive1/speech-hf-ingest-20261013/audit/webinars-balalaika",
-      "mapped_source_bytes": 405496264,
+      "mapped_source_bytes": 4154913224,
       "expected_files": 33,
-      "mapped_files": 4,
-      "missing_files": 29,
-      "receipt_coverage_complete": false
+      "mapped_files": 33,
+      "missing_files": 0,
+      "receipt_coverage_complete": true,
+      "completion_verified_at": "2026-10-14T05:15:31.014710+00:00",
+      "completion_audit": "webinars-completion-verification-20261014.json"
     },
     {
       "repo": "lab260/golos_balalaika",
@@ -207,9 +209,11 @@
     {
       "repo": "lab260/tuchniyzhab_balalaika",
       "training_release": false,
-      "status": "QUEUED",
+      "status": "RUNNING",
       "source_bytes": 82813384,
-      "receipt_coverage_complete": false
+      "receipt_coverage_complete": false,
+      "status_observed_date": "2026-10-14",
+      "audit_path": "/mnt/local/drive1/speech-hf-ingest-20261013/audit/tuchniyzhab-balalaika"
     },
     {
       "repo": "lab260/igm_balalaika",
@@ -234,11 +238,12 @@
     }
   ],
   "status_counts": {
-    "COPIED_AND_FULL_SHA256_READBACK_VERIFIED": 10,
+    "COPIED_AND_FULL_SHA256_READBACK_VERIFIED": 11,
     "RUNNING": 7,
     "DELETED_BY_USER_REQUEST": 1,
-    "QUEUED": 4
+    "QUEUED": 3
   },
   "complete": false,
-  "verification_scope": "Pinned upstream filenames vs import receipts, not a fresh full readback of all objects or sample-level uniqueness audit"
+  "verification_scope": "Pinned upstream filenames vs import receipts, not a fresh full readback of all objects or sample-level uniqueness audit",
+  "incremental_update_note": "Webinars completion and Tuchniyzhab start verified after original snapshot. Other counters retain their individual observation times; this is not a fresh global inventory."
 }
