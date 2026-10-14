@@ -821,9 +821,13 @@ rejected, and the listened Russian control was also rejected. An account-local
 response ramp until further review.
 After several error-free operational snapshots, AGY-08 and AGY-25 route up to
 70% of eligible short review-only jobs via API, while AGY-21 routes up to 60%.
-The five-call-per-container semaphore still limits simultaneous API requests;
+The normally five-call-per-container semaphore still limits simultaneous API requests;
 overflow takes the CLI route. This increases throughput, but one API result
 still consumes a model generation request and quota savings are unproven.
+AGY-08 alone pilots eight concurrent API calls via `NATIVE_API_CONCURRENCY=8`
+after zero recent direct API errors. The worker enforces a hard ceiling of eight;
+all other accounts remain at five. HTTP 429 and server failures suspend that
+account's API route and new jobs fall back to CLI.
 After live error-free ramps, the configured restart floors are 50% for AGY-03,
 35% for AGY-16, 20% for AGY-19, 60% for AGY-21, and 70% for AGY-08 and AGY-25. This keeps a container restart from
 resetting a proven route to the original 20%. A bad API response temporarily

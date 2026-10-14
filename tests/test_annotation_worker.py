@@ -8,6 +8,14 @@ class WorkerErrorTests(unittest.TestCase):
         from unittest.mock import patch
         self.enterContext(patch('lalm.annotation.worker.repair_trailing_auth', return_value=False))
 
+    def test_native_api_concurrency_has_hard_upper_bound(self):
+        from unittest.mock import patch
+        from lalm.annotation.worker import native_api_concurrency
+        with patch.dict('os.environ', {'NATIVE_API_CONCURRENCY': '8'}):
+            self.assertEqual(native_api_concurrency(), 8)
+        with patch.dict('os.environ', {'NATIVE_API_CONCURRENCY': '100'}):
+            self.assertEqual(native_api_concurrency(), 8)
+
     def test_native_route_is_bounded_to_review_only_short_flash_audio(self):
         from unittest.mock import patch
         from lalm.annotation.worker import native_api_selected

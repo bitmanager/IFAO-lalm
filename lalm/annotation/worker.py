@@ -29,7 +29,11 @@ NATIVE_API_FAILURE_LOCK = threading.Lock()
 NATIVE_API_CONSECUTIVE_FAILURES = 0
 NATIVE_API_GOOD_COUNT = 0
 NATIVE_API_DEGRADED = False
-NATIVE_API_SLOTS = threading.BoundedSemaphore(5)
+def native_api_concurrency():
+    return min(8, max(1, int(os.environ.get('NATIVE_API_CONCURRENCY', '5'))))
+
+
+NATIVE_API_SLOTS = threading.BoundedSemaphore(native_api_concurrency())
 NATIVE_API_BASE_PERCENT = {'agy-03': 50, 'agy-08': 70, 'agy-16': 35, 'agy-19': 20, 'agy-21': 60, 'agy-25': 70}
 
 
