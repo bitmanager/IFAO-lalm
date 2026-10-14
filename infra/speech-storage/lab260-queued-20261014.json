@@ -13,11 +13,15 @@
       "selection_byte_limit": 1786818736,
       "scope": "full pinned source",
       "job": "/mnt/local/drive1/speech-hf-ingest-20261013/jobs/golos-balalaika.sh",
-      "status": "HELD_FOR_CROSS_FORMAT_DEDUP_REVIEW",
-      "reason": "Same original GOLOS family as existing Sh1man/golos_opus; card describes 49.1h filtered subset with additional automatic annotation, not independent new speech",
+      "status": "RUNNING_DERIVED_VARIANT_PRESERVATION",
+      "reason": "Preserve bundled additional labels and processed audio as derived Golos version; not independent new speech",
       "verified_source_bytes_before_hold": 12073136,
       "sample_level_overlap": "All 14 records in sampled derived test shard matched original crowd test source IDs; zero byte-identical audio files. Whole corpus overlap remains unmeasured.",
-      "evidence": "golos-overlap-sample-20261014.json"
+      "evidence": "golos-overlap-sample-20261014.json",
+      "service": "speech-data-hf-golos-derived-20261014.service",
+      "training_release": false,
+      "count_as_new_independent_audio_hours": false,
+      "lineage": "golos-source-lineage-20261014.json"
     },
     {
       "repo": "lab260/espeech_balalaika",
