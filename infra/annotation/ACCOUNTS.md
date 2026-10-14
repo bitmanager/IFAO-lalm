@@ -8,11 +8,11 @@
 |---|---|---|---|---|---:|
 | agy-01 | elejatoqokim01@gmail.com | Google AI Pro | Первоначальный способ не подтверждён: OAuth или импорт refresh token | Да | 5 |
 | agy-02 | asuxoyikokub51@gmail.com | Google AI Pro | Первоначальный способ не подтверждён: OAuth или импорт refresh token | Да | 5 |
-| agy-03 | decardoborth@gmail.com | Google AI Ultra | Импорт нового replacement refresh token продавца, 13.10.2026 около 21:50 МСК | Да | 20 |
+| agy-03 | decardoborth@gmail.com | Google AI Ultra | Импорт нового replacement refresh token продавца, 13.10.2026 около 21:50 МСК | Да | 10, временно после startup auth timeout |
 | agy-04 | zepunowu59@gmail.com | Google AI Pro | Первоначальный способ не подтверждён: OAuth или импорт refresh token | Да | 5 |
 | agy-05 | art0644857923@gmail.com | Google AI Ultra | OAuth в браузере, добавлен 13.10.2026 | Да | 20 |
 | agy-06 | art0644854407@gmail.com | Google AI Ultra | OAuth в браузере, добавлен 13.10.2026 | Да | 20 |
-| agy-07 | mohammed738255602@gmail.com | Google AI Ultra | Первоначально скопирована действующая авторизация с хоста; см. README | Да | 20 |
+| agy-07 | mohammed738255602@gmail.com | Google AI Ultra | Первоначально скопирована действующая авторизация с хоста; см. README | Да | 10, временно после повреждения файла авторизации |
 | agy-08 | vipukuma369@gmail.com | Google AI Ultra | Импорт предоставленного refresh token, 13.10.2026 | Да | 20 |
 | agy-09 | wszbit@gmail.com | Google AI Ultra | Импорт предоставленного refresh token, 13.10.2026 | Да | 20 |
 | agy-10 | lenguyen020180@gmail.com | Google AI Ultra | Импорт предоставленного refresh token, 13.10.2026 | Да | 20 |
@@ -190,6 +190,18 @@ eligibility INTERNAL 500 до генерации и успешных native пр
 Новый обработчик такого ответа развёрнут во всех 21 рабочих контейнерах;
 в 06:00 все 17 доступных воркеров уже сохраняли ответы, включая Pro 04
 после сброса пятичасовой квоты.
+В 06:13 у 07 обнаружен повреждённый JSON авторизации. Проверки через FR
+и NY требовали входа; файл восстановлен атомарно из работающей копии 21
+после проверки Google userinfo: `mohammed738255602@gmail.com`, subject
+`113572072570615593567`. Повреждённый файл сохранён приватно.
+У 03 были три zero-turn startup timeout без отказа доступа; файл оставался
+валидным с новой identity, последующий native каталог снова прошёл.
+03/07 возобновлены в 06:41 с лимитом 10; к 06:47 за пять минут сохранили
+83 и 66 ответов соответственно. FR/PO маршруты сохранены.
+Проверенные JSON авторизации 03/07 дополнительно сохранены на dev-1 в
+приватном `runtime/credential-snapshots/` (каталог 0700, файлы 0600).
+09 и копии 15/20/22 исчерпали общую недельную квоту: API назначил reset
+21.10 около 06:17 МСК; `/usage` 09 в 06:43 подтвердил 0%. Паузы сохраняются.
 В 01:21 МСК 14 октября 07 переведён с `agy-07-proxy` (ny) на
 действующий `agy-01-proxy` (fr): после общего всплеска ошибок только у 07
 продолжались `No capacity` и eligibility transport failures, тогда как его
