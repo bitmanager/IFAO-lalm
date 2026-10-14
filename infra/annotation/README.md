@@ -852,6 +852,22 @@ sequences in 62/99, and language tags in 86/99. The calls were not simultaneous;
 agreement is not a human-gold accuracy measure. The native API remains
 review-only while these differences are audited.
 
+The next expansion used the same six private control audios per account. AGY-05,
+10, 12, 13, 18 and 24 each returned 18/18 complete API responses; AGY-11 also
+returned 18/18. Both listened non-Russian controls were rejected on every
+account. This is a transport and precision smoke check, not a gold accuracy
+measurement: the listened Russian control was rejected by the three-pass rule
+on most accounts. AGY-05, 12, 13, 18 and 24 now route eligible short review-only
+jobs to API, with at most five simultaneous API requests each. AGY-06's route
+was raised to 50% after continued error-free API operation. AGY-10 was rolled
+back to CLI after five concurrent post-dispatch `RemoteDisconnected` responses;
+AGY-11 was rolled back after a post-dispatch 90-second `TimeoutError`. Those
+uncertain jobs remain `NEEDS_REVIEW` without automatic replay. The effective
+API share must be read from `native_api_saved_5m / saved_5m`: route percentages
+are caps, and API cooldowns or the concurrency semaphore can lower the actual
+share. HTTP/server and ambiguous transport failures still suspend an affected
+account's API route while CLI continues.
+
 For a VPN migration, probe audio through the target proxy with the account's
 own OAuth before changing Compose. `route_account.py` checks that the target
 network reaches the proxy, PostgreSQL, and S3 relay; `--apply` saves a private
