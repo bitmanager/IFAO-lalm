@@ -25,6 +25,9 @@ class WorkerErrorTests(unittest.TestCase):
         with patch.dict('os.environ', {'ACCOUNT_ID': 'agy-16', 'NATIVE_API_PERCENT': '20'}), \
              patch('lalm.annotation.worker.NATIVE_API_DISABLED_UNTIL', 0):
             self.assertTrue(native_api_selected(job, 4, 1000, 'verbatim', None, 'gemini-3.8-flash-low'))
+        with patch.dict('os.environ', {'ACCOUNT_ID': 'agy-21', 'NATIVE_API_PERCENT': '20'}), \
+             patch('lalm.annotation.worker.NATIVE_API_DISABLED_UNTIL', 0):
+            self.assertTrue(native_api_selected(job, 4, 1000, 'verbatim', None, 'gemini-3.8-flash-low'))
 
     def test_dispatched_native_api_failure_is_quarantined_without_replay(self):
         from pathlib import Path
@@ -73,6 +76,18 @@ class WorkerErrorTests(unittest.TestCase):
             self.assertFalse(worker.native_api_selected(forty_five, 4, 1000, 'verbatim', None, 'gemini-3.8-flash-low'))
             worker.NATIVE_API_GOOD_COUNT = 100
             self.assertTrue(worker.native_api_selected(forty_five, 4, 1000, 'verbatim', None, 'gemini-3.8-flash-low'))
+
+    def test_stable_restart_floor_falls_back_after_bad_api_response(self):
+        from unittest.mock import patch
+        import lalm.annotation.worker as worker
+        job = {'id': '0000002d'+'0'*56, 'sample': {'review_only': True}}
+        with patch.dict('os.environ', {'ACCOUNT_ID': 'agy-03'}, clear=True), \
+             patch.object(worker, 'NATIVE_API_DISABLED_UNTIL', 0), \
+             patch.object(worker, 'NATIVE_API_GOOD_COUNT', 0), \
+             patch.object(worker, 'NATIVE_API_DEGRADED', False):
+            self.assertTrue(worker.native_api_selected(job, 4, 1000, 'verbatim', None, 'gemini-3.8-flash-low'))
+            worker.NATIVE_API_DEGRADED = True
+            self.assertFalse(worker.native_api_selected(job, 4, 1000, 'verbatim', None, 'gemini-3.8-flash-low'))
 
     def test_invalid_local_auth_never_starts_model_process(self):
         import json

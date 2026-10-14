@@ -28,6 +28,9 @@ NATIVE_API_DISABLED_UNTIL = 0.0
 NATIVE_API_FAILURE_LOCK = threading.Lock()
 NATIVE_API_CONSECUTIVE_FAILURES = 0
 NATIVE_API_GOOD_COUNT = 0
+NATIVE_API_DEGRADED = False
+NATIVE_API_SLOTS = threading.BoundedSemaphore(5)
+NATIVE_API_BASE_PERCENT = {'agy-03': 50, 'agy-16': 35, 'agy-21': 20}
 
 
 def classify(text, timed_out=False):
@@ -225,12 +228,15 @@ def run_agy(audio, workspace, variant="verbatim", reference=None, model=MODEL):
 
 
 def native_api_selected(job, duration, size, variant, reference, model):
-    if os.environ.get('ACCOUNT_ID') not in ('agy-03', 'agy-16') or not job['sample'].get('review_only'):
+    account = os.environ.get('ACCOUNT_ID')
+    if account not in NATIVE_API_BASE_PERCENT or not job['sample'].get('review_only'):
         return False
-    base_percent = int(os.environ.get('NATIVE_API_PERCENT', '20'))
+    base_percent = int(os.environ.get('NATIVE_API_PERCENT', str(NATIVE_API_BASE_PERCENT[account])))
     if not 0 <= base_percent <= 100:
         return False
     with NATIVE_API_FAILURE_LOCK:
+        if NATIVE_API_DEGRADED:
+            base_percent = min(base_percent, 20)
         percent = max(base_percent, 50 if NATIVE_API_GOOD_COUNT >= 100
                       else 35 if NATIVE_API_GOOD_COUNT >= 25 else base_percent)
     if (model != 'gemini-3.8-flash-low'
@@ -256,7 +262,7 @@ def native_project():
 
 
 def process_native_api(job, audio, duration, prefix, variant, reference, model, client):
-    global NATIVE_API_DISABLED_UNTIL, NATIVE_API_CONSECUTIVE_FAILURES, NATIVE_API_GOOD_COUNT
+    global NATIVE_API_DISABLED_UNTIL, NATIVE_API_CONSECUTIVE_FAILURES, NATIVE_API_GOOD_COUNT, NATIVE_API_DEGRADED
     # A failure before generate has sent no audio. Once generate starts, any
     # uncertain outcome is retained for review and never replayed automatically.
     try:
@@ -280,6 +286,7 @@ def process_native_api(job, audio, duration, prefix, variant, reference, model, 
         with NATIVE_API_FAILURE_LOCK:
             NATIVE_API_CONSECUTIVE_FAILURES += 1
             NATIVE_API_GOOD_COUNT = 0
+            NATIVE_API_DEGRADED = True
             if (NATIVE_API_CONSECUTIVE_FAILURES >= 3 or http_status in (401, 403, 429, 0)
                     or (http_status or 0) >= 500):
                 NATIVE_API_DISABLED_UNTIL = max(NATIVE_API_DISABLED_UNTIL, time.monotonic() + 600)
@@ -289,6 +296,8 @@ def process_native_api(job, audio, duration, prefix, variant, reference, model, 
         NATIVE_API_CONSECUTIVE_FAILURES = 0
         NATIVE_API_GOOD_COUNT += 1
         good_count = NATIVE_API_GOOD_COUNT
+        if good_count >= 25:
+            NATIVE_API_DEGRADED = False
     if good_count in (25, 100):
         print(json.dumps({'event': 'native_api_route_ramped', 'account': job['account_id'],
                           'consecutive_valid': good_count, 'target_percent': 35 if good_count == 25 else 50}),
@@ -332,8 +341,12 @@ def process(job):
             duration = stream.getnframes() / stream.getframerate()
         variant = sample.get("prompt_variant", "verbatim")
         reference = source_text(sample) if variant == "source_correction" else None
-        if native_api_selected(job, duration, head['ContentLength'], variant, reference, model):
-            process_native_api(job, audio, duration, prefix, variant, reference, model, client)
+        if (native_api_selected(job, duration, head['ContentLength'], variant, reference, model)
+                and NATIVE_API_SLOTS.acquire(blocking=False)):
+            try:
+                process_native_api(job, audio, duration, prefix, variant, reference, model, client)
+            finally:
+                NATIVE_API_SLOTS.release()
             return
         started = time.monotonic()
         rc, stdout, stderr, timed_out = run_agy(audio, workspace, variant, reference, model)

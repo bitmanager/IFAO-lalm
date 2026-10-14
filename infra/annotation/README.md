@@ -789,7 +789,7 @@ manifests, raw responses, and reports live under
 `latest_recurring` view shows the latest completed batch with audio playback.
 Three-pass agreement remains a review candidate, never a human-verified label.
 
-After the initial shadow check, AGY-03 can route a deterministic 20% of new,
+After the initial shadow check, AGY-03 routed a deterministic 20% of new,
 review-only, short Flash jobs through the same native API transport. This is a
 transport substitution in the existing `jobs`/`attempts` queue, not a duplicate
 inference: the result records `transport=native_api_v1` and keeps the raw
@@ -807,3 +807,11 @@ accuracy; all routed labels remain outside training publication.
 AGY-16 uses the same initial 20% route after its successful bounded canary;
 each account reads only its own OAuth file and uses its own VPN. Other accounts
 continue through CLI.
+AGY-21 is added at 20% after its bounded canary and quota check. A per-container
+semaphore limits native API inference to five concurrent requests even when an
+account has more than ten CLI worker slots; excess selected jobs use CLI.
+After live error-free ramps, the configured restart floors are 50% for AGY-03,
+35% for AGY-16, and 20% for AGY-21. This keeps a container restart from
+resetting a proven route to the original 20%. A bad API response temporarily
+reduces the effective share to 20% until 25 fresh valid responses; quota/auth
+or server errors additionally suspend the API route for ten minutes.
