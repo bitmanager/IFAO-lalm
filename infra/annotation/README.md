@@ -775,3 +775,16 @@ exist. Run the same canary with `--max-samples 100 --adaptive` on one account;
 other accounts continue their normal CLI queue. This account reserves up to
 15 minutes and returns to CLI automatically. Shadow results remain separate
 review artifacts and must not enter the training publication automatically.
+
+The recurring `native_api_shadow_pipeline` schedules one 30-audio review-only
+batch every six hours. Its PostgreSQL registry prevents duplicate audio and
+overlapping batches. The AGY-03 worker consumes the batch through its own VPN
+and OAuth, reserving the account while its CLI requests drain; other accounts
+continue CLI. It sends up to five native POSTs at once, with two follow-up
+passes only after a usable Russian blind pass. Interrupted or incomplete
+batches become `NEEDS_REVIEW` and are never replayed automatically. Private
+manifests, raw responses, and reports live under
+`speech-annotations/evaluation/native-api-canary-v1/recurring/<batch>/`.
+`analytics/ops/latest.json` includes `native_shadow_recent`; the notebook's
+`latest_recurring` view shows the latest completed batch with audio playback.
+Three-pass agreement remains a review candidate, never a human-verified label.

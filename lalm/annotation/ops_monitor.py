@@ -91,6 +91,8 @@ def collect_metrics():
         source_states = conn.execute(
             'SELECT state,count(*)::bigint AS count FROM source_assets GROUP BY state ORDER BY state'
         ).fetchall()
+        shadow = conn.execute('SELECT id,state,account_id,result_key,error_code,created_at,started_at,finished_at '
+                              'FROM native_shadow_batches ORDER BY created_at DESC LIMIT 5').fetchall()
 
     metrics = {
         'schema_version': 1,
@@ -101,6 +103,7 @@ def collect_metrics():
         'accounts': [dict(row) for row in accounts],
         'recent_errors': [dict(row) for row in recent_errors],
         'source_assets_by_state': {row['state']: row['count'] for row in source_states},
+        'native_shadow_recent': [dict(row) for row in shadow],
     }
     return json.loads(json.dumps(metrics, default=_json_value))
 

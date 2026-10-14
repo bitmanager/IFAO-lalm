@@ -344,6 +344,10 @@ def main():
     for signum in (signal.SIGINT, signal.SIGTERM):
         signal.signal(signum, lambda *_: STOP.set())
     account = os.environ['ACCOUNT_ID']
+    if account == 'agy-03' and os.environ.get('NATIVE_SHADOW_ENABLED', 'true') == 'true':
+        from .native_shadow_queue import loop as shadow_loop
+        threading.Thread(target=shadow_loop, args=(STOP,), daemon=True,
+                         name='native-shadow').start()
     workers = int(os.environ.get('WORKER_CONCURRENCY', '2'))
     if not 1 <= workers <= 64:
         raise ValueError('invalid_concurrency')

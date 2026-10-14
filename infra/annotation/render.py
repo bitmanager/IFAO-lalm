@@ -93,6 +93,7 @@ def build(accounts, agy_path):
         volumes[aid + '-home'] = {}
         services[aid] = {**image, 'profiles': [aid], 'restart': 'unless-stopped',
             'environment': {**env, 'ACCOUNT_ID': aid, 'WORKER_CONCURRENCY': str(account['concurrency']),
+                'NATIVE_SHADOW_ENABLED': 'true' if aid == 'agy-03' else 'false',
                 'ANNOTATION_ALLOWED_MODELS': ','.join(models),
                 'HTTPS_PROXY': f'http://{aid}-proxy:1080', 'HTTP_PROXY': f'http://{aid}-proxy:1080',
                 'NO_PROXY': 'postgres,minio,127.0.0.1,localhost'},

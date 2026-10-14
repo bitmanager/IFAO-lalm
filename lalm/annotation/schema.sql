@@ -78,6 +78,24 @@ CREATE TABLE IF NOT EXISTS prepared_manifests (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
+-- Native API shadow work is isolated from training jobs. A claimed batch is
+-- never retried automatically because a lost response may have used quota.
+CREATE TABLE IF NOT EXISTS native_shadow_batches (
+  id text PRIMARY KEY,
+  account_id text NOT NULL REFERENCES accounts(id),
+  manifest_key text NOT NULL,
+  result_key text,
+  state text NOT NULL CHECK (state IN ('PENDING','RUNNING','COMPLETE','NEEDS_REVIEW')),
+  error_code text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  started_at timestamptz,
+  finished_at timestamptz
+);
+CREATE TABLE IF NOT EXISTS native_shadow_samples (
+  audio_sha256 text PRIMARY KEY,
+  batch_id text NOT NULL REFERENCES native_shadow_batches(id)
+);
+
 -- Keep split-contamination checks efficient as annotation history grows.
 CREATE INDEX IF NOT EXISTS jobs_conversation_identity ON jobs ((sample->>'conversation_id'));
 CREATE INDEX IF NOT EXISTS jobs_audio_identity ON jobs ((sample->>'audio_sha256'));
