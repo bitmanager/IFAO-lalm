@@ -1,0 +1,255 @@
+{
+  "parquet-quality": {
+    "reports": [
+      {
+        "file": "asr_public_phone_calls_1_balalaika.parquet",
+        "rows": 654,
+        "unique_paths": 654,
+        "source_ids": 654,
+        "paths_outer_whitespace": 0,
+        "empty_rover": 0,
+        "empty_punct": 0,
+        "empty_accent": 0,
+        "invalid_start": 654,
+        "missing_end": 654,
+        "archive_members_scanned": 621,
+        "metadata_paths_matching_scanned_members": 621,
+        "archive_scan_scope": "all files",
+        "archive_name_examples": [
+          "0/06/c0ccc52caeab.opus",
+          "0/0c/c0bdce168cf4.opus"
+        ]
+      },
+      {
+        "file": "asr_public_phone_calls_2_balalaika.parquet",
+        "rows": 1819,
+        "unique_paths": 1819,
+        "source_ids": 1819,
+        "paths_outer_whitespace": 0,
+        "empty_rover": 0,
+        "empty_punct": 0,
+        "empty_accent": 0,
+        "invalid_start": 1819,
+        "missing_end": 1819,
+        "archive_members_scanned": 1819,
+        "metadata_paths_matching_scanned_members": 1819,
+        "archive_scan_scope": "all files",
+        "archive_name_examples": [
+          "0/00/b6652665b3c2.opus",
+          "0/02/2003434a6d4f.opus"
+        ]
+      },
+      {
+        "file": "skolkovo_webinars_balalaika.parquet",
+        "rows": 82433,
+        "unique_paths": 82433,
+        "source_ids": 1656,
+        "paths_outer_whitespace": 82433,
+        "empty_rover": 1,
+        "empty_punct": 1,
+        "empty_accent": 1,
+        "invalid_start": 0,
+        "missing_end": 0,
+        "duration": [
+          248.9078055554587,
+          7.51,
+          15.0,
+          0
+        ],
+        "archive_members_scanned": 100,
+        "metadata_paths_matching_scanned_members": 0,
+        "archive_scan_scope": "first 100 files",
+        "archive_name_examples": [
+          "shkolkovo-bobr/56515d56-ce5f-4f98-a988-a4c0625facc5/1897.31_1911.74_shkolkovo-bobr_56515d56-ce5f-4f98-a988-a4c0625facc5.mp3",
+          "shkolkovo-bobr/56515d56-ce5f-4f98-a988-a4c0625facc5/1326.31_1338.11_shkolkovo-bobr_56515d56-ce5f-4f98-a988-a4c0625facc5.mp3"
+        ]
+      }
+    ],
+    "scope": "Structural checks; no transcription accuracy or complete corpus language certification",
+    "training_release": false
+  },
+  "phone1-source-overlap": {
+    "metadata_rows": 654,
+    "derived_audio_matches": 621,
+    "original_audio_matches": 654,
+    "missing_from_derived": [
+      {
+        "sample_id": "d57b74b78b3c",
+        "metadata_path": "asr_public_phone_calls_1/0/08/d57b74b78b3c.opus",
+        "original_member": "asr_public_phone_calls_1/0/08/d57b74b78b3c.txt"
+      },
+      {
+        "sample_id": "1b4f47aaecde",
+        "metadata_path": "asr_public_phone_calls_1/0/5d/1b4f47aaecde.opus",
+        "original_member": "asr_public_phone_calls_1/0/5d/1b4f47aaecde.txt"
+      },
+      {
+        "sample_id": "a9b69a9a1f42",
+        "metadata_path": "asr_public_phone_calls_1/0/6f/a9b69a9a1f42.opus",
+        "original_member": "asr_public_phone_calls_1/0/6f/a9b69a9a1f42.txt"
+      },
+      {
+        "sample_id": "a4c1fc8bb246",
+        "metadata_path": "asr_public_phone_calls_1/0/bc/a4c1fc8bb246.opus",
+        "original_member": "asr_public_phone_calls_1/0/bc/a4c1fc8bb246.txt"
+      },
+      {
+        "sample_id": "3aec5d3606c0",
+        "metadata_path": "asr_public_phone_calls_1/1/4a/3aec5d3606c0.opus",
+        "original_member": "asr_public_phone_calls_1/1/4a/3aec5d3606c0.txt"
+      },
+      {
+        "sample_id": "8b668835bbdf",
+        "metadata_path": "asr_public_phone_calls_1/1/a8/8b668835bbdf.opus",
+        "original_member": "asr_public_phone_calls_1/1/a8/8b668835bbdf.txt"
+      },
+      {
+        "sample_id": "adc55e4e2127",
+        "metadata_path": "asr_public_phone_calls_1/1/d4/adc55e4e2127.opus",
+        "original_member": "asr_public_phone_calls_1/1/d4/adc55e4e2127.txt"
+      },
+      {
+        "sample_id": "6dea112874d3",
+        "metadata_path": "asr_public_phone_calls_1/2/10/6dea112874d3.opus",
+        "original_member": "asr_public_phone_calls_1/2/10/6dea112874d3.txt"
+      },
+      {
+        "sample_id": "1d95f27e50e9",
+        "metadata_path": "asr_public_phone_calls_1/3/0a/1d95f27e50e9.opus",
+        "original_member": "asr_public_phone_calls_1/3/0a/1d95f27e50e9.txt"
+      },
+      {
+        "sample_id": "c8e2d0b225e8",
+        "metadata_path": "asr_public_phone_calls_1/3/a9/c8e2d0b225e8.opus",
+        "original_member": "asr_public_phone_calls_1/3/a9/c8e2d0b225e8.txt"
+      },
+      {
+        "sample_id": "32712fc27b4b",
+        "metadata_path": "asr_public_phone_calls_1/3/f8/32712fc27b4b.opus",
+        "original_member": "asr_public_phone_calls_1/3/f8/32712fc27b4b.txt"
+      },
+      {
+        "sample_id": "1ed81f422dcf",
+        "metadata_path": "asr_public_phone_calls_1/4/86/1ed81f422dcf.opus",
+        "original_member": "asr_public_phone_calls_1/4/86/1ed81f422dcf.txt"
+      },
+      {
+        "sample_id": "57ddc0d5efbd",
+        "metadata_path": "asr_public_phone_calls_1/5/69/57ddc0d5efbd.opus",
+        "original_member": "asr_public_phone_calls_1/5/69/57ddc0d5efbd.txt"
+      },
+      {
+        "sample_id": "1f76f2e26c26",
+        "metadata_path": "asr_public_phone_calls_1/5/f5/1f76f2e26c26.opus",
+        "original_member": "asr_public_phone_calls_1/5/f5/1f76f2e26c26.txt"
+      },
+      {
+        "sample_id": "c31bb71e29ec",
+        "metadata_path": "asr_public_phone_calls_1/6/09/c31bb71e29ec.opus",
+        "original_member": "asr_public_phone_calls_1/6/09/c31bb71e29ec.txt"
+      },
+      {
+        "sample_id": "bdc9e18f0d5e",
+        "metadata_path": "asr_public_phone_calls_1/6/4e/bdc9e18f0d5e.opus",
+        "original_member": "asr_public_phone_calls_1/6/4e/bdc9e18f0d5e.txt"
+      },
+      {
+        "sample_id": "00a7528951ca",
+        "metadata_path": "asr_public_phone_calls_1/6/ff/00a7528951ca.opus",
+        "original_member": "asr_public_phone_calls_1/6/ff/00a7528951ca.txt"
+      },
+      {
+        "sample_id": "eb557064e8f5",
+        "metadata_path": "asr_public_phone_calls_1/7/0f/eb557064e8f5.opus",
+        "original_member": "asr_public_phone_calls_1/7/0f/eb557064e8f5.txt"
+      },
+      {
+        "sample_id": "4ac646621c1d",
+        "metadata_path": "asr_public_phone_calls_1/7/d3/4ac646621c1d.opus",
+        "original_member": "asr_public_phone_calls_1/7/d3/4ac646621c1d.txt"
+      },
+      {
+        "sample_id": "0ad39441dfc1",
+        "metadata_path": "asr_public_phone_calls_1/8/6b/0ad39441dfc1.opus",
+        "original_member": "asr_public_phone_calls_1/8/6b/0ad39441dfc1.txt"
+      },
+      {
+        "sample_id": "abe66016f474",
+        "metadata_path": "asr_public_phone_calls_1/8/b1/abe66016f474.opus",
+        "original_member": "asr_public_phone_calls_1/8/b1/abe66016f474.txt"
+      },
+      {
+        "sample_id": "2bb778f0138a",
+        "metadata_path": "asr_public_phone_calls_1/9/ed/2bb778f0138a.opus",
+        "original_member": "asr_public_phone_calls_1/9/ed/2bb778f0138a.txt"
+      },
+      {
+        "sample_id": "7a4df1b3c2d6",
+        "metadata_path": "asr_public_phone_calls_1/a/77/7a4df1b3c2d6.opus",
+        "original_member": "asr_public_phone_calls_1/a/77/7a4df1b3c2d6.txt"
+      },
+      {
+        "sample_id": "d3f90561d55e",
+        "metadata_path": "asr_public_phone_calls_1/b/aa/d3f90561d55e.opus",
+        "original_member": "asr_public_phone_calls_1/b/aa/d3f90561d55e.txt"
+      },
+      {
+        "sample_id": "d2a0fd2bc32e",
+        "metadata_path": "asr_public_phone_calls_1/c/46/d2a0fd2bc32e.opus",
+        "original_member": "asr_public_phone_calls_1/c/46/d2a0fd2bc32e.txt"
+      },
+      {
+        "sample_id": "ad312e8e00a1",
+        "metadata_path": "asr_public_phone_calls_1/c/76/ad312e8e00a1.opus",
+        "original_member": "asr_public_phone_calls_1/c/76/ad312e8e00a1.txt"
+      },
+      {
+        "sample_id": "5e88e6c0157d",
+        "metadata_path": "asr_public_phone_calls_1/d/9a/5e88e6c0157d.opus",
+        "original_member": "asr_public_phone_calls_1/d/9a/5e88e6c0157d.txt"
+      },
+      {
+        "sample_id": "f186d4c3fd14",
+        "metadata_path": "asr_public_phone_calls_1/d/d5/f186d4c3fd14.opus",
+        "original_member": "asr_public_phone_calls_1/d/d5/f186d4c3fd14.txt"
+      },
+      {
+        "sample_id": "61eda4bbd51c",
+        "metadata_path": "asr_public_phone_calls_1/e/34/61eda4bbd51c.opus",
+        "original_member": "asr_public_phone_calls_1/e/34/61eda4bbd51c.txt"
+      },
+      {
+        "sample_id": "876553c400cf",
+        "metadata_path": "asr_public_phone_calls_1/f/08/876553c400cf.opus",
+        "original_member": "asr_public_phone_calls_1/f/08/876553c400cf.txt"
+      },
+      {
+        "sample_id": "460c27f0ccb9",
+        "metadata_path": "asr_public_phone_calls_1/f/5d/460c27f0ccb9.opus",
+        "original_member": "asr_public_phone_calls_1/f/5d/460c27f0ccb9.txt"
+      },
+      {
+        "sample_id": "512d9c9a9a60",
+        "metadata_path": "asr_public_phone_calls_1/f/63/512d9c9a9a60.opus",
+        "original_member": "asr_public_phone_calls_1/f/63/512d9c9a9a60.txt"
+      },
+      {
+        "sample_id": "dc8a37f8bce9",
+        "metadata_path": "asr_public_phone_calls_1/f/ac/dc8a37f8bce9.opus",
+        "original_member": "asr_public_phone_calls_1/f/ac/dc8a37f8bce9.txt"
+      }
+    ],
+    "scope": "Source ID membership, not decoded waveform equality; originals retained unchanged",
+    "training_release": false
+  },
+  "balalaika-native-dedup": {
+    "repo": "bitmanagerai/balalaika-stress-sft-audio",
+    "revision": "6438047ca0a666513cc242961ed14b2135b50129",
+    "files_reused": 1481,
+    "bytes_reused": 93099376640,
+    "remaining_files": 4,
+    "remaining_bytes": 885968108,
+    "evidence": "Original full S3 SHA256 readback matches pinned HF LFS SHA256; all 1481 current object paths and sizes revalidated",
+    "local_duplicates_deleted": false
+  }
+}
