@@ -31,6 +31,9 @@ class WorkerErrorTests(unittest.TestCase):
         with patch.dict('os.environ', {'ACCOUNT_ID': 'agy-08', 'NATIVE_API_PERCENT': '20'}), \
              patch('lalm.annotation.worker.NATIVE_API_DISABLED_UNTIL', 0):
             self.assertTrue(native_api_selected(job, 4, 1000, 'verbatim', None, 'gemini-3.8-flash-low'))
+        with patch.dict('os.environ', {'ACCOUNT_ID': 'agy-25', 'NATIVE_API_PERCENT': '20'}), \
+             patch('lalm.annotation.worker.NATIVE_API_DISABLED_UNTIL', 0):
+            self.assertTrue(native_api_selected(job, 4, 1000, 'verbatim', None, 'gemini-3.8-flash-low'))
 
     def test_dispatched_native_api_failure_is_quarantined_without_replay(self):
         from pathlib import Path
