@@ -49,6 +49,8 @@
     },
     {
       "repo": "lab260/biggest_ru_book_balalaika",
+      "destination_alias": "speech3",
+      "routing_updated_at": "2026-10-14T04:05:15.579911+00:00",
       "revision": "cf23a97fc51d1c8e35435da994003ec85d23331c",
       "source_bytes": 28755314766,
       "files": 4,
@@ -61,6 +63,8 @@
     },
     {
       "repo": "lab260/balalaika-sft-rover7-punct",
+      "destination_alias": "speech3",
+      "routing_updated_at": "2026-10-14T04:05:15.579911+00:00",
       "revision": "ca6a3cd4c392380fa86026daeac696ab2ee1a231",
       "source_bytes": 1548411834792,
       "files": 6720,
