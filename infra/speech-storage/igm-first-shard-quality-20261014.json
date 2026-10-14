@@ -1,0 +1,102 @@
+{
+  "at": "2026-10-14T06:06:40.680903+00:00",
+  "source": "speech/speech-corpora/staging/igm-balalaika/hf-22706569ad4096cb6604585a1e9a63ae89e7281b/train/shard_000_0000.tar",
+  "bytes": 123791360,
+  "sha256": "8ef1d1ac027c244818a44de0d3425daee7eeb6978b03ee53854d7618b67ef7d8",
+  "full_archive_readback_verified": true,
+  "audio_members": 1978,
+  "json_members": 1978,
+  "unpaired_audio": 0,
+  "unpaired_json": 0,
+  "repeated_member_names": 0,
+  "exact_audio_duplicate_occurrences": 0,
+  "metadata_fields": {
+    "speaker_id": 1978,
+    "start": 1978,
+    "end": 1978,
+    "total_duration": 1978,
+    "playlist_id": 1978,
+    "podcast_id": 1978,
+    "silence_percent": 1978,
+    "max_silence_duration": 1978,
+    "is_single_speaker": 1978,
+    "crest_factor": 1978,
+    "loudness_normalized": 1978,
+    "__balalaika_incoming_row__": 1978,
+    "music_prob": 1978,
+    "DistillMOS": 1978,
+    "asr": 1978,
+    "asr_ts": 1978,
+    "rover": 1978,
+    "asr_consistency": 1978,
+    "punct": 1978,
+    "accent": 1978,
+    "rover_phonemes": 1978
+  },
+  "scope": "First TAR only. Structural integrity and byte-identical sample dedup, not transcription accuracy or whole-corpus uniqueness.",
+  "training_release": false,
+  "text_field_types": {
+    "punct": {
+      "str": 1978
+    },
+    "rover": {
+      "str": 1978
+    },
+    "accent": {
+      "str": 1978
+    }
+  },
+  "empty_text_counts": {
+    "punct": 0,
+    "rover": 0,
+    "accent": 0
+  },
+  "non_cyrillic_punct_count": 0,
+  "invalid_intervals": 0,
+  "declared_segment_hours": 25.758305555555555,
+  "duration_caution": "Segment hours are sum(end-start) from source metadata, not measured audio duration; must not be treated as verified hours.",
+  "audio_duration_check": {
+    "library": "soundfile",
+    "members_checked": 1978,
+    "audio_hours": 3.7337462899974803,
+    "metadata_mismatch_gt_100ms": 449,
+    "largest_mismatches": [
+      {
+        "member": "37_636.mp3",
+        "audio_s": 5.403061224489796,
+        "metadata_s": 599.0,
+        "total_duration": 5.4
+      },
+      {
+        "member": "37_625.mp3",
+        "audio_s": 5.858004535147392,
+        "metadata_s": 588.0,
+        "total_duration": 5.86
+      },
+      {
+        "member": "37_626.mp3",
+        "audio_s": 9.761995464852607,
+        "metadata_s": 589.0,
+        "total_duration": 9.76
+      },
+      {
+        "member": "37_613.mp3",
+        "audio_s": 6.084013605442177,
+        "metadata_s": 576.0,
+        "total_duration": 6.08
+      },
+      {
+        "member": "37_614.mp3",
+        "audio_s": 7.522018140589569,
+        "metadata_s": 577.0,
+        "total_duration": 7.52
+      }
+    ]
+  },
+  "total_duration_check": {
+    "members_checked": 1978,
+    "mismatch_gt_100ms": 0,
+    "largest_mismatches": []
+  },
+  "usage_restriction": "Archive preserved unchanged. Do not build conversation history from start/end until source timeline semantics are resolved. Measure duration from audio; ASR transcript accuracy remains unverified."
+}
