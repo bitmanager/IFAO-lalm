@@ -1,0 +1,22 @@
+{
+  "source": "LEMAS-Project/LEMAS-Dataset-train",
+  "revision": "91f0c1b9a29f8d1c5bad18182a43975255512cce",
+  "selection": "train/ru/ru000.jsonl",
+  "counts": {
+    "rows": 1198816,
+    "words": 7114864,
+    "align_text_differs": 222443,
+    "words_score_below_0_5": 1315117
+  },
+  "example_keys_only": {
+    "align_text_differs": [
+      "ru_me7wpE3qvTA-00006-00002382-00002681",
+      "ru_6Zwu7l-MUGo-00247-00076244-00076582",
+      "ru_69b1CcKSY5E-00045-00023928-00024172",
+      "ru_u1LgiQl0uKA-00175-00076106-00076675",
+      "ru_0ENPiBHZc1U-00495-00177709-00177990"
+    ]
+  },
+  "training_release": false,
+  "interpretation": "Alignment scores are source-model scores, not independently calibrated word correctness; text differences may be normalization. Metadata checks do not establish acoustic fidelity."
+}
