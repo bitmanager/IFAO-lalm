@@ -814,8 +814,13 @@ AGY-08 starts at 20% after its bounded canary and a fresh quota check.
 AGY-25 starts at 20% after a bounded six-audio canary and quota check; its
 two listened non-Russian controls were rejected and its listened Russian
 control became a review candidate.
+AGY-19 starts at 20% after a 30-audio canary. One of 78 responses failed strict
+schema validation and was not retried; both listened non-Russian controls were
+rejected, and the listened Russian control was also rejected. An account-local
+`NATIVE_API_MAX_PERCENT=20` holds its route at 20% despite the normal successful
+response ramp until further review.
 After live error-free ramps, the configured restart floors are 50% for AGY-03,
-35% for AGY-16, and 20% for AGY-08, AGY-21, and AGY-25. This keeps a container restart from
+35% for AGY-16, and 20% for AGY-08, AGY-19, AGY-21, and AGY-25. This keeps a container restart from
 resetting a proven route to the original 20%. A bad API response temporarily
 reduces the effective share to 20% until 25 fresh valid responses; quota/auth
 or server errors additionally suspend the API route for ten minutes.

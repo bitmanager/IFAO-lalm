@@ -30,7 +30,7 @@ NATIVE_API_CONSECUTIVE_FAILURES = 0
 NATIVE_API_GOOD_COUNT = 0
 NATIVE_API_DEGRADED = False
 NATIVE_API_SLOTS = threading.BoundedSemaphore(5)
-NATIVE_API_BASE_PERCENT = {'agy-03': 50, 'agy-08': 20, 'agy-16': 35, 'agy-21': 20, 'agy-25': 20}
+NATIVE_API_BASE_PERCENT = {'agy-03': 50, 'agy-08': 20, 'agy-16': 35, 'agy-19': 20, 'agy-21': 20, 'agy-25': 20}
 
 
 def classify(text, timed_out=False):
@@ -232,13 +232,14 @@ def native_api_selected(job, duration, size, variant, reference, model):
     if account not in NATIVE_API_BASE_PERCENT or not job['sample'].get('review_only'):
         return False
     base_percent = int(os.environ.get('NATIVE_API_PERCENT', str(NATIVE_API_BASE_PERCENT[account])))
-    if not 0 <= base_percent <= 100:
+    max_percent = int(os.environ.get('NATIVE_API_MAX_PERCENT', '50'))
+    if not 0 <= base_percent <= 100 or not 0 <= max_percent <= 100:
         return False
     with NATIVE_API_FAILURE_LOCK:
         if NATIVE_API_DEGRADED:
             base_percent = min(base_percent, 20)
-        percent = max(base_percent, 50 if NATIVE_API_GOOD_COUNT >= 100
-                      else 35 if NATIVE_API_GOOD_COUNT >= 25 else base_percent)
+        percent = min(max_percent, max(base_percent, 50 if NATIVE_API_GOOD_COUNT >= 100
+                      else 35 if NATIVE_API_GOOD_COUNT >= 25 else base_percent))
     if (model != 'gemini-3.8-flash-low'
             or time.monotonic() < NATIVE_API_DISABLED_UNTIL
             or not 1 <= duration <= 20 or size >= 2 * 1024**2
