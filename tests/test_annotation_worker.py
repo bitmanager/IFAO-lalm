@@ -63,6 +63,25 @@ class WorkerErrorTests(unittest.TestCase):
         self.assertEqual(finish.call_args.args[1:], ('NEEDS_REVIEW',))
         self.assertEqual(finish.call_args.kwargs['error_code'], 'native_generation_http_503')
 
+    def test_native_transport_drop_suspends_route_without_replay(self):
+        from pathlib import Path
+        from unittest.mock import Mock, patch
+        import lalm.annotation.worker as worker
+        failed = {'status': 'failed_do_not_auto_retry', 'http_status': None,
+                  'error_type': 'RemoteDisconnected'}
+        with patch.object(worker, 'NATIVE_API_DISABLED_UNTIL', 0), \
+             patch.object(worker, 'NATIVE_API_CONSECUTIVE_FAILURES', 0), \
+             patch.object(worker, 'NATIVE_API_GOOD_COUNT', 0), \
+             patch.object(worker, 'NATIVE_API_DEGRADED', False), \
+             patch('lalm.annotation.worker.native_project', return_value='project'), \
+             patch('lalm.annotation.native_api.generate', return_value=(failed, b'')) as generate, \
+             patch('lalm.annotation.worker.finish') as finish:
+            worker.process_native_api({'id': 'a'}, Path('audio.wav'), 4, 'raw/a/1',
+                                      'verbatim', None, 'gemini-3.8-flash-low', Mock())
+            self.assertGreater(worker.NATIVE_API_DISABLED_UNTIL, worker.time.monotonic())
+            generate.assert_called_once()
+            self.assertEqual(finish.call_args.args[1], 'NEEDS_REVIEW')
+
     def test_three_bad_native_responses_suspend_new_api_routes(self):
         from pathlib import Path
         from unittest.mock import Mock, patch

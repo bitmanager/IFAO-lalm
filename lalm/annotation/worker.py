@@ -292,7 +292,7 @@ def process_native_api(job, audio, duration, prefix, variant, reference, model, 
             NATIVE_API_CONSECUTIVE_FAILURES += 1
             NATIVE_API_GOOD_COUNT = 0
             NATIVE_API_DEGRADED = True
-            if (NATIVE_API_CONSECUTIVE_FAILURES >= 3 or http_status in (401, 403, 429, 0)
+            if (NATIVE_API_CONSECUTIVE_FAILURES >= 3 or http_status in (None, 401, 403, 429, 0)
                     or (http_status or 0) >= 500):
                 NATIVE_API_DISABLED_UNTIL = max(NATIVE_API_DISABLED_UNTIL, time.monotonic() + 600)
         finish(job, 'NEEDS_REVIEW', error_code=native.get('error_code', 'native_api_result_rejected'))

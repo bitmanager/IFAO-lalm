@@ -828,8 +828,20 @@ AGY-08 alone pilots eight concurrent API calls via `NATIVE_API_CONCURRENCY=8`
 after zero recent direct API errors. The worker enforces a hard ceiling of eight;
 all other accounts remain at five. HTTP 429 and server failures suspend that
 account's API route and new jobs fall back to CLI.
+
+For a VPN migration, probe audio through the target proxy with the account's
+own OAuth before changing Compose. `route_account.py` checks that the target
+network reaches the proxy, PostgreSQL, and S3 relay; `--apply` saves a private
+backup of the runtime Compose file. Pause new claims and wait for the account's
+`RUNNING` count to reach zero before recreating its container. A stop timeout
+can otherwise leave already-dispatched jobs ambiguous; these must remain in
+`NEEDS_REVIEW` without automatic replay. Validate with `dc config --quiet`
+before restart and check the account's actual proxy, DB/S3 access, fresh API
+outputs, and error codes afterward.
 After live error-free ramps, the configured restart floors are 50% for AGY-03,
 35% for AGY-16, 20% for AGY-19, 60% for AGY-21, and 70% for AGY-08 and AGY-25. This keeps a container restart from
 resetting a proven route to the original 20%. A bad API response temporarily
 reduces the effective share to 20% until 25 fresh valid responses; quota/auth
 or server errors additionally suspend the API route for ten minutes.
+An ambiguous transport failure without any HTTP response also suspends the
+route immediately; its dispatched request is quarantined without replay.
