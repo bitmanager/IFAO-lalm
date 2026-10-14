@@ -4,6 +4,24 @@ from lalm.annotation.worker import classify, quota_reset_delay, predispatch_auth
 
 
 class WorkerErrorTests(unittest.TestCase):
+    def test_model_catalog_retry_requires_observed_zero_turn_failure(self):
+        import json
+        from lalm.annotation.worker import predispatch_model_catalog_transient
+        model = 'gemini-3.8-flash-low'
+        stderr = (f'error: invalid model selection (--model "{model}" --effort ""): '
+                  f'model {model} is not recognized as a known model or custom model in settings\n')
+        event = {'event': 'result', 'result': {'status': 'ERROR', 'num_turns': 0,
+                                              'duration_seconds': 0}}
+        raw = json.dumps(event)
+        self.assertTrue(predispatch_model_catalog_transient(raw, stderr, model, 1))
+        for bad in ('', 'not json', raw+'\n'+json.dumps({'event': 'init'})):
+            self.assertFalse(predispatch_model_catalog_transient(bad, stderr, model, 1))
+        self.assertFalse(predispatch_model_catalog_transient(raw, stderr, model, 1, True))
+        self.assertFalse(predispatch_model_catalog_transient(raw, stderr, model, 0))
+        self.assertFalse(predispatch_model_catalog_transient(raw, stderr, 'gemini-4-argon-low', 1))
+        event['result']['num_turns'] = 1
+        self.assertFalse(predispatch_model_catalog_transient(json.dumps(event), stderr, model, 1))
+
     def setUp(self):
         from unittest.mock import patch
         self.enterContext(patch('lalm.annotation.worker.repair_trailing_auth', return_value=False))

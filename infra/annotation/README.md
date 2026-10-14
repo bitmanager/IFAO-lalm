@@ -638,6 +638,12 @@ Internal error encountered.` response. If an init event already exists, the
 job is quarantined and the account cooled down rather than replaying it.
 Explicit access denials still take priority over these service errors.
 
+The observed CLI catalog miss (`invalid model selection` for the requested model)
+also permits a bounded retry, but only with exit code 1, the exact stderr message,
+and a sole zero-turn, zero-duration ERROR envelope. The requested model is preserved;
+any init event, generated turn, timeout, or different model/message prevents retry.
+This handles transient catalog discovery without replaying uncertain inference.
+
 PostgreSQL uses `max_connections=512` for the worker fleet and Airflow. The
 default 100 produced connection-limit errors and lost finish updates during
 bursts. Apply this startup parameter only after draining AGY and source workers

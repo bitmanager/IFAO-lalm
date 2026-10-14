@@ -201,6 +201,23 @@ def predispatch_eligibility_transient(stdout, timed_out=False):
 
 
 
+def predispatch_model_catalog_transient(stdout, stderr, model, returncode, timed_out=False):
+    """A catalog miss is replayable only with the exact zero-turn CLI failure."""
+    expected = (f'error: invalid model selection (--model "{model}" --effort ""): '
+                f'model {model} is not recognized as a known model or custom model in settings')
+    if timed_out or returncode != 1 or stderr.strip() != expected:
+        return False
+    try:
+        events = [json.loads(line) for line in stdout.splitlines() if line.strip()]
+    except ValueError:
+        return False
+    if len(events) != 1 or not isinstance(events[0], dict) or events[0].get('event') != 'result':
+        return False
+    result = events[0].get('result')
+    return (isinstance(result, dict) and result.get('status') == 'ERROR'
+            and result.get('num_turns') == 0 and result.get('duration_seconds') == 0)
+
+
 def agy_env():
     return {k: v for k, v in os.environ.items() if k in {
         'PATH', 'HOME', 'LANG', 'LC_ALL', 'TZ', 'HTTP_PROXY', 'HTTPS_PROXY', 'NO_PROXY',
@@ -395,6 +412,11 @@ def process(job):
                     'error': 'auth_storage_invalid_before_dispatch'}}):
                 finish(job, 'RETRYABLE_FAILED', error_code='auth_storage_invalid',
                        retry_seconds=60, block='transport_cooldown')
+                return
+            if predispatch_model_catalog_transient(stdout, stderr, model, rc, timed_out):
+                finish(job, 'RETRYABLE_FAILED', error_code='model_catalog_unavailable_before_dispatch',
+                       retry_seconds=random.uniform(30, 90) * 2 ** min(job['attempt'] - 1, 2),
+                       block='transport_cooldown')
                 return
             if predispatch_eligibility_transient(stdout, timed_out):
                 # Existing queue caps attempts at three and cools down the account.
