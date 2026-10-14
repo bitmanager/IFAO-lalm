@@ -251,5 +251,22 @@
     "remaining_bytes": 885968108,
     "evidence": "Original full S3 SHA256 readback matches pinned HF LFS SHA256; all 1481 current object paths and sizes revalidated",
     "local_duplicates_deleted": false
-  }
+  },
+  "tone_path_resolution": {
+    "metadata_rows": 82433,
+    "unique_reconstructed_archive_paths": 82433,
+    "sample_audio_members": 100,
+    "matched_sample_members": 100,
+    "rule": "Trim filepath, remove its source-root component, prepend playlist_id",
+    "scope": "First 100 archive files only; full coverage remains to be audited"
+  },
+  "local_cleanup_pending": {
+    "files": 385,
+    "bytes": 40358420480,
+    "root": "/mnt/local/drive1/speech-hf-ingest-20261013/downloads/balalaika-stress-sft-audio",
+    "verification": "Complete local TAR SHA256 matches pinned upstream and native S3 readback; object paths and sizes revalidated",
+    "approval": "Requested; no deletion yet",
+    "exact_file_list": "/mnt/local/drive1/speech-hf-ingest-20261013/audit/balalaika-stress-sft-audio/local-cleanup-candidates-20261014.json"
+  },
+  "s3_evidence_prefix": "speech/speech-datasets/catalog/quality-audit-20261014/"
 }
