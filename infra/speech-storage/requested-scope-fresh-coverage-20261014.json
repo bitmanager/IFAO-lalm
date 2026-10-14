@@ -1,0 +1,308 @@
+{
+  "at": "2026-10-14T06:03:59.362686+00:00",
+  "scope": "Explicit 14 HF datasets and 8 collection entries; smart-turn excluded",
+  "verification": "Fresh pinned filename/size/LFS hash and readback-receipt reconciliation where available. Legacy sessions/Gemini use upstream filenames and source SHA/size receipts. No fresh full S3 read or global audio-sample dedup.",
+  "datasets": [
+    {
+      "repo": "bitmanagerai/rutts_rl_numeric_texts",
+      "previous_status": "COPIED_AND_FULL_SHA256_READBACK_VERIFIED",
+      "status": "RECEIPTS_COVER_FULL_PINNED_SOURCE",
+      "revision": "eccfa513c0e06b5d481ce5f3a0b16e8459475e42",
+      "expected_files": 519,
+      "verified_receipt_files": 519,
+      "verified_bytes": 235954672,
+      "remaining_files": 0,
+      "remaining_bytes": 0,
+      "invalid_receipts": [],
+      "missing_examples": [],
+      "audit_path": "/mnt/local/drive1/speech-hf-ingest-20261013/audit/rutts-rl-numeric-texts"
+    },
+    {
+      "repo": "bitmanagerai/balalaika_proprietary_v2",
+      "previous_status": "RUNNING",
+      "status": "INCOMPLETE",
+      "revision": "766eebc95f0c0ccef286a9022624a736221e19d3",
+      "expected_files": 5346,
+      "verified_receipt_files": 3912,
+      "verified_bytes": 339059666416,
+      "remaining_files": 1434,
+      "remaining_bytes": 469785073246,
+      "invalid_receipts": [],
+      "missing_examples": [
+        "tokenizations/omni/agreement_ge_0_95/audios/shard-000306.tar",
+        "tokenizations/omni/agreement_ge_0_95/audios/shard-000307.tar",
+        "tokenizations/omni/agreement_ge_0_95/audios/shard-000308.tar"
+      ],
+      "audit_path": "/mnt/local/drive1/speech-hf-ingest-20261013/audit/balalaika-proprietary-v2"
+    },
+    {
+      "repo": "bitmanagerai/arariel-question-intonation-benchmark",
+      "previous_status": "COPIED_AND_FULL_SHA256_READBACK_VERIFIED",
+      "status": "RECEIPTS_COVER_FULL_PINNED_SOURCE",
+      "revision": "18db974ba6b2cbb10327a9df8dadd615ce33a25b",
+      "expected_files": 749,
+      "verified_receipt_files": 749,
+      "verified_bytes": 172733599,
+      "remaining_files": 0,
+      "remaining_bytes": 0,
+      "invalid_receipts": [],
+      "missing_examples": [],
+      "audit_path": "/mnt/local/drive1/speech-hf-ingest-20261013/audit/arariel-question-intonation"
+    },
+    {
+      "repo": "bitmanagerai/RU-ASR-Intonation-bench",
+      "previous_status": "COPIED_AND_FULL_SHA256_READBACK_VERIFIED",
+      "status": "RECEIPTS_COVER_FULL_PINNED_SOURCE",
+      "revision": "04b1339a7046c20d4d5138fa560f537faae540b6",
+      "expected_files": 863,
+      "verified_receipt_files": 863,
+      "verified_bytes": 232105629,
+      "remaining_files": 0,
+      "remaining_bytes": 0,
+      "invalid_receipts": [],
+      "missing_examples": [],
+      "audit_path": "/mnt/local/drive1/speech-hf-ingest-20261013/audit/ru-asr-intonation"
+    },
+    {
+      "repo": "bitmanagerai/hard_number_eval_for_tts",
+      "previous_status": "COPIED_AND_FULL_SHA256_READBACK_VERIFIED",
+      "status": "RECEIPTS_COVER_FULL_PINNED_SOURCE",
+      "revision": "57b964492ccfcedd6a24d0225ef4b7d3697ffdca",
+      "expected_files": 13,
+      "verified_receipt_files": 13,
+      "verified_bytes": 2820564,
+      "remaining_files": 0,
+      "remaining_bytes": 0,
+      "invalid_receipts": [],
+      "missing_examples": [],
+      "audit_path": "/mnt/local/drive1/speech-hf-ingest-20261013/audit/hard-number-eval-tts"
+    },
+    {
+      "repo": "bitmanagerai/bitmanager_sessions_03_06_2026_18_10",
+      "previous_status": "COPIED_AND_FULL_SHA256_READBACK_VERIFIED",
+      "status": "RECEIPTS_COVER_FULL_PINNED_SOURCE",
+      "previous_verified_files": 27187,
+      "expected_files": 27187,
+      "verified_receipt_files": 27187,
+      "verified_bytes": 1956302893,
+      "remaining_files": 0,
+      "audit_path": "/mnt/local/drive2/speech-data-storage-20261012/audit/full-download-20261012/sessions"
+    },
+    {
+      "repo": "bitmanagerai/synth-turn-data",
+      "previous_status": "COPIED_AND_FULL_SHA256_READBACK_VERIFIED",
+      "status": "RECEIPTS_COVER_FULL_PINNED_SOURCE",
+      "revision": "602ff0d826d58d9adc0ddfb681add9b64b3fd897",
+      "expected_files": 2718,
+      "verified_receipt_files": 2718,
+      "verified_bytes": 519551027,
+      "remaining_files": 0,
+      "remaining_bytes": 0,
+      "invalid_receipts": [],
+      "missing_examples": [],
+      "audit_path": "/mnt/local/drive1/speech-hf-ingest-20261013/audit/synth-turn-data"
+    },
+    {
+      "repo": "bitmanagerai/smart-turn-data-v3.2",
+      "previous_status": "DELETED_BY_USER_REQUEST",
+      "status": "EXCLUDED_BY_USER"
+    },
+    {
+      "repo": "bitmanagerai/turn_detection_stage_1",
+      "previous_status": "COPIED_AND_FULL_SHA256_READBACK_VERIFIED",
+      "status": "RECEIPTS_COVER_FULL_PINNED_SOURCE",
+      "revision": "0739bb778ff0e3399e448a4f558c9fb782559d99",
+      "expected_files": 5,
+      "verified_receipt_files": 5,
+      "verified_bytes": 2370302220,
+      "remaining_files": 0,
+      "remaining_bytes": 0,
+      "invalid_receipts": [],
+      "missing_examples": [],
+      "audit_path": "/mnt/local/drive1/speech-hf-ingest-20261013/audit/turn-detection-stage-1"
+    },
+    {
+      "repo": "bitmanagerai/RuSynthCallCenter_clean",
+      "previous_status": "RUNNING",
+      "status": "INCOMPLETE",
+      "revision": "f4e6afb643d8d5640dcdc2091949ba1bed39a39d",
+      "expected_files": 10,
+      "verified_receipt_files": 0,
+      "verified_bytes": 0,
+      "remaining_files": 10,
+      "remaining_bytes": 44713456337,
+      "invalid_receipts": [],
+      "missing_examples": [
+        ".gitattributes",
+        "README.md",
+        "audio.tar.gz"
+      ],
+      "audit_path": "/mnt/local/drive1/speech-hf-ingest-20261013/audit/rusynth-callcenter-clean"
+    },
+    {
+      "repo": "bitmanagerai/ru_tts_train_data",
+      "previous_status": "RUNNING",
+      "status": "INCOMPLETE",
+      "revision": "fce435e34cc192839b888e8d58edb4d3bcdb097b",
+      "expected_files": 7,
+      "verified_receipt_files": 2,
+      "verified_bytes": 11036,
+      "remaining_files": 5,
+      "remaining_bytes": 82961021195,
+      "invalid_receipts": [],
+      "missing_examples": [
+        "data.tar.gz",
+        "records.parquet",
+        "train.jsonl"
+      ],
+      "audit_path": "/mnt/local/drive1/speech-hf-ingest-20261013/audit/ru-tts-train-data"
+    },
+    {
+      "repo": "bitmanagerai/tts-first500hrs",
+      "previous_status": "RUNNING",
+      "status": "INCOMPLETE",
+      "revision": "6e561223e90026e60a64775557a02c810ebc992f",
+      "expected_files": 896,
+      "verified_receipt_files": 0,
+      "verified_bytes": 0,
+      "remaining_files": 896,
+      "remaining_bytes": 93815148812,
+      "invalid_receipts": [],
+      "missing_examples": [
+        ".gitattributes",
+        "README.md",
+        "train/shard-000000.tar"
+      ],
+      "audit_path": "/mnt/local/drive1/speech-hf-ingest-20261013/audit/tts-first500hrs"
+    },
+    {
+      "repo": "bitmanagerai/gemini-tts-eqvanta",
+      "previous_status": "COPIED_AND_FULL_SHA256_READBACK_VERIFIED",
+      "status": "RECEIPTS_COVER_FULL_PINNED_SOURCE",
+      "previous_verified_files": 159,
+      "expected_files": 159,
+      "verified_receipt_files": 159,
+      "verified_bytes": 1814709456,
+      "remaining_files": 0,
+      "audit_path": "/mnt/local/drive2/speech-data-storage-20261012/audit/full-download-20261012/gemini"
+    },
+    {
+      "repo": "langswap/dialogs-ru-emotional-conversations",
+      "previous_status": "COPIED_AND_FULL_SHA256_READBACK_VERIFIED",
+      "status": "RECEIPTS_COVER_FULL_PINNED_SOURCE",
+      "revision": "a74ff44d8d27ca3d21098ea3ed4d31a32923fbdd",
+      "expected_files": 10004,
+      "verified_receipt_files": 10004,
+      "verified_bytes": 5571006663,
+      "remaining_files": 0,
+      "remaining_bytes": 0,
+      "invalid_receipts": [],
+      "missing_examples": [],
+      "audit_path": "/mnt/local/drive1/speech-hf-ingest-20261013/audit/langswap-dialogs-ru"
+    },
+    {
+      "repo": "lab260/sova_balalaika",
+      "previous_status": "RUNNING",
+      "status": "INCOMPLETE",
+      "revision": "be89f9bbc9908afd34b28e05441bbb9f655c0183",
+      "expected_files": 6638,
+      "verified_receipt_files": 36,
+      "verified_bytes": 18347349949,
+      "remaining_files": 6602,
+      "remaining_bytes": 3517913210880,
+      "invalid_receipts": [],
+      "missing_examples": [
+        "train/shard_000_0034.tar",
+        "train/shard_000_0035.tar",
+        "train/shard_000_0036.tar"
+      ],
+      "audit_path": "/mnt/local/drive1/speech-hf-ingest-20261013/audit/sova-balalaika-first200gb"
+    },
+    {
+      "repo": "lab260/youtube_balalaika",
+      "previous_status": "RUNNING",
+      "status": "INCOMPLETE",
+      "revision": "f847a349ac9cbf2952726c12b5aab1fd70b8a4cf",
+      "expected_files": 967,
+      "verified_receipt_files": 491,
+      "verified_bytes": 263520944584,
+      "remaining_files": 476,
+      "remaining_bytes": 255828080640,
+      "invalid_receipts": [],
+      "missing_examples": [
+        "train/shard_004_0010.tar",
+        "train/shard_004_0011.tar",
+        "train/shard_004_0012.tar"
+      ],
+      "audit_path": "/mnt/local/drive1/speech-hf-ingest-20261013/audit/balalaika-youtube-exp"
+    },
+    {
+      "repo": "lab260/webinars_balalaika",
+      "previous_status": "RUNNING",
+      "status": "RECEIPTS_COVER_FULL_PINNED_SOURCE",
+      "revision": "4512dfefe428f3fcdde06f517f6c0096fc5def65",
+      "expected_files": 33,
+      "verified_receipt_files": 33,
+      "verified_bytes": 4154913224,
+      "remaining_files": 0,
+      "remaining_bytes": 0,
+      "invalid_receipts": [],
+      "missing_examples": [],
+      "audit_path": "/mnt/local/drive1/speech-hf-ingest-20261013/audit/webinars-balalaika"
+    },
+    {
+      "repo": "lab260/golos_balalaika",
+      "previous_status": "HELD_FOR_CROSS_FORMAT_DEDUP_REVIEW",
+      "status": "RECEIPTS_COVER_FULL_PINNED_SOURCE",
+      "revision": "7b41d4d0030b22ee3d10d6bdc79a43a4a428cecf",
+      "expected_files": 65,
+      "verified_receipt_files": 65,
+      "verified_bytes": 1786818736,
+      "remaining_files": 0,
+      "remaining_bytes": 0,
+      "invalid_receipts": [],
+      "missing_examples": [],
+      "audit_path": "/mnt/local/drive1/speech-hf-ingest-20261013/audit/golos-balalaika"
+    },
+    {
+      "repo": "lab260/tuchniyzhab_balalaika",
+      "previous_status": "QUEUED",
+      "status": "RECEIPTS_COVER_FULL_PINNED_SOURCE",
+      "previous_verified_files": null,
+      "revision": "8003cca35b3e93c15c5444c8b0ae35d3b3191505",
+      "expected_files": 33,
+      "verified_receipt_files": 33,
+      "verified_bytes": 82813384,
+      "remaining_files": 0,
+      "remaining_bytes": 0,
+      "audit_path": "/mnt/local/drive1/speech-hf-ingest-20261013/audit/tuchniyzhab-balalaika"
+    },
+    {
+      "repo": "lab260/igm_balalaika",
+      "previous_status": "QUEUED",
+      "status": "INCOMPLETE",
+      "previous_verified_files": null,
+      "revision": "22706569ad4096cb6604585a1e9a63ae89e7281b",
+      "expected_files": 33,
+      "verified_receipt_files": 16,
+      "verified_bytes": 1847759304,
+      "remaining_files": 17,
+      "remaining_bytes": 2077644800,
+      "audit_path": "/mnt/local/drive1/speech-hf-ingest-20261013/audit/igm-balalaika"
+    },
+    {
+      "repo": "lab260/upvote_balalaika",
+      "previous_status": "QUEUED",
+      "status": "QUEUED",
+      "previous_verified_files": null
+    },
+    {
+      "repo": "lab260/buldjat_balalaika",
+      "previous_status": "QUEUED",
+      "status": "QUEUED",
+      "previous_verified_files": null
+    }
+  ],
+  "live_units": "UNIT                                                             LOAD   ACTIVE SUB     DESCRIPTION\nspeech-data-hf-11labs-ru-20261013.service                        loaded active running /bin/bash /mnt/local/drive1/speech-hf-ingest-20261013/jobs/11labs-ru.sh\nspeech-data-hf-balalaika-longform-20261013.service               loaded active running /bin/bash /mnt/local/drive1/speech-hf-ingest-20261013/jobs/balalaika-longform.sh\nspeech-data-hf-balalaika-proprietary-v2-primary-20261013.service loaded active running /bin/bash /mnt/local/drive1/speech-hf-ingest-20261013/jobs/balalaika-proprietary-v2-primary.sh\nspeech-data-hf-balalaika-youtube-exp-20261013.service            loaded active running /bin/bash /mnt/local/drive1/speech-hf-ingest-20261013/jobs/balalaika-youtube-exp.sh\nspeech-data-hf-collection-missing-20261014.service               loaded active running /bin/bash /mnt/local/drive1/speech-hf-ingest-20261013/jobs/collection-missing-20261014.sh\nspeech-data-hf-lab260-queue-without-golos-20261014.service       loaded active running /bin/bash /mnt/local/drive1/speech-hf-ingest-20261013/jobs/lab260-additional-without-golos-20261014.sh\nspeech-data-hf-ru-tts-train-data-stream-20261013.service         loaded active running /bin/bash /mnt/local/drive1/speech-hf-ingest-20261013/jobs/ru-tts-train-data-stream.sh\nspeech-data-hf-rusynth-callcenter-clean-20261013.service         loaded active running /bin/bash /mnt/local/drive1/speech-hf-ingest-20261013/jobs/rusynth-callcenter-clean.sh\nspeech-data-hf-sova-balalaika-first200gb-20261013.service        loaded active running /bin/bash /mnt/local/drive1/speech-hf-ingest-20261013/jobs/sova-balalaika-first200gb.sh\nspeech-data-hf-tts-first500hrs-20261013.service                  loaded active running /bin/bash /mnt/local/drive1/speech-hf-ingest-20261013/jobs/tts-first500hrs.sh\nspeech-data-hf-yo-cpt-ru-overflow-target-20261014.service        loaded active running /bin/bash /mnt/local/drive1/speech-hf-ingest-20261013/jobs/yo-cpt-ru-overflow-target.sh\nspeech-data-lemas-ru001-download-20261014.service                loaded active running /mnt/local/drive2/ifao-qwen38-sr-20261010/venv/bin/hf download LEMAS-Project/LEMAS-Dataset-train train/ru/ru001.jsonl train/ru/ru001.tar.gz --repo-type dataset --revision 91f0c1b9a29f8d1c5bad18182a43975255512cce --local-dir /mnt/local/drive1/speech-hf-ingest-20261013/downloads/lemas-ru001 --max-workers 1 --quiet\nspeech-data-minio-overflow.service                               loaded active running SpeechLLM R&D overflow S3 storage\nspeech-data-minio.service                                        loaded active running SpeechLLM R&D S3 storage\nspeech-data-mtedx-ru-resume-20261014.service                     loaded active running /usr/bin/aria2c --continue=true --max-connection-per-server=4 --split=4 --max-tries=5 --retry-wait=10 --connect-timeout=30 --timeout=60 --file-allocation=none --auto-file-renaming=false --allow-overwrite=false --dir=/mnt/local/drive2/speech-source-downloads-20261012/mtedx-ru --out=mtedx_ru.tgz.partial https://openslr.magicdatatech.com/resources/100/mtedx_ru.tgz\n\nLegend: LOAD   → Reflects whether the unit definition was properly loaded.\n        ACTIVE → The high-level unit activation state, i.e. generalization of SUB.\n        SUB    → The low-level unit activation state, values depend on unit type.\n\n15 loaded units listed.\n",
+  "all_complete": false
+}

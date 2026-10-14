@@ -1,0 +1,15 @@
+{
+  "repo": "bitmanagerai/load-test-TTS",
+  "revision": "c25c5d6827facb3f141d9d98cbf7fa219d7a0fcf",
+  "at": "2026-10-14T06:02:34.829925+00:00",
+  "status": "COPIED_AND_FULL_SHA256_READBACK_VERIFIED",
+  "files": 2,
+  "bytes": 215882,
+  "dedup_references": 1,
+  "training_release": false,
+  "records": 100,
+  "turns": 650,
+  "empty_text": 0,
+  "cyrillic_text": 650,
+  "kind": "Agent-side text scenarios with timing/source references, no audio or full counterpart dialogue"
+}
