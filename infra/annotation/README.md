@@ -9,8 +9,8 @@ Runtime работает только на dev-1 (`exp-srv-rtx6000x4-02`), в
 PostgreSQL хранит служебную очередь и состояние Airflow; аналитические таблицы
 и датасеты публикуются в Parquet на S3.
 
-После каждого успешного прохода DAG задача `publish_inspection_parquet`
-публикует согласованный снимок таблиц `sources`, `passes`, `examples`,
+Отдельный DAG `inspection_snapshot_pipeline` каждые 10 минут публикует
+согласованный снимок таблиц `sources`, `passes`, `examples`,
 `progress`, `publications`. `s3://speech-datasets/analytics/latest.json`
 указывает на конкретные неизменяемые файлы с SHA256 и числом строк.
 Нельзя читать glob всех версий: это повторно посчитает одни и те же записи.
@@ -248,6 +248,7 @@ infra/annotation/dc run --rm control publish
 
 ```bash
 infra/annotation/dc exec airflow-scheduler airflow dags unpause audio_labeling_pipeline
+infra/annotation/dc exec airflow-scheduler airflow dags unpause inspection_snapshot_pipeline
 ```
 
 Текущее расписание сборщика остаётся systemd. Перенос запуска самого сборщика под
