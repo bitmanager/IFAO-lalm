@@ -1,0 +1,13 @@
+{
+  "at": "2026-10-14T07:32:20.212087+00:00",
+  "repo": "lab260/igm_balalaika",
+  "revision": "22706569ad4096cb6604585a1e9a63ae89e7281b",
+  "status": "COPIED_AND_FULL_SHA256_READBACK_VERIFIED",
+  "expected_files": 33,
+  "verified_receipt_files": 33,
+  "verified_bytes": 3925404104,
+  "deduped_files": 1,
+  "bad_or_missing_receipts": [],
+  "method": "Pinned upstream manifest path/size/LFS SHA checked against file map and S3 readback receipt; full completion status independently reconciled.",
+  "training_release": false
+}
