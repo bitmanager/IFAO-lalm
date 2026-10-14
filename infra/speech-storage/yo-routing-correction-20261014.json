@@ -1,0 +1,11 @@
+{
+  "time": "2026-10-14T03:08:44.960148+00:00",
+  "repo": "NCSpeech/YO-CPT-ru",
+  "old_unit": "speech-data-hf-yo-cpt-ru-20261013.service",
+  "new_unit": "speech-data-hf-yo-cpt-ru-overflow-target-20261014.service",
+  "new_target": "speech2/speech-corpora/staging/yo-cpt-ru",
+  "existing_verified_objects": "Retained at original locations; shared file-map reused for resume",
+  "reason": "Primary disk remaining planned writes exceeded free space; overflow target is same filesystem as staging free-space guard",
+  "remaining_source_bytes_at_audit": 791308607671,
+  "capacity_caveat": "Overflow also receives TTS datasets; staged verified source files are reclaimed, source guard reserves 100GB. Whole collection still exceeds allocated capacity."
+}
