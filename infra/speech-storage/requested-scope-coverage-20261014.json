@@ -1,0 +1,244 @@
+{
+  "at": "2026-10-14T03:23:49.528717+00:00",
+  "scope": "Explicit 14 HF datasets plus all 8 entries in requested collection",
+  "datasets": [
+    {
+      "repo": "bitmanagerai/rutts_rl_numeric_texts",
+      "training_release": false,
+      "status": "COPIED_AND_FULL_SHA256_READBACK_VERIFIED",
+      "audit_path": "/mnt/local/drive1/speech-hf-ingest-20261013/audit/rutts-rl-numeric-texts",
+      "mapped_source_bytes": 235954672,
+      "expected_files": 519,
+      "mapped_files": 519,
+      "missing_files": 0,
+      "receipt_coverage_complete": true
+    },
+    {
+      "repo": "bitmanagerai/balalaika_proprietary_v2",
+      "training_release": false,
+      "status": "RUNNING",
+      "audit_path": "/mnt/local/drive1/speech-hf-ingest-20261013/audit/balalaika-proprietary-v2",
+      "mapped_source_bytes": 332116803056,
+      "expected_files": 5346,
+      "mapped_files": 3901,
+      "missing_files": 1445,
+      "receipt_coverage_complete": false
+    },
+    {
+      "repo": "bitmanagerai/arariel-question-intonation-benchmark",
+      "training_release": false,
+      "status": "COPIED_AND_FULL_SHA256_READBACK_VERIFIED",
+      "audit_path": "/mnt/local/drive1/speech-hf-ingest-20261013/audit/arariel-question-intonation",
+      "mapped_source_bytes": 172733599,
+      "expected_files": 749,
+      "mapped_files": 749,
+      "missing_files": 0,
+      "receipt_coverage_complete": true
+    },
+    {
+      "repo": "bitmanagerai/RU-ASR-Intonation-bench",
+      "training_release": false,
+      "status": "COPIED_AND_FULL_SHA256_READBACK_VERIFIED",
+      "audit_path": "/mnt/local/drive1/speech-hf-ingest-20261013/audit/ru-asr-intonation",
+      "mapped_source_bytes": 232105629,
+      "expected_files": 863,
+      "mapped_files": 863,
+      "missing_files": 0,
+      "receipt_coverage_complete": true
+    },
+    {
+      "repo": "bitmanagerai/hard_number_eval_for_tts",
+      "training_release": false,
+      "status": "COPIED_AND_FULL_SHA256_READBACK_VERIFIED",
+      "audit_path": "/mnt/local/drive1/speech-hf-ingest-20261013/audit/hard-number-eval-tts",
+      "mapped_source_bytes": 2820564,
+      "expected_files": 13,
+      "mapped_files": 13,
+      "missing_files": 0,
+      "receipt_coverage_complete": true
+    },
+    {
+      "repo": "bitmanagerai/bitmanager_sessions_03_06_2026_18_10",
+      "training_release": false,
+      "status": "COPIED_AND_FULL_SHA256_READBACK_VERIFIED",
+      "audit_path": "/mnt/local/drive2/speech-data-storage-20261012/audit/full-download-20261012/sessions",
+      "mapped_source_bytes": 1956302893,
+      "expected_files": 27187,
+      "mapped_files": 27187,
+      "missing_files": 0,
+      "receipt_coverage_complete": true
+    },
+    {
+      "repo": "bitmanagerai/synth-turn-data",
+      "training_release": false,
+      "status": "COPIED_AND_FULL_SHA256_READBACK_VERIFIED",
+      "audit_path": "/mnt/local/drive1/speech-hf-ingest-20261013/audit/synth-turn-data",
+      "mapped_source_bytes": 519551027,
+      "expected_files": 2718,
+      "mapped_files": 2718,
+      "missing_files": 0,
+      "receipt_coverage_complete": true
+    },
+    {
+      "repo": "bitmanagerai/smart-turn-data-v3.2",
+      "training_release": false,
+      "status": "DELETED_BY_USER_REQUEST",
+      "audit_path": "/mnt/local/drive1/speech-hf-ingest-20261013/audit/smart-turn-data-v3-2",
+      "mapped_source_bytes": 2164836608,
+      "expected_files": 14440,
+      "mapped_files": 14440,
+      "missing_files": 0,
+      "receipt_coverage_complete": false,
+      "scope": "Explicitly excluded by user; historical receipts do not mean stored"
+    },
+    {
+      "repo": "bitmanagerai/turn_detection_stage_1",
+      "training_release": false,
+      "status": "COPIED_AND_FULL_SHA256_READBACK_VERIFIED",
+      "audit_path": "/mnt/local/drive1/speech-hf-ingest-20261013/audit/turn-detection-stage-1",
+      "mapped_source_bytes": 2370302220,
+      "expected_files": 5,
+      "mapped_files": 5,
+      "missing_files": 0,
+      "receipt_coverage_complete": true
+    },
+    {
+      "repo": "bitmanagerai/RuSynthCallCenter_clean",
+      "training_release": false,
+      "status": "RUNNING",
+      "audit_path": "/mnt/local/drive1/speech-hf-ingest-20261013/audit/rusynth-callcenter-clean",
+      "mapped_source_bytes": 0,
+      "expected_files": 10,
+      "mapped_files": 0,
+      "missing_files": 10,
+      "receipt_coverage_complete": false
+    },
+    {
+      "repo": "bitmanagerai/ru_tts_train_data",
+      "training_release": false,
+      "status": "RUNNING",
+      "audit_path": "/mnt/local/drive1/speech-hf-ingest-20261013/audit/ru-tts-train-data",
+      "mapped_source_bytes": 11036,
+      "expected_files": 7,
+      "mapped_files": 2,
+      "missing_files": 5,
+      "receipt_coverage_complete": false
+    },
+    {
+      "repo": "bitmanagerai/tts-first500hrs",
+      "training_release": false,
+      "status": "RUNNING",
+      "audit_path": "/mnt/local/drive1/speech-hf-ingest-20261013/audit/tts-first500hrs",
+      "mapped_source_bytes": 0,
+      "expected_files": 896,
+      "mapped_files": 0,
+      "missing_files": 896,
+      "receipt_coverage_complete": false
+    },
+    {
+      "repo": "bitmanagerai/gemini-tts-eqvanta",
+      "training_release": false,
+      "status": "COPIED_AND_FULL_SHA256_READBACK_VERIFIED",
+      "audit_path": "/mnt/local/drive2/speech-data-storage-20261012/audit/full-download-20261012/gemini",
+      "mapped_source_bytes": 1814709456,
+      "expected_files": 159,
+      "mapped_files": 159,
+      "missing_files": 0,
+      "receipt_coverage_complete": true
+    },
+    {
+      "repo": "langswap/dialogs-ru-emotional-conversations",
+      "training_release": false,
+      "status": "COPIED_AND_FULL_SHA256_READBACK_VERIFIED",
+      "audit_path": "/mnt/local/drive1/speech-hf-ingest-20261013/audit/langswap-dialogs-ru",
+      "mapped_source_bytes": 5571006663,
+      "expected_files": 10004,
+      "mapped_files": 10004,
+      "missing_files": 0,
+      "receipt_coverage_complete": true
+    },
+    {
+      "repo": "lab260/sova_balalaika",
+      "training_release": false,
+      "status": "RUNNING",
+      "audit_path": "/mnt/local/drive1/speech-hf-ingest-20261013/audit/sova-balalaika-first200gb",
+      "mapped_source_bytes": 14030073789,
+      "expected_files": 6638,
+      "mapped_files": 28,
+      "missing_files": 6610,
+      "receipt_coverage_complete": false,
+      "scope": "Only first 200GB scheduled; full repository remains required"
+    },
+    {
+      "repo": "lab260/youtube_balalaika",
+      "training_release": false,
+      "status": "RUNNING",
+      "audit_path": "/mnt/local/drive1/speech-hf-ingest-20261013/audit/balalaika-youtube-exp",
+      "mapped_source_bytes": 258653657544,
+      "expected_files": 967,
+      "mapped_files": 482,
+      "missing_files": 485,
+      "receipt_coverage_complete": false
+    },
+    {
+      "repo": "lab260/webinars_balalaika",
+      "training_release": false,
+      "status": "RUNNING",
+      "audit_path": "/mnt/local/drive1/speech-hf-ingest-20261013/audit/webinars-balalaika",
+      "mapped_source_bytes": 405496264,
+      "expected_files": 33,
+      "mapped_files": 4,
+      "missing_files": 29,
+      "receipt_coverage_complete": false
+    },
+    {
+      "repo": "lab260/golos_balalaika",
+      "training_release": false,
+      "status": "HELD_FOR_CROSS_FORMAT_DEDUP_REVIEW",
+      "audit_path": "/mnt/local/drive1/speech-hf-ingest-20261013/audit/golos-balalaika",
+      "mapped_source_bytes": 12073136,
+      "expected_files": 65,
+      "mapped_files": 23,
+      "missing_files": 42,
+      "receipt_coverage_complete": false,
+      "scope": "Held for cross-format source dedup; existing original retained"
+    },
+    {
+      "repo": "lab260/tuchniyzhab_balalaika",
+      "training_release": false,
+      "status": "QUEUED",
+      "source_bytes": 82813384,
+      "receipt_coverage_complete": false
+    },
+    {
+      "repo": "lab260/igm_balalaika",
+      "training_release": false,
+      "status": "QUEUED",
+      "source_bytes": 3925404104,
+      "receipt_coverage_complete": false
+    },
+    {
+      "repo": "lab260/upvote_balalaika",
+      "training_release": false,
+      "status": "QUEUED",
+      "source_bytes": 3724720584,
+      "receipt_coverage_complete": false
+    },
+    {
+      "repo": "lab260/buldjat_balalaika",
+      "training_release": false,
+      "status": "QUEUED",
+      "source_bytes": 751526344,
+      "receipt_coverage_complete": false
+    }
+  ],
+  "status_counts": {
+    "COPIED_AND_FULL_SHA256_READBACK_VERIFIED": 9,
+    "RUNNING": 7,
+    "DELETED_BY_USER_REQUEST": 1,
+    "HELD_FOR_CROSS_FORMAT_DEDUP_REVIEW": 1,
+    "QUEUED": 4
+  },
+  "complete": false,
+  "verification_scope": "Pinned upstream filenames vs import receipts, not a fresh full readback of all objects or sample-level uniqueness audit"
+}
