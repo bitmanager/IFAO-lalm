@@ -11,6 +11,7 @@ unprotected training audios. Recent CLI language tags selected 80 `ru` and 14
 other examples; these tags are sampling hints, not ground truth. Every sample
 had an attached source annotation. The generator excluded all 30 audios from
 the previous four-account trial and kept one fresh audio per conversation.
+Together the 100 short segments contain 0.0418 hours of audio.
 The manifest is private at
 `s3://speech-annotations/evaluation/native-api-canary-v1/20261014-shadow-01/manifest.json`.
 
@@ -49,3 +50,8 @@ inference. The retry started when the account was ready. The reservation now
 waits up to two minutes for short cooldowns; longer quota blocks and disabled
 accounts still stop the batch before audio is sent. Its guarded rollback was
 checked against a disposable PostgreSQL transaction.
+
+The account's `/usage` snapshots moved from 82.32% to 82.11% weekly remaining
+and from 99.61% to 98.78% five-hour remaining over the surrounding 25-minute
+interval. Normal CLI work was active before and after the reservation, so this
+delta is not an isolated price for 264 native requests.
