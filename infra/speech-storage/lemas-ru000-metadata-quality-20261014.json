@@ -1,0 +1,76 @@
+{
+  "checked_at": "2026-10-14T05:01:31.285005+00:00",
+  "source": "LEMAS-Project/LEMAS-Dataset-train",
+  "selection": "train/ru/ru000.jsonl",
+  "sha256": "916b7c2a794f1ff361a86169cf257b61bf69021a1fc49703837edcd8cf4e26ae",
+  "upstream_hash_matches": true,
+  "counts": {
+    "rows": 1198816,
+    "duplicate_key": 0,
+    "duplicate_audio": 0,
+    "duplicate_txt": 23755,
+    "text_with_cyrillic": 1198036
+  },
+  "fields": {
+    "key": 1198816,
+    "audio": 1198816,
+    "dur": 1198816,
+    "txt": 1198816,
+    "align": 1198816
+  },
+  "types": {
+    "key": [
+      "str"
+    ],
+    "audio": [
+      "str"
+    ],
+    "dur": [
+      "float"
+    ],
+    "txt": [
+      "str"
+    ],
+    "align": [
+      "dict"
+    ]
+  },
+  "first_row_shape_without_text": {
+    "key": {
+      "type": "str",
+      "keys": null,
+      "length": null
+    },
+    "audio": {
+      "type": "str",
+      "keys": null,
+      "length": null
+    },
+    "dur": {
+      "type": "float",
+      "keys": null,
+      "length": null
+    },
+    "txt": {
+      "type": "str",
+      "keys": null,
+      "length": null
+    },
+    "align": {
+      "type": "dict",
+      "keys": [
+        "txt",
+        "words"
+      ],
+      "length": null
+    }
+  },
+  "declared_hours": 999.9986868402266,
+  "training_release": false,
+  "limitations": [
+    "No audio-content audit",
+    "Cyrillic presence is not language validation",
+    "Duplicate text does not establish duplicate audio",
+    "Only ru000 metadata inspected"
+  ]
+}
