@@ -824,11 +824,13 @@ After several error-free operational snapshots, AGY-08 and AGY-25 route up to
 The normally five-call-per-container semaphore still limits simultaneous API requests;
 overflow takes the CLI route. This increases throughput, but one API result
 still consumes a model generation request and quota savings are unproven.
-AGY-08 pilots eight concurrent API calls via `NATIVE_API_CONCURRENCY=8`.
+AGY-08's eight-call API pilot was returned to five after six post-dispatch
+`RemoteDisconnected` responses in a burst on 14 October. The affected attempts
+remain quarantined; the change drains in-flight work before recreation.
 An AGY-25 eight-call pilot was rolled back after malformed model JSON responses;
 that account remains at five. Both changes used a pause of new claims and a
 complete in-flight drain before recreation. The worker enforces a hard ceiling
-of eight; all other accounts remain at five. HTTP 429 and server failures suspend that
+of eight; AGY-12 retains an eight-call pilot and other accounts remain at five. HTTP 429 and server failures suspend that
 account's API route and new jobs fall back to CLI.
 AGY-06 and AGY-14 were then added as 20%-capped pilots after adaptive
 six-audio canaries (12/12 and 14/14 valid generation responses respectively)
