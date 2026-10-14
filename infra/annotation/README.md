@@ -857,16 +857,24 @@ The next expansion used the same six private control audios per account. AGY-05,
 returned 18/18. Both listened non-Russian controls were rejected on every
 account. This is a transport and precision smoke check, not a gold accuracy
 measurement: the listened Russian control was rejected by the three-pass rule
-on most accounts. AGY-05, 12, 13, 18 and 24 now route eligible short review-only
-jobs to API, with at most five simultaneous API requests each. AGY-06's route
+on most accounts. AGY-12, 13, 18 and 24 route eligible short review-only
+jobs to API. AGY-06's route
 was raised to 50% after continued error-free API operation. AGY-10 was rolled
 back to CLI after five concurrent post-dispatch `RemoteDisconnected` responses;
-AGY-11 was rolled back after a post-dispatch 90-second `TimeoutError`. Those
+AGY-11 was rolled back after a post-dispatch 90-second `TimeoutError`. AGY-05
+was rolled back after a second post-dispatch `RemoteDisconnected`; AGY-14 was
+rolled back after another such failure before its proposed ramp. Those
 uncertain jobs remain `NEEDS_REVIEW` without automatic replay. The effective
 API share must be read from `native_api_saved_5m / saved_5m`: route percentages
 are caps, and API cooldowns or the concurrency semaphore can lower the actual
 share. HTTP/server and ambiguous transport failures still suspend an affected
 account's API route while CLI continues.
+AGY-12 and AGY-21 pilot eight simultaneous API calls with a 100% selection cap;
+AGY-16 has a 70% selection cap with five simultaneous calls. A malformed JSON
+response on AGY-21 was quarantined. At 21:15 UTC, AGY-12, 13 and 14 had near
+simultaneous post-dispatch disconnections, so their API routes were allowed to
+cool down instead of forcing the traffic target. A successful six-audio canary
+does not establish reliability under production load.
 
 For a VPN migration, probe audio through the target proxy with the account's
 own OAuth before changing Compose. `route_account.py` checks that the target

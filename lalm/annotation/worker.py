@@ -34,9 +34,9 @@ def native_api_concurrency():
 
 
 NATIVE_API_SLOTS = threading.BoundedSemaphore(native_api_concurrency())
-NATIVE_API_BASE_PERCENT = {'agy-03': 50, 'agy-05': 50, 'agy-06': 20, 'agy-08': 70,
-                           'agy-12': 50, 'agy-13': 50, 'agy-14': 20,
-                           'agy-16': 35, 'agy-18': 20, 'agy-19': 20,
+NATIVE_API_BASE_PERCENT = {'agy-03': 50, 'agy-06': 20, 'agy-08': 70,
+                           'agy-12': 50, 'agy-13': 50, 'agy-16': 35,
+                           'agy-18': 20, 'agy-19': 20,
                            'agy-21': 60, 'agy-24': 20, 'agy-25': 70}
 
 
