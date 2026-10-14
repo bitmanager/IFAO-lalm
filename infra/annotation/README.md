@@ -765,3 +765,13 @@ Validation: `tests/test_annotation_native_api.py` covers native validation and
 single-dispatch timeout behavior. `tests/annotation_native_canary_check.py` checks
 reservation expiry and guarded rollback in a disposable PostgreSQL transaction.
 `tests/test_annotation_native_auth.py` covers the narrow credential repair.
+
+For a larger parallel shadow check, `native_shadow_manifest.py` selects 100
+distinct, unprotected training audios: six listening controls from the prior
+manifest, 80 recent CLI results tagged `ru`, and 14 tagged as other languages.
+The CLI language tags only stratify the sample; they are not ground truth. The
+manifest is saved privately in S3 and is rejected if too few eligible audios
+exist. Run the same canary with `--max-samples 100 --adaptive` on one account;
+other accounts continue their normal CLI queue. This account reserves up to
+15 minutes and returns to CLI automatically. Shadow results remain separate
+review artifacts and must not enter the training publication automatically.

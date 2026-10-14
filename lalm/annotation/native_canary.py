@@ -24,14 +24,20 @@ from .worker import agy_env
 
 
 def reserve(account):
-    with connect() as c:
-        row = c.execute('SELECT * FROM accounts WHERE id=%s FOR UPDATE', (account,)).fetchone()
-        if (not row or not row['enabled'] or row['blocked_reason']
-                or row['next_request_at'] > datetime.now(timezone.utc) + timedelta(seconds=3)):
-            raise ValueError('account_not_ready_for_canary')
-        deadline = c.execute("UPDATE accounts SET next_request_at=now()+interval '15 minutes' "
-                             'WHERE id=%s RETURNING next_request_at', (account,)).fetchone()['next_request_at']
-        return row['next_request_at'], deadline
+    wait_until = time.monotonic() + 120
+    while True:
+        with connect() as c:
+            row = c.execute('SELECT * FROM accounts WHERE id=%s FOR UPDATE', (account,)).fetchone()
+            if not row or not row['enabled'] or row['blocked_reason']:
+                raise ValueError('account_not_ready_for_canary')
+            delay = (row['next_request_at'] - datetime.now(timezone.utc)).total_seconds()
+            if delay <= 3:
+                deadline = c.execute("UPDATE accounts SET next_request_at=now()+interval '15 minutes' "
+                    'WHERE id=%s RETURNING next_request_at', (account,)).fetchone()['next_request_at']
+                return row['next_request_at'], deadline
+        if delay > wait_until - time.monotonic():
+            raise ValueError('account_cooldown_exceeds_canary_wait')
+        time.sleep(min(max(delay, 0.5), 10))
 
 
 def release(account, original, deadline):
@@ -47,7 +53,7 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--manifest', type=Path, required=True)
     p.add_argument('--prefix', required=True)
-    p.add_argument('--max-samples', type=int, choices=(6, 30), default=6)
+    p.add_argument('--max-samples', type=int, choices=(6, 30, 100), default=6)
     p.add_argument('--adaptive', action='store_true', help='Only follow a usable Russian blind result')
     args = p.parse_args()
     account = os.environ['ACCOUNT_ID']

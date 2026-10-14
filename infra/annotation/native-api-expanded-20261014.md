@@ -1,5 +1,8 @@
 # Native audio canary expanded to four accounts, 2026-10-14
 
+The subsequent 100-audio parallel shadow batch is documented in
+[`native-api-shadow-20261014.md`](native-api-shadow-20261014.md).
+
 The same 30 unprotected training audios ran through `agy-03`, `agy-16`,
 `agy-08`, and `agy-21` as an isolated review experiment. Six were earlier
 controls; 24 were fresh, unverified phone recordings. Each account used its
