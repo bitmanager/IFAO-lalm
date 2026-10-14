@@ -77,9 +77,12 @@ def classify(text, timed_out=False):
         # the account; Google's temporary 503 does not revoke authentication.
         return 'NEEDS_REVIEW', 'eligibility_service_unavailable', 'transport_cooldown'
     if any(x in text for x in ('authentication required', 'unauthenticated', 'permission denied',
-                                'access denied', 'unauthorized', 'forbidden',
-                                'eligibility check failed', 'verify your account')):
+                                'access denied', 'unauthorized', 'forbidden', 'verify your account')):
         return 'NEEDS_REVIEW', 'authentication_or_access_denied', 'authentication_or_access_denied'
+    if 'eligibility check failed' in text:
+        # Eligibility failures include transient profile/usage API transport
+        # errors. Only explicit denial markers above should quarantine an account.
+        return 'NEEDS_REVIEW', 'eligibility_check_failed', 'transport_cooldown'
     if timed_out:
         return 'NEEDS_REVIEW', 'ambiguous_timeout', None
     if inference_unavailable:
@@ -231,8 +234,9 @@ def process(job):
                 raise ValueError('native_exit')
             native = agy_result(stdout, audio, expected_model=model)
         except (ValueError, KeyError, TypeError):
-            if rc != 0 and predispatch_eligibility_transient(stdout, timed_out):
+            if predispatch_eligibility_transient(stdout, timed_out):
                 # Existing queue caps attempts at three and cools down the account.
+                # Some CLI versions return exit code 0 for zero-turn failures.
                 # Raw artifacts above retain every attempt; no sleeping worker slot.
                 finish(job, 'RETRYABLE_FAILED', error_code='eligibility_transport_transient',
                        retry_seconds=random.uniform(30, 90) * 2 ** min(job['attempt'] - 1, 2))
