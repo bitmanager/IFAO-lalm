@@ -4,7 +4,7 @@ Each generation is one POST. No automatic retry, endpoint fallback or tool loop.
 OAuth credentials are read only from the account's own local native CLI file.
 """
 import base64
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import hashlib
 import json
 from pathlib import Path
@@ -14,6 +14,7 @@ import urllib.request
 import uuid
 
 from .contract import SCHEMA, digest, normalize_language, prompt
+from .native_auth import repair_trailing_auth
 
 ENDPOINT = 'https://daily-cloudcode-pa.googleapis.com'
 USER_AGENT = 'antigravity/cli/1.3.4 (aidev_client; os_type=linux; arch=amd64; auth_method=consumer)'
@@ -38,10 +39,11 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
         return None
 
 
-def token():
+def token(min_remaining=0):
     path = Path.home() / '.gemini/antigravity-cli/antigravity-oauth-token'
+    repair_trailing_auth(path)
     value = json.loads(path.read_text())['token']
-    if datetime.fromisoformat(value['expiry'].replace('Z', '+00:00')) <= datetime.now(timezone.utc):
+    if datetime.fromisoformat(value['expiry'].replace('Z', '+00:00')) <= datetime.now(timezone.utc) + timedelta(seconds=min_remaining):
         raise ValueError('access_token_expired_before_dispatch')
     return value['access_token']
 

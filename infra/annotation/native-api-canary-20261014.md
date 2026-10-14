@@ -1,5 +1,8 @@
 # Two-account native API canary, 2026-10-14
 
+The later 30-audio, four-account run is documented in
+[`native-api-expanded-20261014.md`](native-api-expanded-20261014.md).
+
 The native audio transport completed a bounded experiment on `agy-03` and
 `agy-16`: six identical audios per slot, three independent prompts per audio,
 at most five simultaneous requests per slot. Both slots automatically resumed

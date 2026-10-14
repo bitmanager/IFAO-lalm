@@ -718,12 +718,18 @@ trend. `/usage` quota reads remain a separate read-only check via
 ## Bounded native API canary
 
 `lalm.annotation.native_canary` temporarily reserves an existing account for a
-fixed manifest of at most six distinct, unprotected training audios. The manifest
+fixed manifest of at most six distinct, unprotected training audios by default,
+or 30 when `--max-samples 30` is explicit. The manifest
 contains `sample`, explicitly attached source annotation, optional listening
 audit metadata, and cached CLI results. It executes three independent prompts
-per sample with at most five concurrent native `generateContent` POSTs, through
+per sample by default. With `--adaptive`, it first runs the blind prompt for all
+samples and runs the other two only when that pass is a usable Russian result.
+At most five native `generateContent` POSTs run concurrently, through
 the account's existing network and local OAuth file. Auth refresh remains owned
-by the native CLI; discovery is once per batch. Generation has no automatic retry.
+by the native CLI; a catalog request is made only if the cached access token has
+less than 15 minutes left. Project discovery is once per batch. Generation has
+no automatic retry. A 401, 403, 429, server error or ambiguous transport failure
+stops dispatch of further passes.
 
 ```bash
 python -m lalm.annotation.native_canary \
@@ -748,6 +754,14 @@ The same three-pass Russian precision decision is reported as `native_decision`;
 model agreement alone is not a listening audit. Inspect cached CLI contract
 versions before treating historical results as a controlled comparison.
 
+The account worker checks its local OAuth JSON before starting AGY. If a complete
+credential object is followed only by trailing garbage, it saves the original
+privately in the same home and atomically restores the complete object. Ambiguous
+or incomplete files are rejected before inference. A one-minute shared catalog
+cache prevents concurrent startup failures from starting many identical auth
+probes. No tokens are logged or stored in the canary artifacts.
+
 Validation: `tests/test_annotation_native_api.py` covers native validation and
 single-dispatch timeout behavior. `tests/annotation_native_canary_check.py` checks
 reservation expiry and guarded rollback in a disposable PostgreSQL transaction.
+`tests/test_annotation_native_auth.py` covers the narrow credential repair.

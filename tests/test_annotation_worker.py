@@ -4,6 +4,23 @@ from lalm.annotation.worker import classify, quota_reset_delay, predispatch_auth
 
 
 class WorkerErrorTests(unittest.TestCase):
+    def setUp(self):
+        from unittest.mock import patch
+        self.enterContext(patch('lalm.annotation.worker.repair_trailing_auth', return_value=False))
+
+    def test_invalid_local_auth_never_starts_model_process(self):
+        import json
+        from pathlib import Path
+        from unittest.mock import patch
+        from lalm.annotation.worker import run_agy
+        with patch('lalm.annotation.worker.repair_trailing_auth', side_effect=ValueError), \
+             patch('lalm.annotation.worker.subprocess.Popen') as spawn:
+            rc, stdout, _, timed_out = run_agy(Path('audio.wav'), Path('/work'))
+        spawn.assert_not_called()
+        self.assertEqual(rc, 1)
+        self.assertFalse(timed_out)
+        self.assertEqual(json.loads(stdout)['result']['num_turns'], 0)
+
     def test_eligibility_500_is_not_an_auth_denial_or_an_inference_replay(self):
         import json
         error = ('Eligibility check failed: failed to get load code assist response: '
@@ -135,9 +152,23 @@ class WorkerErrorTests(unittest.TestCase):
         from lalm.annotation.contract import MODEL
         for rc, text, expected in [(0, MODEL, True), (1, MODEL, False), (0, '', False)]:
             with patch('lalm.annotation.worker.subprocess.run', return_value=CompletedProcess([],rc,text,'')):
-                self.assertEqual(probe_auth(), expected)
+                self.assertEqual(probe_auth(ttl_seconds=0), expected)
         with patch('lalm.annotation.worker.subprocess.run', side_effect=TimeoutExpired('agy',40)):
-            self.assertFalse(probe_auth())
+            self.assertFalse(probe_auth(ttl_seconds=0))
+
+    def test_concurrent_startup_failures_share_one_failed_catalog(self):
+        from concurrent.futures import ThreadPoolExecutor
+        from subprocess import TimeoutExpired
+        from unittest.mock import patch
+        import time
+        def unavailable(*args, **kwargs):
+            time.sleep(.03)
+            raise TimeoutExpired('agy', 40)
+        with patch('lalm.annotation.worker.AUTH_PROBE_CACHE', {}), \
+             patch('lalm.annotation.worker.subprocess.run', side_effect=unavailable) as catalog:
+            with ThreadPoolExecutor(max_workers=20) as pool:
+                self.assertEqual(list(pool.map(lambda _: probe_auth(), range(20))), [False]*20)
+            self.assertEqual(catalog.call_count, 1)
 
     def test_verification_required_blocks_account(self):
         self.assertEqual(classify('Eligibility check failed: Verify your account')[2],

@@ -17,7 +17,7 @@ import threading
 import time
 
 from .contract import source_text, triad_decision
-from .native_api import discover, generate
+from .native_api import discover, generate, token
 from .queue import protected
 from .store import bucket, connect, s3
 from .worker import agy_env
@@ -47,11 +47,13 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--manifest', type=Path, required=True)
     p.add_argument('--prefix', required=True)
+    p.add_argument('--max-samples', type=int, choices=(6, 30), default=6)
+    p.add_argument('--adaptive', action='store_true', help='Only follow a usable Russian blind result')
     args = p.parse_args()
     account = os.environ['ACCOUNT_ID']
     samples = json.loads(args.manifest.read_text())
-    if not 1 <= len(samples) <= 6 or len({s['sample']['audio_sha256'] for s in samples}) != len(samples):
-        p.error('Canary requires one to six distinct samples')
+    if not 1 <= len(samples) <= args.max_samples or len({s['sample']['audio_sha256'] for s in samples}) != len(samples):
+        p.error('Canary requires distinct samples within the explicit batch cap')
     for row in samples:
         sample = row['sample']
         with connect() as c:
@@ -81,11 +83,17 @@ def main():
             if time.monotonic() - started > 360:
                 raise TimeoutError('existing_cli_requests_did_not_drain')
             time.sleep(2)
-        # Native CLI owns credential refresh. This catalog call has no generation.
-        auth = subprocess.run(['agy', 'models'], capture_output=True, text=True,
-                              env=agy_env(), timeout=40)
-        if auth.returncode != 0 or 'gemini-3.8-flash-low' not in auth.stdout:
-            raise ValueError('native_auth_catalog_failed')
+        # Reuse valid local auth. Native CLI owns refresh when it is needed;
+        # healthy batches need no extra catalog/profile request.
+        catalog_used = False
+        try:
+            token(min_remaining=900)
+        except (ValueError, OSError, KeyError):
+            catalog_used = True
+            auth = subprocess.run(['agy', 'models'], capture_output=True, text=True,
+                                  env=agy_env(), timeout=40)
+            if auth.returncode != 0 or 'gemini-3.8-flash-low' not in auth.stdout:
+                raise ValueError('native_auth_catalog_failed')
         project = discover()
         with tempfile.TemporaryDirectory(prefix='native-canary-', dir='/work') as temp:
             paths = {}
@@ -105,6 +113,10 @@ def main():
                 sample = row['sample']; sha = sample['audio_sha256']
                 if stop.is_set():
                     return {'audio_sha256': sha, 'prompt_variant': variant, 'status': 'skipped_after_failure'}
+                if datetime.now(timezone.utc) >= deadline - timedelta(seconds=120):
+                    stop.set()
+                    return {'audio_sha256': sha, 'prompt_variant': variant,
+                            'status': 'skipped_before_reservation_expiry'}
                 try:
                     result, raw = generate(paths[sha], project, variant,
                         source_text(sample) if variant == 'source_correction' else None)
@@ -113,7 +125,8 @@ def main():
                     return {'audio_sha256': sha, 'prompt_variant': variant,
                             'status': 'not_dispatched', 'error_type': type(error).__name__,
                             'inference_http_attempts': 0}
-                if result.get('http_status') in (401, 403, 429) or result.get('http_status', 0) == 0:
+                if (result.get('http_status') in (401, 403, 429)
+                        or result.get('http_status', 0) == 0 or result.get('http_status', 0) >= 500):
                     stop.set()
                 key = f'{prefix}/raw/{sha}/{variant}.json'
                 if raw:
@@ -122,9 +135,18 @@ def main():
                 print(json.dumps({'sample': sha[:12], 'variant': variant, 'status': result['status'],
                                   'seconds': result.get('inference_seconds')}), flush=True)
                 return result
-            tasks = [(row, variant) for row in samples for variant in ('verbatim', 'coverage', 'source_correction')]
             with concurrent.futures.ThreadPoolExecutor(max_workers=5) as pool:
-                records = list(pool.map(one, tasks))
+                if args.adaptive:
+                    records = list(pool.map(one, [(row, 'verbatim') for row in samples]))
+                    first = {r['audio_sha256']: r for r in records if r.get('status') == 'complete'}
+                    followups = [(row, variant) for row in samples
+                        if row['sample']['audio_sha256'] in first
+                        and triad_decision({'verbatim': first[row['sample']['audio_sha256']]}) == 'waiting_remaining'
+                        for variant in ('coverage', 'source_correction')]
+                    records.extend(pool.map(one, followups))
+                else:
+                    tasks = [(row, variant) for row in samples for variant in ('verbatim', 'coverage', 'source_correction')]
+                    records = list(pool.map(one, tasks))
             comparisons = []
             for row in samples:
                 sha = row['sample']['audio_sha256']
@@ -135,6 +157,8 @@ def main():
                     'cli_previous_passes': row.get('cli_previous_passes', {})})
             report = {'purpose': 'native_api_canary_review_only_not_training', 'account': account,
                 'captured_at': datetime.now(timezone.utc).isoformat(), 'concurrency': 5,
+                'adaptive': args.adaptive, 'max_samples': args.max_samples,
+                'catalog_request_used': catalog_used,
                 'inference_wall_seconds': round(time.monotonic()-inference_started, 3),
                 'records': records, 'comparisons': comparisons,
                 'inference_http_attempts': sum(r.get('inference_http_attempts', 0) for r in records)}

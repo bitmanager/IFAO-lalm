@@ -17,8 +17,11 @@ from lalm.benchmark_langfuse_asr import agy_result, zero_user_audio
 from .contract import CONTRACT_SHA, MODEL, SCHEMA, prompt, contract_sha, source_text, digest, normalize_language, sample_model
 from .queue import claim, finish
 from .store import bucket, s3
+from .native_auth import repair_trailing_auth
 
 STOP = threading.Event()
+AUTH_PROBE_LOCK = threading.Lock()
+AUTH_PROBE_CACHE = {}
 
 
 def classify(text, timed_out=False):
@@ -133,14 +136,23 @@ def predispatch_auth_timeout(stdout, stderr, elapsed):
             and r.get('error') == 'authentication failed or timed out')
 
 
-def probe_auth(model=MODEL):
+def probe_auth(model=MODEL, ttl_seconds=60):
     """Native read-only catalog lookup, no prompt and no credential logging."""
-    try:
-        result = subprocess.run(['agy', 'models'], env=agy_env(),
-                                capture_output=True, text=True, timeout=40)
-        return result.returncode == 0 and model in result.stdout
-    except (OSError, subprocess.TimeoutExpired):
-        return False
+    # One account owns this worker process. Share a bounded read-only probe
+    # across its threads instead of amplifying an auth outage with N catalogs.
+    with AUTH_PROBE_LOCK:
+        cached = AUTH_PROBE_CACHE.get(model)
+        if ttl_seconds > 0 and cached and cached[0] > time.monotonic():
+            return cached[1]
+        try:
+            repair_trailing_auth()
+            result = subprocess.run(['agy', 'models'], env=agy_env(),
+                                    capture_output=True, text=True, timeout=40)
+            ready = result.returncode == 0 and model in result.stdout
+        except (OSError, ValueError, subprocess.TimeoutExpired):
+            ready = False
+        AUTH_PROBE_CACHE[model] = (time.monotonic() + max(0, ttl_seconds), ready)
+        return ready
 
 
 def predispatch_eligibility_transient(stdout, timed_out=False):
@@ -180,6 +192,15 @@ def agy_env():
 
 
 def run_agy(audio, workspace, variant="verbatim", reference=None, model=MODEL):
+    try:
+        if repair_trailing_auth():
+            print(json.dumps({'event': 'auth_storage_suffix_repaired',
+                              'account': os.environ.get('ACCOUNT_ID')}), flush=True)
+    except (OSError, ValueError):
+        # Nothing has been submitted to AGY. Keep the failure explicitly zero-turn.
+        return 1, json.dumps({'event': 'result', 'result': {'status': 'ERROR',
+            'num_turns': 0, 'duration_seconds': 0,
+            'error': 'auth_storage_invalid_before_dispatch'}}), '', False
     command = ['agy', '--model', model, '--disable-slash-commands',
                '--output-format', 'stream-json', '--json-schema', json.dumps(SCHEMA),
                '--print-timeout', '5m', '--add-dir', str(workspace), '-p', prompt(audio, variant, reference)]
@@ -255,6 +276,12 @@ def process(job):
                 raise ValueError('native_exit')
             native = agy_result(stdout, audio, expected_model=model)
         except (ValueError, KeyError, TypeError):
+            if stdout == json.dumps({'event': 'result', 'result': {'status': 'ERROR',
+                    'num_turns': 0, 'duration_seconds': 0,
+                    'error': 'auth_storage_invalid_before_dispatch'}}):
+                finish(job, 'RETRYABLE_FAILED', error_code='auth_storage_invalid',
+                       retry_seconds=60, block='transport_cooldown')
+                return
             if predispatch_eligibility_transient(stdout, timed_out):
                 # Existing queue caps attempts at three and cools down the account.
                 # Some CLI versions return exit code 0 for zero-turn failures.
