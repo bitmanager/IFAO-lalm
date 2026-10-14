@@ -27,6 +27,7 @@ def classify(text, timed_out=False):
     failures = []
     service_unavailable = False
     inference_unavailable = False
+    inference_transport_failure = False
     for line in text.splitlines():
         try:
             event = json.loads(line)
@@ -61,6 +62,14 @@ def classify(text, timed_out=False):
                          r'INTERNAL \(code 500\): Internal error encountered\.|'
                          r'UNAVAILABLE \(code 503\): No capacity available for model '
                          r'(?:gemini-3\.8-flash-low|gemini-4-argon-low) on the server)', error) is not None))
+            error_lower = error.lower() if isinstance(error, str) else ''
+            inference_transport_failure |= (event.get('event') == 'result'
+                and envelope.get('status') == 'ERROR'
+                and isinstance(envelope.get('num_turns'), int)
+                and envelope['num_turns'] > 0
+                and 'request failed: post "https://' in error_lower
+                and any(marker in error_lower for marker in
+                        ('": eof', 'connection reset by peer', 'broken pipe')))
             failures.append(json.dumps({k: envelope[k] for k in
                 ('error', 'error_code', 'code') if k in envelope}))
             if isinstance(envelope.get('status'), int):
@@ -83,6 +92,10 @@ def classify(text, timed_out=False):
         # Eligibility failures include transient profile/usage API transport
         # errors. Only explicit denial markers above should quarantine an account.
         return 'NEEDS_REVIEW', 'eligibility_check_failed', 'transport_cooldown'
+    if inference_transport_failure:
+        # Generation already started, so never replay the job; pause new work
+        # briefly on this account after the confirmed network failure.
+        return 'NEEDS_REVIEW', 'inference_transport_unavailable', 'transport_cooldown'
     if timed_out:
         return 'NEEDS_REVIEW', 'ambiguous_timeout', None
     if inference_unavailable:
