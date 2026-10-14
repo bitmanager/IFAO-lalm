@@ -356,3 +356,29 @@ epoch uses its in-memory configuration and is unaffected. Auden has no native
 on-demand save signal or live config reload; killing/restarting this run would
 discard progress since epoch 2. A fresh step checkpoint can be evaluated using
 the existing evaluator on a separate GPU without changing the training loop.
+
+## Foreground-speaker diagnostic
+
+`prepare_foreground_asr.py` is a format-only adapter for the reviewed Lhotse
+mixture pilot JSONL. It accepts validation/test records only and keeps the
+foreground transcript as the reference. Background text is retained solely as
+provenance, never inserted into model prompts or targets. The same audio is
+exported with the original system prompt and with an explicit instruction to
+transcribe the first active speaker. Both use the existing ASR readout task and
+native `evaluate_qa.py`; this does not imply the model has learned that policy.
+
+The shard-01 diagnostic has eight foreground/background pairs: clean audio and
+mixtures at target/interference SNR +3, 0 and -3 dB, 32 distinct audio examples
+and 64 prompt-conditioned evaluations. Source phrases and generation voice IDs
+were separated from the pilot training split. This is a small synthetic test,
+not human gold or proof that speakers were unseen during model pretraining.
+Two adapter tests passed: foreground/background text cannot leak into the
+prompt, and training records cannot silently become validation data.
+
+```bash
+python lalm/prepare_foreground_asr.py \
+  --source-manifest /runs/dev-storage/ifao-data/foreground-scale-shard01-overlap/validation.jsonl \
+  --output-dir /runs/dev-storage/ifao-data/foreground-scale-shard01-overlap/ifao-eval \
+  --tokenizer /runs/ifao-balalaika-export/epoch-2 \
+  --system-file lalm/configs/system_ru.txt
+```
