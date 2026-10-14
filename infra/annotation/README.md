@@ -804,3 +804,6 @@ strictly valid API responses the route rises to 35%; after 100 it rises to
 50%, at most about five of this account's ten active jobs. A bad API response
 resets this ramp. These checks measure transport/schema stability, not acoustic
 accuracy; all routed labels remain outside training publication.
+AGY-16 uses the same initial 20% route after its successful bounded canary;
+each account reads only its own OAuth file and uses its own VPN. Other accounts
+continue through CLI.

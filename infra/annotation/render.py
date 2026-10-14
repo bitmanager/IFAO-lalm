@@ -94,7 +94,7 @@ def build(accounts, agy_path):
         services[aid] = {**image, 'profiles': [aid], 'restart': 'unless-stopped',
             'environment': {**env, 'ACCOUNT_ID': aid, 'WORKER_CONCURRENCY': str(account['concurrency']),
                 'NATIVE_SHADOW_ENABLED': 'true' if aid == 'agy-03' else 'false',
-                'NATIVE_API_PERCENT': '20' if aid == 'agy-03' else '0',
+                'NATIVE_API_PERCENT': '20' if aid in ('agy-03', 'agy-16') else '0',
                 'ANNOTATION_ALLOWED_MODELS': ','.join(models),
                 'HTTPS_PROXY': f'http://{aid}-proxy:1080', 'HTTP_PROXY': f'http://{aid}-proxy:1080',
                 'NO_PROXY': 'postgres,minio,127.0.0.1,localhost'},

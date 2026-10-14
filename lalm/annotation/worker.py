@@ -225,7 +225,7 @@ def run_agy(audio, workspace, variant="verbatim", reference=None, model=MODEL):
 
 
 def native_api_selected(job, duration, size, variant, reference, model):
-    if os.environ.get('ACCOUNT_ID') != 'agy-03' or not job['sample'].get('review_only'):
+    if os.environ.get('ACCOUNT_ID') not in ('agy-03', 'agy-16') or not job['sample'].get('review_only'):
         return False
     base_percent = int(os.environ.get('NATIVE_API_PERCENT', '20'))
     if not 0 <= base_percent <= 100:
