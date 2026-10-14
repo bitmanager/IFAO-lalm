@@ -696,3 +696,21 @@ SSH/Tailscale-соединения. Один EOF или 503 не доказыв�
 переигрывается: задание остаётся `NEEDS_REVIEW`, а аккаунт получает короткий
 transport cooldown. Так мы не рискуем оплатить повторно запрос с неизвестным
 результатом и временно не отправляем следующий запрос по тому же маршруту.
+
+## Annotation operations monitor
+
+The `annotation_ops_monitor` Airflow DAG runs every five minutes and publishes a
+compact, transcript-free snapshot to
+`s3://speech-datasets/analytics/ops/latest.json`; timestamped history is stored
+under `analytics/ops/history/`. It records queue states, expired leases, saved
+outputs per 5/15/60 minutes, per-account concurrency and throughput, median
+successful request duration, cooldowns, recent error codes, timeout counts, and
+source-preparation states. `pilot_review_only` is counted separately as a
+completed review output, not as an operational error. Recent failure traces
+contain only job ID, account, error code, timestamps, and duration; raw
+transcripts and audio are excluded.
+
+The unified `notebooks/speech_data_progress.ipynb` reads the latest snapshot,
+shows account-level speeds and recent failures, and plots the recent throughput
+trend. `/usage` quota reads remain a separate read-only check via
+`infra/annotation/check_usage.py`.
