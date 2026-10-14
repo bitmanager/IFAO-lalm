@@ -1,0 +1,17 @@
+{
+  "status": "COPIED_AND_FULL_SHA256_READBACK_VERIFIED",
+  "repo": "bitmanagerai/balalaika-demo_v2",
+  "revision": "45e742f18602a308acd3584a69652cfc41ae6ab9",
+  "files": 13,
+  "source_bytes": 254311758,
+  "files_deduplicated": 1,
+  "archive_member_extensions": {
+    ".flac": 380,
+    ".json": 380
+  },
+  "exact_audio_duplicate_occurrences": 0,
+  "unpaired_audio_json_members": 0,
+  "completed_at": "2026-10-14T05:44:08.730667+00:00",
+  "training_release": false,
+  "dedup_scope": "Whole-file exact hashes against available receipt targets, within-corpus compressed audio hashes. Cross-corpus sample-level dedup remains unresolved."
+}
