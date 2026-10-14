@@ -1,0 +1,71 @@
+{
+  "derived_source": "speech/speech-corpora/staging/golos-balalaika/hf-7b41d4d0030b22ee3d10d6bdc79a43a4a428cecf/test/shard_000_0000.tar",
+  "comparison_source": "speech/speech-benchmarks/upstream-golos-931f5c412a8045e0b03b9e5584072f0810c41dcc/crowd/test/test-00000.tar",
+  "derived_sample_count": 14,
+  "original_audio_members_scanned": 9994,
+  "matched_source_ids": 14,
+  "byte_identical_matches": 0,
+  "original_member_examples": [
+    "9213cd349014cc0624693e93e880c478.opus",
+    "98c2899b86996854c333e56b3e3917d2.opus"
+  ],
+  "samples": {
+    "fce0040756e5d84593a3f32dd7c3aeee": {
+      "derived_sha256": "99f3d30b7843d879c820f374e90ae51bfc050477cde728af006335314e8c4be0",
+      "original_sha256": "cca04c3b58bec19e186e086ec0c5d150e8e65cd3cb4c361a671bd55043b765cd"
+    },
+    "64d32603647333c58e9defda930284e7": {
+      "derived_sha256": "0a06dd1e385831f196c1019a11b0233432a5bb32c1a554e7a7aca8168722cc0a",
+      "original_sha256": "d26ae9eca1f1e52774748225ced808eea02716f90f0f6a7a65f7071763d78665"
+    },
+    "e565bc8a07f3fd318a171f38ac7fd34c": {
+      "derived_sha256": "88be8a68c95c8fb037171e50a5d67d0a5e5ece9c4c00b3a401681e92d3e61b53",
+      "original_sha256": "f55e810def759ccdc6838707da70d6fbecb9361471f6df927d928ff8c6a7bae1"
+    },
+    "723b39e89b84a6e0707fd6887a8514ea": {
+      "derived_sha256": "ca2471c89037f78c372776ba1bc6f450c5e28a85eedcaf60d2b8348c36830354",
+      "original_sha256": "dff6c82fe699588908c904cb61d6309eeaf98081a7b4af4abf3d01cf068a6a14"
+    },
+    "998239ff4da7b60af399550e1f1a926d": {
+      "derived_sha256": "520e6176ff39093cc597f2401453eac6fc9bebb1bb6e432d18d0d82fa47bb709",
+      "original_sha256": "e239108189580ddeda86c65cba0f58321747ab32fca4357351c9570833be5bab"
+    },
+    "633efbcab6875977fcb4a397812fb36e": {
+      "derived_sha256": "116c8611cafa8b51da4302518f9195dea47eed001d34d71ff23bb4c75dffe6a0",
+      "original_sha256": "e829b8b8d83c966e0376ca74a64ad08a3ec7fa0af21c999acc4c8bfe9860f395"
+    },
+    "71a6028593addd044b91babb43a54557": {
+      "derived_sha256": "fe9af57efc0183483a0953c9ddf21e619451b1015a877eb45f3da60e15c51843",
+      "original_sha256": "5360bb49f5aaf5499680e3eb54cc77fc5f1486cd33980dab52a5cc1215e46d99"
+    },
+    "0040fcee5ea10479a55d623ec9265853": {
+      "derived_sha256": "4176bfce88186dc92485b1ddc8c2c4ed0fc3a04627cbd6239807488b9076d540",
+      "original_sha256": "4d434823bf9526343914f16f2ed902b07753a8704042823b3db365f91899efa1"
+    },
+    "8de48b4b8f6f1feaf6d641a8cc578b58": {
+      "derived_sha256": "5ea0cb182a416da21c66ca3dc3e8b5eee42af6f2d0ba5606e81de7380ca85411",
+      "original_sha256": "80311cf017cd1d371dacee7669cd5db585693043240669e6149ae2be90eff0b3"
+    },
+    "48b04cf24ebae5d6eb26e6d3d93c64cc": {
+      "derived_sha256": "7e2bb8b7e60802f105b2f101a8ff1025e034d36e16e7764063e96390b3b27654",
+      "original_sha256": "70ad7eee6e7472ca5cd6808a7121577096ae4856432e9da194226ee1f02369a8"
+    },
+    "512e0fc2332293f6008dd42a4ea00be3": {
+      "derived_sha256": "4f365603056730c9a5092a9d5b6d254b61973a3e7066a4a1b365ee4d68b88815",
+      "original_sha256": "fb76f706e4b2854f4e586ee1c87d6ca006833cea6681514c936ec73fcc288b2f"
+    },
+    "da7343b2ea14a8dbbf9104504c747b68": {
+      "derived_sha256": "c67f7e99b9e8741f7d481df342f5a74a5c899e4e9630d54e55d74bdd3481a72e",
+      "original_sha256": "8ebe329f2454aaf6cc173bb492c38759d3f3cca161f6309afcdceaf23a83bb03"
+    },
+    "812133e2c7719895e75620be1869e760": {
+      "derived_sha256": "a5dc4a8c20fa1774b1387293ed1e746336a54a896334b9874b540b2ca17c9bae",
+      "original_sha256": "d0d50c83b19b5ccae711cfef12f61d9df989defbe95088548b974a438f975476"
+    },
+    "304d10a7d758c6cad6fc65c4fac31473": {
+      "derived_sha256": "16002dc0de047bc94706aa86a5779b5caf6f676ddc3d8624045a6e94f0e116ed",
+      "original_sha256": "628859f5d9b80905b99ee3ce1ae769a3edaede03ded8145eb65b587a8c9b0882"
+    }
+  },
+  "scope": "Only derived first shard versus original crowd test; not whole corpus dedup or split leakage clearance"
+}

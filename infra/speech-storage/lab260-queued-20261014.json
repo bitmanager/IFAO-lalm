@@ -16,7 +16,8 @@
       "status": "HELD_FOR_CROSS_FORMAT_DEDUP_REVIEW",
       "reason": "Same original GOLOS family as existing Sh1man/golos_opus; card describes 49.1h filtered subset with additional automatic annotation, not independent new speech",
       "verified_source_bytes_before_hold": 12073136,
-      "sample_level_overlap": "Not yet measured; archive SHA256 cannot establish audio identity across different packaging"
+      "sample_level_overlap": "All 14 records in sampled derived test shard matched original crowd test source IDs; zero byte-identical audio files. Whole corpus overlap remains unmeasured.",
+      "evidence": "golos-overlap-sample-20261014.json"
     },
     {
       "repo": "lab260/espeech_balalaika",

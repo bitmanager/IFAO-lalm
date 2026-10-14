@@ -1,0 +1,35 @@
+{
+  "sources": [
+    {
+      "repo": "lab260/webinars_balalaika",
+      "revision": "4512dfefe428f3fcdde06f517f6c0096fc5def65",
+      "source_bytes": 4154913224
+    },
+    {
+      "repo": "lab260/tuchniyzhab_balalaika",
+      "revision": "8003cca35b3e93c15c5444c8b0ae35d3b3191505",
+      "source_bytes": 82813384
+    },
+    {
+      "repo": "lab260/igm_balalaika",
+      "revision": "22706569ad4096cb6604585a1e9a63ae89e7281b",
+      "source_bytes": 3925404104
+    },
+    {
+      "repo": "lab260/upvote_balalaika",
+      "revision": "ac7a274a2f1beb30df9615f78ed418fff89a111e",
+      "source_bytes": 3724720584
+    },
+    {
+      "repo": "lab260/buldjat_balalaika",
+      "revision": "c27b99cc6469312fe16f9fff6b0894643b74b8b8",
+      "source_bytes": 751526344
+    }
+  ],
+  "source_bytes": 12639377640,
+  "training_release": false,
+  "sample_language_check": "Three JSON transcripts from one shard each; Russian text observed, not a whole-corpus language guarantee",
+  "sample_level_dedup": "Pending; possible overlap with eSpeech, Tone and other Balalaika variants",
+  "unit": "speech-data-hf-collection-missing-20261014.service",
+  "queue": "/mnt/local/drive1/speech-hf-ingest-20261013/jobs/collection-missing-20261014.sh"
+}

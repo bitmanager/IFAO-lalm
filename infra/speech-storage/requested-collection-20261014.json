@@ -1,0 +1,38 @@
+{
+  "slug": "lab260/balalaika-webdataset-6a3db9c522e7e7432ca17076",
+  "title": "Balalaika Webdataset",
+  "items": [
+    {
+      "id": "lab260/sova_balalaika",
+      "type": "dataset"
+    },
+    {
+      "id": "lab260/youtube_balalaika",
+      "type": "dataset"
+    },
+    {
+      "id": "lab260/webinars_balalaika",
+      "type": "dataset"
+    },
+    {
+      "id": "lab260/golos_balalaika",
+      "type": "dataset"
+    },
+    {
+      "id": "lab260/tuchniyzhab_balalaika",
+      "type": "dataset"
+    },
+    {
+      "id": "lab260/igm_balalaika",
+      "type": "dataset"
+    },
+    {
+      "id": "lab260/upvote_balalaika",
+      "type": "dataset"
+    },
+    {
+      "id": "lab260/buldjat_balalaika",
+      "type": "dataset"
+    }
+  ]
+}
