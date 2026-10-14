@@ -1,0 +1,20 @@
+{
+  "at": "2026-10-14T06:13:43.066334+00:00",
+  "evidence": "Fresh lsblk -b, df -B1 -l, findmnt on dev-1 and exp-1",
+  "unpartitioned_data_disks_found": false,
+  "dev": {
+    "root_raid1_free_bytes": 442995195904,
+    "primary_minio_free_bytes": 912616718336,
+    "overflow_minio_free_bytes": 1126820536320
+  },
+  "exp": {
+    "root_free_bytes": 1540500123648,
+    "minio_data_free_bytes": 603021635584
+  },
+  "notes": [
+    "NFS cross-mounts are the same physical storage and are not counted twice.",
+    "The dev root is RAID1; its members do not provide independent extra capacity.",
+    "Exp system disk is separate from MinIO data disk. Potential allocation of up to 1TB requires an explicit placement decision; no service or disk layout changed.",
+    "Three independent MinIO endpoints remain; no claim of distributed unified storage."
+  ]
+}
