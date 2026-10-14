@@ -40,14 +40,17 @@ def collect_metrics():
             ), attempt_metrics AS (
               SELECT account_id,
                 count(*) FILTER (WHERE finished_at >= now()-interval '5 minutes'
-                  AND error_code IS NOT NULL AND error_code <> 'pilot_review_only')::bigint AS errors_5m,
+                  AND error_code IS NOT NULL AND error_code NOT IN ('pilot_review_only','non_russian'))::bigint AS errors_5m,
                 count(*) FILTER (WHERE finished_at >= now()-interval '15 minutes'
-                  AND error_code IS NOT NULL AND error_code <> 'pilot_review_only')::bigint AS errors_15m,
+                  AND error_code IS NOT NULL AND error_code NOT IN ('pilot_review_only','non_russian'))::bigint AS errors_15m,
                 count(*) FILTER (WHERE finished_at >= now()-interval '15 minutes'
                   AND error_code='pilot_review_only')::bigint AS review_outputs_15m,
+                count(*) FILTER (WHERE finished_at >= now()-interval '15 minutes'
+                  AND error_code='non_russian')::bigint AS rejected_language_15m,
                 count(*) FILTER (WHERE finished_at >= now()-interval '60 minutes' AND error_code='ambiguous_timeout')::bigint AS timeouts_60m,
                 percentile_cont(0.5) WITHIN GROUP (ORDER BY extract(epoch FROM (finished_at-started_at)))
-                  FILTER (WHERE finished_at >= now()-interval '15 minutes' AND error_code IS NULL) AS median_success_seconds_15m
+                  FILTER (WHERE finished_at >= now()-interval '15 minutes'
+                    AND (error_code IS NULL OR error_code='pilot_review_only')) AS median_success_seconds_15m
               FROM attempts WHERE finished_at IS NOT NULL GROUP BY account_id
             ), error_codes AS (
               SELECT account_id, jsonb_object_agg(error_code, n) AS codes_15m
@@ -68,6 +71,7 @@ def collect_metrics():
               coalesce(am.errors_5m,0)::bigint AS errors_5m,
               coalesce(am.errors_15m,0)::bigint AS errors_15m,
               coalesce(am.review_outputs_15m,0)::bigint AS review_outputs_15m,
+              coalesce(am.rejected_language_15m,0)::bigint AS rejected_language_15m,
               coalesce(am.timeouts_60m,0)::bigint AS ambiguous_timeouts_60m,
               am.median_success_seconds_15m,
               coalesce(ec.codes_15m,'{}'::jsonb) AS error_codes_15m
