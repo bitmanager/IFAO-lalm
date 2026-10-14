@@ -22,6 +22,12 @@ from .native_auth import repair_trailing_auth
 STOP = threading.Event()
 AUTH_PROBE_LOCK = threading.Lock()
 AUTH_PROBE_CACHE = {}
+NATIVE_PROJECT_LOCK = threading.Lock()
+NATIVE_PROJECT_CACHE = None
+NATIVE_API_DISABLED_UNTIL = 0.0
+NATIVE_API_FAILURE_LOCK = threading.Lock()
+NATIVE_API_CONSECUTIVE_FAILURES = 0
+NATIVE_API_GOOD_COUNT = 0
 
 
 def classify(text, timed_out=False):
@@ -218,6 +224,90 @@ def run_agy(audio, workspace, variant="verbatim", reference=None, model=MODEL):
     return proc.returncode, stdout, stderr, timed_out
 
 
+def native_api_selected(job, duration, size, variant, reference, model):
+    if os.environ.get('ACCOUNT_ID') != 'agy-03' or not job['sample'].get('review_only'):
+        return False
+    base_percent = int(os.environ.get('NATIVE_API_PERCENT', '20'))
+    if not 0 <= base_percent <= 100:
+        return False
+    with NATIVE_API_FAILURE_LOCK:
+        percent = max(base_percent, 50 if NATIVE_API_GOOD_COUNT >= 100
+                      else 35 if NATIVE_API_GOOD_COUNT >= 25 else base_percent)
+    if (model != 'gemini-3.8-flash-low'
+            or time.monotonic() < NATIVE_API_DISABLED_UNTIL
+            or not 1 <= duration <= 20 or size >= 2 * 1024**2
+            or (variant == 'source_correction' and reference is None)):
+        return False
+    return int(job['id'][:8], 16) % 100 < percent
+
+
+def native_project():
+    global NATIVE_PROJECT_CACHE
+    from .native_api import discover, token
+    with NATIVE_PROJECT_LOCK:
+        # Avoid one discovery request per audio and refresh before expiry.
+        if NATIVE_PROJECT_CACHE and NATIVE_PROJECT_CACHE[1] > time.monotonic():
+            token(min_remaining=120)
+            return NATIVE_PROJECT_CACHE[0]
+        token(min_remaining=120)
+        project = discover()
+        NATIVE_PROJECT_CACHE = (project, time.monotonic() + 900)
+        return project
+
+
+def process_native_api(job, audio, duration, prefix, variant, reference, model, client):
+    global NATIVE_API_DISABLED_UNTIL, NATIVE_API_CONSECUTIVE_FAILURES, NATIVE_API_GOOD_COUNT
+    # A failure before generate has sent no audio. Once generate starts, any
+    # uncertain outcome is retained for review and never replayed automatically.
+    try:
+        project = native_project()
+    except Exception as error:
+        finish(job, 'RETRYABLE_FAILED', error_code='native_api_predispatch_'+type(error).__name__,
+               retry_seconds=120, block='transport_cooldown')
+        return
+    try:
+        from .native_api import generate
+        native, raw = generate(audio, project, variant, reference, model)
+    except Exception as error:
+        finish(job, 'NEEDS_REVIEW', error_code='native_api_ambiguous_'+type(error).__name__)
+        return
+    client.put_object(Bucket=bucket(), Key=f'{prefix}/native-api-result.json',
+                      Body=json.dumps(native, ensure_ascii=False).encode())
+    if raw:
+        client.put_object(Bucket=bucket(), Key=f'{prefix}/native-api-response.json', Body=raw)
+    if native.get('status') != 'complete':
+        http_status = native.get('http_status')
+        with NATIVE_API_FAILURE_LOCK:
+            NATIVE_API_CONSECUTIVE_FAILURES += 1
+            NATIVE_API_GOOD_COUNT = 0
+            if (NATIVE_API_CONSECUTIVE_FAILURES >= 3 or http_status in (401, 403, 429, 0)
+                    or (http_status or 0) >= 500):
+                NATIVE_API_DISABLED_UNTIL = max(NATIVE_API_DISABLED_UNTIL, time.monotonic() + 600)
+        finish(job, 'NEEDS_REVIEW', error_code=native.get('error_code', 'native_api_result_rejected'))
+        return
+    with NATIVE_API_FAILURE_LOCK:
+        NATIVE_API_CONSECUTIVE_FAILURES = 0
+        NATIVE_API_GOOD_COUNT += 1
+        good_count = NATIVE_API_GOOD_COUNT
+    if good_count in (25, 100):
+        print(json.dumps({'event': 'native_api_route_ramped', 'account': job['account_id'],
+                          'consecutive_valid': good_count, 'target_percent': 35 if good_count == 25 else 50}),
+              flush=True)
+    result = {'verbatim_text': native['verbatim_text'], 'language': native['language'],
+              'language_raw': native['structured_output']['language'],
+              'uncertain_spans': native['uncertain_spans'], 'native_result': native,
+              'annotation_source': 'agy_native_api', 'transport': 'native_api_v1',
+              'model': model, 'contract_sha256': native['contract_sha256'],
+              'raw_prefix': prefix, 'audio_seconds': duration, 'human_gold': False,
+              'prompt_variant': variant, 'inference_seconds': native['inference_seconds'],
+              'source_conditioned': variant == 'source_correction',
+              'source_text_sha256': digest(reference) if reference is not None else None}
+    state = 'NEEDS_REVIEW'  # All current routed jobs are review-only.
+    code = ('pilot_review_only' if result['language'] == 'ru' and result['verbatim_text'].strip()
+            else 'empty_transcript' if not result['verbatim_text'].strip() else 'non_russian')
+    finish(job, state, result, code)
+
+
 def process(job):
     client = s3()
     prefix = f"annotations/raw/{job['id']}/{job['attempt']}"
@@ -242,6 +332,9 @@ def process(job):
             duration = stream.getnframes() / stream.getframerate()
         variant = sample.get("prompt_variant", "verbatim")
         reference = source_text(sample) if variant == "source_correction" else None
+        if native_api_selected(job, duration, head['ContentLength'], variant, reference, model):
+            process_native_api(job, audio, duration, prefix, variant, reference, model, client)
+            return
         started = time.monotonic()
         rc, stdout, stderr, timed_out = run_agy(audio, workspace, variant, reference, model)
         elapsed = time.monotonic() - started

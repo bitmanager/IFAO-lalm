@@ -34,6 +34,10 @@ def collect_metrics():
                 count(*) FILTER (WHERE state='RUNNING')::bigint AS running,
                 count(*) FILTER (WHERE result IS NOT NULL AND updated_at >= now()-interval '5 minutes')::bigint AS saved_5m,
                 count(*) FILTER (WHERE result IS NOT NULL AND updated_at >= now()-interval '15 minutes')::bigint AS saved_15m,
+                count(*) FILTER (WHERE result->>'transport'='native_api_v1'
+                  AND updated_at >= now()-interval '5 minutes')::bigint AS native_api_saved_5m,
+                count(*) FILTER (WHERE result->>'transport'='native_api_v1'
+                  AND updated_at >= now()-interval '15 minutes')::bigint AS native_api_saved_15m,
                 count(*) FILTER (WHERE state='RUNNING')::bigint AS active_jobs,
                 min(updated_at) FILTER (WHERE state='RUNNING') AS oldest_running_update
               FROM jobs GROUP BY account_id
@@ -47,6 +51,8 @@ def collect_metrics():
                   AND error_code='pilot_review_only')::bigint AS review_outputs_15m,
                 count(*) FILTER (WHERE finished_at >= now()-interval '15 minutes'
                   AND error_code='non_russian')::bigint AS rejected_language_15m,
+                count(*) FILTER (WHERE finished_at >= now()-interval '15 minutes'
+                  AND (error_code LIKE 'native_api_%' OR error_code LIKE 'native_generation_http_%'))::bigint AS native_api_failures_15m,
                 count(*) FILTER (WHERE finished_at >= now()-interval '60 minutes' AND error_code='ambiguous_timeout')::bigint AS timeouts_60m,
                 percentile_cont(0.5) WITHIN GROUP (ORDER BY extract(epoch FROM (finished_at-started_at)))
                   FILTER (WHERE finished_at >= now()-interval '15 minutes'
@@ -66,12 +72,15 @@ def collect_metrics():
               coalesce(j.running,0)::bigint AS running,
               coalesce(j.saved_5m,0)::bigint AS saved_5m,
               coalesce(j.saved_15m,0)::bigint AS saved_15m,
+              coalesce(j.native_api_saved_5m,0)::bigint AS native_api_saved_5m,
+              coalesce(j.native_api_saved_15m,0)::bigint AS native_api_saved_15m,
               CASE WHEN coalesce(j.saved_15m,0)>0 THEN round((j.saved_15m/15.0)::numeric,2) ELSE 0 END AS saved_per_minute_15m,
               extract(epoch FROM (now()-j.oldest_running_update)) AS oldest_running_update_seconds,
               coalesce(am.errors_5m,0)::bigint AS errors_5m,
               coalesce(am.errors_15m,0)::bigint AS errors_15m,
               coalesce(am.review_outputs_15m,0)::bigint AS review_outputs_15m,
               coalesce(am.rejected_language_15m,0)::bigint AS rejected_language_15m,
+              coalesce(am.native_api_failures_15m,0)::bigint AS native_api_failures_15m,
               coalesce(am.timeouts_60m,0)::bigint AS ambiguous_timeouts_60m,
               am.median_success_seconds_15m,
               coalesce(ec.codes_15m,'{}'::jsonb) AS error_codes_15m

@@ -788,3 +788,19 @@ manifests, raw responses, and reports live under
 `analytics/ops/latest.json` includes `native_shadow_recent`; the notebook's
 `latest_recurring` view shows the latest completed batch with audio playback.
 Three-pass agreement remains a review candidate, never a human-verified label.
+
+After the initial shadow check, AGY-03 can route a deterministic 20% of new,
+review-only, short Flash jobs through the same native API transport. This is a
+transport substitution in the existing `jobs`/`attempts` queue, not a duplicate
+inference: the result records `transport=native_api_v1` and keeps the raw
+response under its usual private attempt prefix. Other jobs and accounts keep
+using CLI. API results stay `NEEDS_REVIEW`, including valid Russian text; the
+dataset publisher cannot include them. HTTP quota/auth/server errors suspend
+the API route for ten minutes while new jobs use CLI. Three consecutive bad API
+responses do the same. Responses after dispatch are never automatically
+retried. Operational account metrics include `native_api_saved_5m` and
+`native_api_saved_15m` and `native_api_failures_15m`. After 25 consecutive
+strictly valid API responses the route rises to 35%; after 100 it rises to
+50%, at most about five of this account's ten active jobs. A bad API response
+resets this ramp. These checks measure transport/schema stability, not acoustic
+accuracy; all routed labels remain outside training publication.

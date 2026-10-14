@@ -8,6 +8,68 @@ class WorkerErrorTests(unittest.TestCase):
         from unittest.mock import patch
         self.enterContext(patch('lalm.annotation.worker.repair_trailing_auth', return_value=False))
 
+    def test_native_route_is_bounded_to_review_only_short_flash_audio(self):
+        from unittest.mock import patch
+        from lalm.annotation.worker import native_api_selected
+        job = {'id': '0'*64, 'sample': {'review_only': True}}
+        with patch.dict('os.environ', {'ACCOUNT_ID': 'agy-03', 'NATIVE_API_PERCENT': '20'}), \
+             patch('lalm.annotation.worker.NATIVE_API_DISABLED_UNTIL', 0):
+            self.assertTrue(native_api_selected(job, 4, 1000, 'verbatim', None, 'gemini-3.8-flash-low'))
+            self.assertFalse(native_api_selected(job, 21, 1000, 'verbatim', None, 'gemini-3.8-flash-low'))
+            self.assertFalse(native_api_selected(job, 4, 2*1024**2, 'verbatim', None, 'gemini-3.8-flash-low'))
+            self.assertFalse(native_api_selected(job, 4, 1000, 'source_correction', None, 'gemini-3.8-flash-low'))
+            self.assertFalse(native_api_selected(job, 4, 1000, 'verbatim', None, 'gemini-4-argon-low'))
+            job['sample']['review_only'] = False
+            self.assertFalse(native_api_selected(job, 4, 1000, 'verbatim', None, 'gemini-3.8-flash-low'))
+
+    def test_dispatched_native_api_failure_is_quarantined_without_replay(self):
+        from pathlib import Path
+        from unittest.mock import Mock, patch
+        from lalm.annotation.worker import process_native_api
+        client = Mock()
+        failed = {'status': 'failed_do_not_auto_retry', 'http_status': 503,
+                  'error_code': 'native_generation_http_503'}
+        with patch('lalm.annotation.worker.native_project', return_value='project'), \
+             patch('lalm.annotation.native_api.generate', return_value=(failed, b'error')) as generate, \
+             patch('lalm.annotation.worker.finish') as finish:
+            process_native_api({'id': 'a'}, Path('audio.wav'), 4, 'raw/a/1',
+                               'verbatim', None, 'gemini-3.8-flash-low', client)
+        generate.assert_called_once()
+        self.assertEqual(finish.call_args.args[1:], ('NEEDS_REVIEW',))
+        self.assertEqual(finish.call_args.kwargs['error_code'], 'native_generation_http_503')
+
+    def test_three_bad_native_responses_suspend_new_api_routes(self):
+        from pathlib import Path
+        from unittest.mock import Mock, patch
+        import lalm.annotation.worker as worker
+        failed = {'status': 'failed_do_not_auto_retry', 'http_status': 200}
+        with patch.object(worker, 'NATIVE_API_CONSECUTIVE_FAILURES', 0), \
+             patch.object(worker, 'NATIVE_API_DISABLED_UNTIL', 0), \
+             patch('lalm.annotation.worker.native_project', return_value='project'), \
+             patch('lalm.annotation.native_api.generate', return_value=(failed, b'bad')), \
+             patch('lalm.annotation.worker.finish'):
+            for _ in range(3):
+                worker.process_native_api({'id': 'a'}, Path('audio.wav'), 4, 'raw/a/1',
+                                          'verbatim', None, 'gemini-3.8-flash-low', Mock())
+            self.assertEqual(worker.NATIVE_API_CONSECUTIVE_FAILURES, 3)
+            self.assertGreater(worker.NATIVE_API_DISABLED_UNTIL, worker.time.monotonic())
+
+    def test_valid_native_responses_raise_route_only_at_thresholds(self):
+        from unittest.mock import patch
+        import lalm.annotation.worker as worker
+        sample = {'review_only': True}
+        thirty = {'id': '0000001e'+'0'*56, 'sample': sample}
+        forty_five = {'id': '0000002d'+'0'*56, 'sample': sample}
+        with patch.dict('os.environ', {'ACCOUNT_ID': 'agy-03', 'NATIVE_API_PERCENT': '20'}), \
+             patch.object(worker, 'NATIVE_API_DISABLED_UNTIL', 0), \
+             patch.object(worker, 'NATIVE_API_GOOD_COUNT', 0):
+            self.assertFalse(worker.native_api_selected(thirty, 4, 1000, 'verbatim', None, 'gemini-3.8-flash-low'))
+            worker.NATIVE_API_GOOD_COUNT = 25
+            self.assertTrue(worker.native_api_selected(thirty, 4, 1000, 'verbatim', None, 'gemini-3.8-flash-low'))
+            self.assertFalse(worker.native_api_selected(forty_five, 4, 1000, 'verbatim', None, 'gemini-3.8-flash-low'))
+            worker.NATIVE_API_GOOD_COUNT = 100
+            self.assertTrue(worker.native_api_selected(forty_five, 4, 1000, 'verbatim', None, 'gemini-3.8-flash-low'))
+
     def test_invalid_local_auth_never_starts_model_process(self):
         import json
         from pathlib import Path
