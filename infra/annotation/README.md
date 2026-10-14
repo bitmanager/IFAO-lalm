@@ -452,8 +452,11 @@ Ultra; 04 currently reports Free. Limits are 5/5/20/5/20 for 01/02/03/04/07.
 05/06 are intentionally disabled empty slots. If a native quota error includes
 an explicit `Resets in ...` duration, the existing `next_request_at` enforces
 that cooldown plus 60 seconds without retrying the failed audio job. Unknown
-quota/auth errors still block the account. Follow-up passes have queue priority
-over starting new examples so available quota completes triples first.
+quota/auth errors still block the account. Claims now follow `created_at` FIFO:
+measurements showed that prioritizing follow-ups let fresh work keep jumping
+ahead of first passes, leaving the oldest first passes waiting over 30 minutes.
+FIFO reduces that starvation while still completing each triad as follow-ups
+arrive.
 
 An ordinary partial unique index on prepared audio SHA256 and pass prevents
 cross-manifest duplicate inference within this prompt version. Source provenance
