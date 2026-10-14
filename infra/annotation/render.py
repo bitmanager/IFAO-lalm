@@ -96,7 +96,7 @@ def build(accounts, agy_path):
                 'NATIVE_SHADOW_ENABLED': 'true' if aid == 'agy-03' else 'false',
                 'NATIVE_API_PERCENT': {'agy-03': '50', 'agy-08': '70', 'agy-16': '35', 'agy-19': '20', 'agy-21': '60', 'agy-25': '70'}.get(aid, '0'),
                 'NATIVE_API_MAX_PERCENT': {'agy-08': '70', 'agy-19': '20', 'agy-21': '60', 'agy-25': '70'}.get(aid, '50'),
-                'NATIVE_API_CONCURRENCY': '8' if aid == 'agy-08' else '5',
+                'NATIVE_API_CONCURRENCY': '8' if aid in ('agy-08', 'agy-25') else '5',
                 'ANNOTATION_ALLOWED_MODELS': ','.join(models),
                 'HTTPS_PROXY': f'http://{aid}-proxy:1080', 'HTTP_PROXY': f'http://{aid}-proxy:1080',
                 'NO_PROXY': 'postgres,minio,127.0.0.1,localhost'},
