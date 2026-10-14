@@ -97,6 +97,11 @@ def _resolve_config(
 
 def _resolve_known_config(config: dict, model_type: str) -> PretrainedConfig:
     """Handle HF config classes that exist but are not AutoConfig-registered."""
+    if model_type == "embeddinggemma_audio":
+        from .gemma_adapter import GemmaAudioConfig
+
+        return GemmaAudioConfig.from_dict(config)
+
     if model_type == "gigaam":
         from .gigaam_adapter import GigaAMConfig
 

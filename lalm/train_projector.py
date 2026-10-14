@@ -113,9 +113,18 @@ def main(cfg):
             .eval()
         )
         lm.config.use_cache = False
-        encoder = GigaAMAudioTower.from_checkpoint(cfg.model.gigaam_checkpoint)
+        if cfg.model.get("gemma_model"):
+            from lalm_core.model.gemma_adapter import GemmaAudioTower
+
+            if cfg.model.initial_projector:
+                raise ValueError("Gemma pilot requires a fresh projector")
+            encoder = GemmaAudioTower.from_pretrained(cfg.model.gemma_model).to(device)
+            audio_dim = encoder.audio_dim
+        else:
+            encoder = GigaAMAudioTower.from_checkpoint(cfg.model.gigaam_checkpoint)
+            audio_dim = encoder.model.cfg.encoder.d_model
         encoder.requires_grad_(False).eval()
-        proc = processor(cfg.model.tokenizer, cfg.model.projector_downsample_rate)
+        proc = processor(cfg.model.tokenizer, cfg.model.projector_downsample_rate, encoder.config.model_type)
         if (
             proc.tokenizer.convert_tokens_to_ids("<|audio|>")
             >= lm.get_input_embeddings().num_embeddings
@@ -125,7 +134,7 @@ def main(cfg):
             LALMConfig(
                 text_config=lm.config,
                 audio_config=encoder.config,
-                audio_dim=encoder.model.cfg.encoder.d_model,
+                audio_dim=audio_dim,
                 text_dim=lm.config.hidden_size,
                 projector_downsample_rate=cfg.model.projector_downsample_rate,
                 projector_hidden_size=cfg.model.projector_hidden_size,

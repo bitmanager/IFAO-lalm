@@ -80,7 +80,7 @@ class LALMDataset(torch.utils.data.Dataset):
 
         supervision_intervals = self.input_strategy.supervision_intervals(cuts)
         feature_lens = supervision_intervals[
-            "num_samples" if self.processor.encoder_name == "gigaam" else "num_frames"
+            "num_samples" if self.processor.encoder_name in {"gigaam", "embeddinggemma_audio"} else "num_frames"
         ]
         feature_lens = feature_lens.to(dtype=torch.long)
 

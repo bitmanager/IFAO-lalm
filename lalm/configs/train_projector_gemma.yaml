@@ -1,0 +1,12 @@
+# Reuse the trainer/data recipe, changing only the encoder and ASR objective.
+defaults:
+  - train_projector_27b
+  - _self_
+model:
+  gemma_model: google/embeddinggemma-2
+  gigaam_checkpoint: null
+  initial_projector: null
+trainer:
+  response_kl: false
+data:
+  response_kl: false

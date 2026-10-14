@@ -140,7 +140,7 @@ class LALMTrainer(BaseTrainer):
 
         model_ref = self.model.module if isinstance(self.model, DDP) else self.model
         audio_param = next(model_ref.audio_tower.parameters(), None)
-        if model_ref.config.audio_config.model_type != "gigaam" and audio_param is not None and audio_features.dtype != audio_param.dtype:
+        if model_ref.config.audio_config.model_type not in {"gigaam", "embeddinggemma_audio"} and audio_param is not None and audio_features.dtype != audio_param.dtype:
             audio_features = audio_features.to(dtype=audio_param.dtype)
 
         amp_dtype = (
