@@ -1,0 +1,13 @@
+{
+  "status": "COPIED_AND_FULL_SHA256_READBACK_VERIFIED",
+  "repo": "bitmanagerai/tts-voices",
+  "revision": "b91eb051668467f2fb4d3d91b68cb0541a215be0",
+  "files": 189,
+  "source_bytes": 50387242,
+  "files_deduplicated": 1,
+  "unique_objects_copied": 188,
+  "completed_at": "2026-10-14T05:33:24.991795+00:00",
+  "training_release": false,
+  "selection": "Russian path subset and original documentation; not whole multilingual repository",
+  "language_evidence": "ru/ directory and producer README; not independent acoustic language verification"
+}
