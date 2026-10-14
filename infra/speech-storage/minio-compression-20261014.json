@@ -1,0 +1,37 @@
+{
+  "source_bytes": 539248640,
+  "sha256": "7a338e3f73210821fc501152237463ebd34f1e748ad0f852277c5be17d06bb3a",
+  "s2_disk_allocated_bytes": 494878720,
+  "s2_savings_fraction": 0.08228100491825074,
+  "zstd3_file_bytes": 439292096,
+  "zstd3_savings_fraction": 0.18536262604204246,
+  "full_readback_sha256_matches": true,
+  "scope": "One SOVA TAR shard; not whole-corpus savings guarantee",
+  "primary_dynamic_config_enabled": true,
+  "existing_objects_rewritten": false,
+  "enabled_aliases": [
+    "speech",
+    "speech2",
+    "speech3"
+  ],
+  "range_tail_65536_matches": true,
+  "additional_node_tests": [
+    {
+      "alias": "speech2",
+      "readback_verified": true,
+      "test_version_removed": true
+    },
+    {
+      "alias": "speech3",
+      "readback_verified": true,
+      "test_version_removed": true
+    }
+  ],
+  "restart_required": false,
+  "settings": "enable=on; existing default extensions plus .wav; encryption setting unchanged",
+  "temporary_sample_copies_removed": true,
+  "documentation": [
+    "https://github.com/minio/minio/blob/master/docs/compression/README.md",
+    "https://github.com/minio/minio/blob/07c3a429bfed433e49018cb0f78a52145d4bedeb/internal/config/config.go"
+  ]
+}
