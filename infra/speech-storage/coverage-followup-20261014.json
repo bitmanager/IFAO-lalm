@@ -7,7 +7,7 @@
       "id": "lemas-ru",
       "repo": "LEMAS-Project/LEMAS-Dataset-train",
       "revision": "91f0c1b9a29f8d1c5bad18182a43975255512cce",
-      "status": "PARTIAL_COPY_REMAINDER_NOT_QUEUED",
+      "status": "RU000_COPIED_RU001_DOWNLOAD_STARTED_REMAINDER_NOT_QUEUED",
       "copied_files": 2,
       "copied_bytes": 24039570517,
       "copied_selection": "train/ru/ru000.tar.gz and train/ru/ru000.jsonl",
@@ -15,7 +15,21 @@
       "reported_remaining_bytes": 526802275459,
       "receipt": "/mnt/local/drive2/speech-data-storage-20261012/audit/full-download-20261012/lemas-ru000/status.json",
       "receipt_status": "COPIED_AND_FULL_SHA256_READBACK_VERIFIED",
-      "next_action": "Revalidate pinned upstream inventory and capacity reservations before scheduling additional shards; already queued explicit user sources retain priority",
+      "upstream_inventory_revalidated": {"files": 46, "bytes": 550841845976, "local_report": "/mnt/local/drive1/speech-hf-ingest-20261013/audit/lemas-ru-current-inventory-20261014.json"},
+      "next_download": {
+        "selection": ["train/ru/ru001.jsonl", "train/ru/ru001.tar.gz"],
+        "bytes": 24032333932,
+        "unit": "speech-data-lemas-ru001-download-20261014.service",
+        "host": "dev-1",
+        "temporary_directory": "/mnt/local/drive1/speech-hf-ingest-20261013/downloads/lemas-ru001",
+        "engine": "Stock hf download, pinned revision, one worker",
+        "intended_storage": "speech3/speech-private-archive/sources/lemas-ru001/hf-91f0c1b9a29f8d1c5bad18182a43975255512cce/",
+        "download_only": true,
+        "next_action": "After successful download verify both upstream SHA256 values, archive integrity and native metadata; upload with mc and verify full S3 readback before marking complete",
+        "known_exact_dedup_receipt_matches": 0,
+        "dedup_scope": "Local TSV/text checksum/readback/file-map receipts under both audit roots, files below 30 MB; not exhaustive object or sample-level dedup"
+      },
+      "remaining_unqueued_bytes": 502769941527,
       "quality": "Subtitles and automatic alignment; overlap with Golos/YouTube and upstream holdouts unresolved"
     },
     {
