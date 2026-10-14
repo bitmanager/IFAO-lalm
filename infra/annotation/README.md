@@ -828,7 +828,9 @@ AGY-08's eight-call API pilot was returned to five after six post-dispatch
 `RemoteDisconnected` responses in a burst on 14 October. The affected attempts
 remain quarantined; the change drains in-flight work before recreation.
 An AGY-25 eight-call pilot was rolled back after malformed model JSON responses;
-that account remains at five. Both changes used a pause of new claims and a
+that account remains at five. After 30 minutes without API failures, its eligible
+job selection cap was raised from 70% to 100%, keeping the five-call semaphore
+and the automatic cooldown. Overflow still takes the CLI route. Both changes used a pause of new claims and a
 complete in-flight drain before recreation. The worker enforces a hard ceiling
 of eight; AGY-12 retains an eight-call pilot and other accounts remain at five. HTTP 429 and server failures suspend that
 account's API route and new jobs fall back to CLI.
