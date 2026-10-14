@@ -714,3 +714,40 @@ The unified `notebooks/speech_data_progress.ipynb` reads the latest snapshot,
 shows account-level speeds and recent failures, and plots the recent throughput
 trend. `/usage` quota reads remain a separate read-only check via
 `infra/annotation/check_usage.py`.
+
+## Bounded native API canary
+
+`lalm.annotation.native_canary` temporarily reserves an existing account for a
+fixed manifest of at most six distinct, unprotected training audios. The manifest
+contains `sample`, explicitly attached source annotation, optional listening
+audit metadata, and cached CLI results. It executes three independent prompts
+per sample with at most five concurrent native `generateContent` POSTs, through
+the account's existing network and local OAuth file. Auth refresh remains owned
+by the native CLI; discovery is once per batch. Generation has no automatic retry.
+
+```bash
+python -m lalm.annotation.native_canary \
+  --manifest /private/canary-manifest.json \
+  --prefix evaluation/native-api-canary-v1/unique-run-id
+```
+
+The manifest and logs belong in private storage, outside Git. `ACCOUNT_ID` and
+the normal DB/S3 environment come from the existing account container. Existing
+CLI tasks drain before canary dispatch. The account's queue cooldown reserves
+15 minutes; the `finally` block restores it after the test, while an expired
+reservation resumes CLI even if the canary process dies. Restoration never
+overwrites a newer cooldown or quota block. Production jobs and their contract
+IDs are untouched; results under the private annotation bucket's canary prefix
+are separate review artifacts and never training publications.
+
+`native_api.py` derives the existing English/Russian/source-correction prompts,
+replacing file opening with an attached audio part. It checks the returned model,
+STOP completion, JSON field types and `audio_heard=true`, and rejects output tool
+calls. A Markdown JSON fence observed in the live gateway is handled explicitly.
+The same three-pass Russian precision decision is reported as `native_decision`;
+model agreement alone is not a listening audit. Inspect cached CLI contract
+versions before treating historical results as a controlled comparison.
+
+Validation: `tests/test_annotation_native_api.py` covers native validation and
+single-dispatch timeout behavior. `tests/annotation_native_canary_check.py` checks
+reservation expiry and guarded rollback in a disposable PostgreSQL transaction.
