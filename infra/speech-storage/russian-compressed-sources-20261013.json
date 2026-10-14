@@ -198,7 +198,14 @@
       "download_url": "https://openslr.magicdatatech.com/resources/100/mtedx_ru.tgz",
       "transfer_note": "Primary/www and EU/trmal timed out after only 23891 of 65536 bytes in bounded GET; full primary GET stalled at4096B. Published CN mirror returns206/full65536B and HEAD200/expected10201638349B; first23891B SHA256 matches primary. Native job switched explicitly; complete gzip/tar/train-YAML/local-SHA/S3-readback still mandatory",
       "download_engine": "Existing stock aria2c, four connections and native resume; full byte/gzip/tar/YAML/SHA256/S3 checks unchanged",
-      "mirror_curl_attempt": "Connection reset by peer, curl exit56 after3653632B; no S3 source publication. Failed receipt retained before native aria2 resume"
+      "mirror_curl_attempt": "Connection reset by peer, curl exit56 after3653632B; no S3 source publication. Failed receipt retained before native aria2 resume",
+      "resume_20261014": {
+        "reason": "Old job absent; partial TGZ and aria2 control file retained",
+        "service": "speech-data-mtedx-ru-resume-20261014.service",
+        "engine": "Stock aria2c native resume, 4 connections, 5 retries",
+        "stage": "Download only; full gzip/TAR/SHA256 and S3 readback required after completion",
+        "download_complete": false
+      }
     },
     {
       "id": "yo-cpt-ru-pilot",
