@@ -4,6 +4,25 @@ from lalm.annotation.worker import classify, quota_reset_delay, predispatch_auth
 
 
 class WorkerErrorTests(unittest.TestCase):
+    def test_eligibility_500_is_not_an_auth_denial_or_an_inference_replay(self):
+        import json
+        error = ('Eligibility check failed: failed to get load code assist response: '
+                 'INTERNAL (code 500): Internal error encountered.')
+        raw = json.dumps({'event': 'result', 'result': {'status': 'ERROR',
+                         'num_turns': 0, 'duration_seconds': 0, 'error': error}})
+        self.assertTrue(predispatch_eligibility_transient(raw))
+        self.assertFalse(predispatch_eligibility_transient(raw, True))
+        initialized = json.dumps({'event': 'init'})+'\n'+raw
+        self.assertFalse(predispatch_eligibility_transient(initialized))
+        self.assertEqual(classify(initialized),
+                         ('NEEDS_REVIEW', 'eligibility_service_unavailable', 'transport_cooldown'))
+        self.assertEqual(classify(initialized, True), ('NEEDS_REVIEW', 'ambiguous_timeout', None))
+        for denial in ('Authentication required', '403 Forbidden', 'Verify your account'):
+            self.assertEqual(classify(initialized+'\n'+denial)[2], 'authentication_or_access_denied')
+        model_text = json.dumps({'event': 'step_update', 'step_update':
+                                {'step_type': 'agent_response', 'text_delta': error}})
+        self.assertEqual(classify(model_text), ('NEEDS_REVIEW', 'native_result_rejected', None))
+
     def test_generation_service_errors_cool_account_without_replay(self):
         import json
         for message in (

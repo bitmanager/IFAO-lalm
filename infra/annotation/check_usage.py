@@ -17,7 +17,8 @@ def clean(s):
 
 def check(n):
  account=f'agy-{n:02d}'
- cmd=f'cd {shlex.quote(ARGS.remote_dir)} && infra/annotation/dc exec {account} sh -c "stty rows 60 cols 150; exec agy"'
+ # Bound the process inside Docker too: closing SSH alone can leave its TUI alive.
+ cmd=f'cd {shlex.quote(ARGS.remote_dir)} && infra/annotation/dc exec {account} sh -c "stty rows 60 cols 150; exec timeout --foreground --kill-after=5s 180s agy"'
  p=pexpect.spawn(ARGS.ssh,['-tt',ARGS.host,cmd],encoding='utf-8',timeout=70,dimensions=(60,150))
  try:
   k=p.expect(['Choose your color scheme','Terms of Service & Data Use','Do you trust','for shortcuts','is not running',pexpect.EOF])
@@ -30,6 +31,11 @@ def check(n):
   capture=clean(p.before+p.after)
   result={'account':account,'checked_at':datetime.now(timezone.utc).isoformat(),'usage':capture}
   p.send('\x1b');time.sleep(.3);p.send('/exit\r')
+  try:
+   p.expect(pexpect.EOF,timeout=10)
+   result['cleanup_confirmed']=True
+  except pexpect.TIMEOUT:
+   result['cleanup_confirmed']=False
  except Exception as e:
   result={'account':account,'checked_at':datetime.now(timezone.utc).isoformat(),'error':type(e).__name__}
  finally:

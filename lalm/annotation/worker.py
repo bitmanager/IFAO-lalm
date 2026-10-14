@@ -48,7 +48,9 @@ def classify(text, timed_out=False):
                     'Eligibility check failed: failed to get load code assist response: '
                     'UNAVAILABLE (code 503): The service is currently unavailable.',
                     'Eligibility check failed: '
-                    'UNAVAILABLE (code 503): The service is currently unavailable.'))
+                    'UNAVAILABLE (code 503): The service is currently unavailable.',
+                    'Eligibility check failed: failed to get load code assist response: '
+                    'INTERNAL (code 500): Internal error encountered.'))
             inference_unavailable |= (event.get('event') == 'result'
                 and envelope.get('status') == 'ERROR'
                 and isinstance(envelope.get('num_turns'), int)
@@ -66,7 +68,9 @@ def classify(text, timed_out=False):
     text = '\n'.join(failures).lower()
     if any(x in text for x in ('individual quota reached', 'quota exhausted', 'quota exceeded')):
         return 'NEEDS_REVIEW', 'quota_exhausted', 'quota_exhausted'
-    if service_unavailable:
+    if service_unavailable and not any(x in text for x in
+            ('authentication required', 'unauthenticated', 'permission denied',
+             'access denied', 'unauthorized', 'forbidden', 'verify your account')):
         if timed_out:
             return 'NEEDS_REVIEW', 'ambiguous_timeout', None
         # An init event prevents safe replay. Quarantine the job and cool down
@@ -148,6 +152,7 @@ def predispatch_eligibility_transient(stdout, timed_out=False):
             and (re.fullmatch(transport, error) is not None
                  or re.fullmatch(unavailable, error) is not None
                  or error == 'Eligibility check failed: request failed (code 502): HTML response "Error 502 (Server Error)!!1"'
+                 or error == 'Eligibility check failed: failed to get load code assist response: INTERNAL (code 500): Internal error encountered.'
                  or error == 'Eligibility check failed: failed to fetch user info: 500 Internal Server Error'))
 
 

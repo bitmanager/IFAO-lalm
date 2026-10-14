@@ -489,13 +489,16 @@ From the operator host with `pexpect` installed, run:
 python3 infra/annotation/check_usage.py --output /tmp/agy-usage-latest.json
 ```
 
-Reads native `/usage` for slots 01–07 through `ssh-gpu dev-1`, with three
+Reads native `/usage` for the twelve original slots through `ssh-gpu dev-1`, with three
 concurrent read sessions. It does not submit model prompts or change worker
 limits. Output includes UTC timestamps and remaining weekly/five-hour quota;
 account emails are redacted. `--accounts 5 6` restricts the check. Interactive
 CLI setup must already be complete; failures produce an error and nonzero exit
 status rather than guessing quota. This is an on-demand check, not a scheduled
 collector. The output path is for operational data, not a Git artifact.
+The collector waits for EOF after `/exit` and records `cleanup_confirmed`.
+An in-container 180-second timeout with a five-second kill grace also bounds
+the TUI if SSH disconnects. This prevents accumulating idle AGY processes.
 
 ## Intermittent headless authentication (2026-10-13)
 
@@ -565,7 +568,7 @@ and results as `cli_sha256`.
 The rolling CLI 1.3.4 deployment completed on 2026-10-13. All 21 running
 containers were checked for version, matching pin, and a Flash-only model
 allowlist. Slot 17 remains stopped. Workers mount an immutable copy of the
-annotation modules and native parser under `runtime/cli134-inference-cooldown-20261014/` on dev-1;
+annotation modules and native parser under `runtime/cli134-eligibility500-20261014-v2/` on dev-1;
 the producer still submits Flash jobs. The upgrade does not establish that
 Google authentication timeouts are resolved; verify actual saved results after
 each recovery.
@@ -626,6 +629,17 @@ check and inspection of their failure before being re-enabled.
 
 The same bounded pre-generation retry covers the observed eligibility response
 `UNAVAILABLE (code 503): The service is currently unavailable.`
+It also covers the exact observed load-code-assist `INTERNAL (code 500):
+Internal error encountered.` response. If an init event already exists, the
+job is quarantined and the account cooled down rather than replaying it.
+Explicit access denials still take priority over these service errors.
+
+PostgreSQL uses `max_connections=512` for the worker fleet and Airflow. The
+default 100 produced connection-limit errors and lost finish updates during
+bursts. Apply this startup parameter only after draining AGY and source workers
+and allowing the current DAG run to finish. Retain account reset timestamps and
+existing auth blocks when resuming. Expired attempts remain for review without
+inference replay. No global `work_mem` change is required.
 
 ## One maintained notebook
 

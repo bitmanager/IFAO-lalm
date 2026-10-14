@@ -41,6 +41,7 @@ def build(accounts, agy_path):
     services = {
       'postgres': {'image': 'postgres:17.10-alpine', 'environment': {'POSTGRES_USER': 'speech',
         'POSTGRES_PASSWORD': '${POSTGRES_PASSWORD}', 'POSTGRES_DB': 'speech'},
+        'command': ['postgres', '-c', 'max_connections=512'],
         'networks': ['backend'], 'volumes': ['postgres-data:/var/lib/postgresql/data',
         './init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro'],
         'healthcheck': {'test': ['CMD-SHELL', 'pg_isready -U speech -d speech'], 'interval': '5s', 'retries': 20},
