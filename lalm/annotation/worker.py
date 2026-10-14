@@ -30,7 +30,7 @@ NATIVE_API_CONSECUTIVE_FAILURES = 0
 NATIVE_API_GOOD_COUNT = 0
 NATIVE_API_DEGRADED = False
 NATIVE_API_SLOTS = threading.BoundedSemaphore(5)
-NATIVE_API_BASE_PERCENT = {'agy-03': 50, 'agy-16': 35, 'agy-21': 20}
+NATIVE_API_BASE_PERCENT = {'agy-03': 50, 'agy-08': 20, 'agy-16': 35, 'agy-21': 20}
 
 
 def classify(text, timed_out=False):
