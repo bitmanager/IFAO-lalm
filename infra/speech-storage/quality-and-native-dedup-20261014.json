@@ -260,13 +260,17 @@
     "rule": "Trim filepath, remove its source-root component, prepend playlist_id",
     "scope": "First 100 archive files only; full coverage remains to be audited"
   },
-  "local_cleanup_pending": {
+  "s3_evidence_prefix": "speech/speech-datasets/catalog/quality-audit-20261014/",
+  "local_cleanup_completed": {
     "files": 385,
     "bytes": 40358420480,
     "root": "/mnt/local/drive1/speech-hf-ingest-20261013/downloads/balalaika-stress-sft-audio",
     "verification": "Complete local TAR SHA256 matches pinned upstream and native S3 readback; object paths and sizes revalidated",
-    "approval": "Requested; no deletion yet",
-    "exact_file_list": "/mnt/local/drive1/speech-hf-ingest-20261013/audit/balalaika-stress-sft-audio/local-cleanup-candidates-20261014.json"
-  },
-  "s3_evidence_prefix": "speech/speech-datasets/catalog/quality-audit-20261014/"
+    "approval": "User approved exact 385-file list",
+    "exact_file_list": "/mnt/local/drive1/speech-hf-ingest-20261013/audit/balalaika-stress-sft-audio/local-cleanup-candidates-20261014.json",
+    "deleted_at": "2026-10-14T03:20:41.703429+00:00",
+    "all_listed_paths_absent": true,
+    "free_bytes_after": 1292916080640,
+    "deletion_receipt": "speech/speech-datasets/catalog/quality-audit-20261014/balalaika-stress-sft-audio/local-cleanup-completed-20261014.json"
+  }
 }
