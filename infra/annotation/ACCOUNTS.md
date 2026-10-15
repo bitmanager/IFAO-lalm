@@ -757,3 +757,28 @@ S3: `diagnostics/cli5-api5-canary-20261015/agy12-d2479f8d57823f9468b12c3af7c736e
 Связь с провайдером/VPN/общим Google identity пока не установлена.
 Доказательство штатного обновления квоты, без генерации или снятия пауз:
 `diagnostics/quota-refresh-20261015/agy12-7485ffa73ea31e98487f9db0f62b9d1691f3182daee09391e5855d42c0776e43.json`.
+
+### 14 впервые включён в native API — 15.10.2026, 12:47 UTC
+
+Read-only loadCodeAssist HTTP200/4.25s/project найден; аккаунт готов.
+Добавлен в whitelist (b418c03), 48 тестов прошли. Worker SHA256
+`2dc0fd1ad0bbe9b61c2ee5cd16cd4b8a3cbea11753b77bd94a856ab2283f9e8c`.
+Hold 12:45:38 UTC; после RUNNING=0/AGY-процессов=0 пересоздан только 14.
+Два CLI native_result_rejected во время drain сохранены для review;
+транспортных/квотных/auth ошибок не было, действующих guards не сбрасывали.
+Release 12:47:47.141244 UTC, DB concurrency20/min_interval0.2 сохранены;
+CLI cap5/API cap8/percent100/max100/budget8192 подтверждены.
+
+В 12:48:29 UTC: 77 сохранённых ответов, 66 API, ошибок/expired leases нет.
+Первые четыре raw API complete/one HTTP/no retry; текст/контракт совпадают.
+CLI-процессы: 5/5/5/5. S3:
+`diagnostics/cli5-api8-canary-20261015/agy14-7c9cd3ceb7a5b60904a313d77d7aa0088a5eb56b6081cb8aa836476c10e086b2.json`.
+
+Сравнение API/CLI за [11:40:19,12:40:19) UTC, одна Flash-модель,
+precision triad, аудио1–20s: API10050 попыток/35 неуспешных(0.348%),
+CLI15962/508(3.183%); после исключения predispatch CLI314/15768(1.991%).
+Медианы успешной полной обработки5.14s/24.49s, p9010.39s/49.40s.
+В сопоставимых стратах аккаунт/промпт/длительность/5min вывод сохраняется:
+взвешенные доли неуспеха0.627%/3.035%. Это наблюдение эксплуатации, не
+paired ASR quality benchmark; паузы влияют на общий темп отдельно.
+S3: `diagnostics/api-cli-reliability-20261015/9baf27b699472b9bc7a1d0dced68e3cbe5a7895cead465a2cb58940497418b3b.json`.
