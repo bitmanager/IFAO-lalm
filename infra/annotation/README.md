@@ -1194,3 +1194,31 @@ validation; their input hashes, raw/saved text and contract hashes matched, with
 one HTTP attempt and no retries each. This short readback does not establish
 long-term reliability or transcript accuracy. Metadata-only evidence:
 `speech-datasets/diagnostics/native-result-object-prompt-20261015/agy08-544ea175ff294ca046abeef9869f2a339fbcabf516cc314b285ffb196336a0e1.json`.
+
+### LA service degradation and lower-burst trial, 2026-10-15
+
+Slots 11 and 24 shared intermittent eligibility/generation 503 failures while
+their LA proxy remained running. Plain HTTPS health checks succeeded, and
+read-only subscription discovery succeeded. A same-account diagnostic through
+LA, NY and LA again took 2.048, 1.664 and 2.554 seconds, respectively, without
+changing the worker route or submitting generation. These observations did
+not establish a broken VPN or invalid account authorization.
+
+From 06:20:00 to 06:35:00 UTC, only slot 11's queue limits changed from
+10 concurrent jobs / 0.2-second interval to 5 / 2 seconds. Slot 24 stayed at
+5 / 0.2 seconds. Existing requests, cooldowns, VPN routes and workers were not
+restarted. In the preceding fifteen-minute window, slots 11/24 saved 124/74
+Russian responses; during the trial they saved 138/165. Neither slot recorded
+an eligibility/generation service-unavailable failure during the trial. Slot
+11 still had four startup/eligibility transport failures and one contract
+rejection; slot 24 had six contract rejections. Both recovered, including the
+unchanged control, so this observation did not demonstrate a benefit from
+lowering slot 11's limits. The comparison was not randomized and included
+existing cooldowns and requests started before each window.
+
+At 06:36:16 UTC, slot 11's original 10 / 0.2 limits were restored through the
+queue without restarting or altering its cooldown. Restoration checked that
+the two trial values were still owned. Evidence is stored under
+`speech-datasets/diagnostics/agy11-lower-burst-20261015/`:
+`window-53ba43719533efe8d771dcdddf91f997bac6a039e59b78da8e089314ba34d70a.json`
+and `restore-0ac8c73b8a4a1047ce6f31f172a4d387b0b62169d6d419d87b6a94e3dda3d91f.json`.
