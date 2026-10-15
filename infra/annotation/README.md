@@ -922,6 +922,12 @@ the existing five-call semaphore. The preceding 45-minute inspection contained
 transport failures observed. Those invalid responses stay quarantined; this is
 not an error-free or human-gold quality claim. Existing response checks and
 account-local fallback remain enabled.
+The 35% trial was returned to 20% at about 03:28 UTC after two fresh
+post-dispatch `RemoteDisconnected` responses at 03:18. The affected attempts
+were not replayed. CLI continued during the API cooldown; the account then
+drained before recreation at 20%, preserving both the prior queue backoff and
+the ten-minute API error cooldown. These observations do not establish whether
+the higher fraction caused the disconnects.
 After several error-free operational snapshots, AGY-08 and AGY-25 route up to
 70% of eligible short review-only jobs via API, while AGY-21 routes up to 60%.
 The normally five-call-per-container semaphore still limits simultaneous API requests;
@@ -1000,7 +1006,7 @@ can otherwise leave already-dispatched jobs ambiguous; these must remain in
 before restart and check the account's actual proxy, DB/S3 access, fresh API
 outputs, and error codes afterward.
 Per-account restart floors are explicit in [render.py](render.py) and the private
-runtime Compose configuration. AGY-19's current trial floor and ceiling are 35%.
+runtime Compose configuration. AGY-19's current floor and ceiling are 20%.
 Explicit settings keep a container restart from resetting a proven route to
 the original 20%. A bad API response temporarily
 reduces the effective share to 20% until 25 fresh valid responses; quota/auth
