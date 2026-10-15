@@ -792,6 +792,23 @@ transport cooldown. Так мы не рискуем оплатить повто�
 
 ## Annotation operations monitor
 
+Queue dispatch uses the partial `jobs_claim_fifo(created_at,id)` index for
+`PENDING`/`RETRYABLE_FAILED` rows with attempts below three. It preserves the
+existing FIFO order, due-time/model filters and lease checks. The older
+`jobs_queue` index remains available for state and due-time queries.
+For an existing database, build this index with `CREATE INDEX CONCURRENTLY`
+outside a transaction, following the
+[PostgreSQL 17 documentation](https://www.postgresql.org/docs/17/sql-createindex.html).
+The versioned schema includes the ordinary `IF NOT EXISTS` definition for init.
+
+On 15 October at 05:24 UTC the live concurrent build completed in 13.27 seconds;
+128 attempts finished during that interval. Both the new index and the existing
+deduplication index were valid afterward. The exact claim SELECT, including
+model filtering and `FOR UPDATE SKIP LOCKED`, changed from scanning/sorting
+6,845 rows in 23.915 ms to an ordered index scan returning one row in 0.081 ms.
+These are individual query-plan measurements, not an overall throughput claim.
+Private plans are saved in `speech-datasets/diagnostics/claim-fifo-plan-20261015/`.
+
 The `annotation_ops_monitor` Airflow DAG runs every five minutes and publishes a
 compact, transcript-free snapshot to
 `s3://speech-datasets/analytics/ops/latest.json`; timestamped history is stored

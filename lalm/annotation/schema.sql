@@ -27,6 +27,8 @@ CREATE TABLE IF NOT EXISTS jobs (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS jobs_queue ON jobs(state,next_attempt_at,created_at);
+CREATE INDEX IF NOT EXISTS jobs_claim_fifo ON jobs(created_at,id)
+  WHERE state IN ('PENDING','RETRYABLE_FAILED') AND attempt<3;
 CREATE TABLE IF NOT EXISTS attempts (
   job_id text REFERENCES jobs(id),
   attempt integer NOT NULL,
