@@ -43,3 +43,38 @@ and CSV contain the original OpenSTT labels. `phone2` has original OpenSTT ASR
 labels with the model unconfirmed; the queue has no verified GigaAM layer for
 it. The small `bitmanager-sessions` catalog also mentions client GigaAM-RNNT,
 but its source index is not proof that every stored audio has an attached label.
+
+## Additional sources located on 2026-10-15
+
+The shared inventory spans three independent stores. A live read from the
+second store (`https://100.119.47.17:19010`) confirmed a substantial **CTC**
+layer, distinct from the RNNT predictions evaluated above:
+
+- `speech-corpora/staging/gigaam-original-all/20261013-v1/manifests/verified-snapshot-20261013T132951Z.json`:
+  3,475,789 canonical rows in 2,434 Parquet files, plus 81,607 SOVA rows;
+  3,557,396 rows total. Its recorded model is `v3_ctc`, weights SHA256
+  `a20a9b5b8ed929c4a60141753cd3dd1284138879a46fb4a1cef6430ec019a02f`.
+  The manifest reports complete SHA256 readback, zero missing IDs and zero
+  duplicate source IDs. These are the producer's checks, not a new full audit.
+- A freshly read canonical Parquet has `audio_sha256`, `source_endpoint`,
+  `source_bucket`, `source_key`, `duration`, `gigaam_transcription`,
+  `gigaam_segments`, `gigaam_model` and `gigaam_weights_sha256`. Its rows are
+  references and predictions; they do not contain new waveform bytes.
+- `speech-corpora/staging/sova-rudevices-gigaam-v3-ctc/20261013-v1/manifest.json`
+  reports all 81,607 train examples, retaining source text and adding separate
+  `gigaam_transcription`, model provenance, source row and audio SHA256.
+  A CTC-versus-Gemini comparison is still required; the RNNT disagreement
+  percentages above must not be presented as CTC measurements.
+
+Other existing catalog evidence identifies these candidates:
+
+| Source | Available GigaAM evidence | Current restriction |
+| --- | --- | --- |
+| `lab260/tuchniyzhab_balalaika` | 1,347 paired audio/JSON records with `giga_rnnt.txt`, CTC and other ASR fields | Cross-corpus and benchmark overlap unverified |
+| `crm-history175` | 187,758 turns / 174.83 h, GigaAM-SIP RNNT | Private archive; existing holdout audit and admission restrictions |
+| `exp-local-calls159` | 4,526 turns / 5.394 h, GigaAM-SIP RNNT | Preserve 75 train / 25 dev / 26 test / 33 control conversation splits |
+| `YO-CPT-ru` pilot | 3,558 examples / about 14.1 h; publisher describes GigaAM/Whisper/Vosk ensemble | Ensemble text is not automatically an independent GigaAM hypothesis; source overlap unresolved |
+
+This discovery does not enqueue restricted sources or promote single-pass
+matches to clean labels. The current high-precision flow remains in place
+pending an exact audio join and a separate quality comparison of the CTC layer.
