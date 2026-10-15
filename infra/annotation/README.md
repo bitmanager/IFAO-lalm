@@ -1665,4 +1665,38 @@ Evidence:
 The inspection DAG's previous unpaused state was restored at 22:17:33 UTC
 after a source-update hold. Its already-running 22:00 export was preserved;
 no scheduler or annotation worker was restarted. The next export loads v2.
-First live v2 publication remains a monitoring check, not an asserted result.
+The first live v2 run finished successfully in 522.81 seconds. Its 22:26:09 UTC
+snapshot contains 1,522,944 passes and 575,311 examples. Full S3 readback verified
+all five file SHA256 values, all footer counts, conservation of pass/text counts
+across examples and progress, and zero human-verified examples. Evidence:
+`speech-datasets/diagnostics/inspection-duckdb-20261015/first-live-v2-51c3d78ba988aac7fd12d17f97607ab4bc0c9ef1b13b556536a16ac3d77c335c.json`.
+
+### Native organization-call pilot
+
+`lalm.annotation.organization_calls` stages a bounded pilot (at most 12 calls)
+through the existing `incoming/` manifests, prepared-manifest registry and
+Airflow ingest DAG. It reuses the production audio segmentation and queue
+holdout checks; it adds no service or scheduler. The operator supplies native
+CSV metadata, an explicit selection with encoded hashes, and verified audio.
+
+The adapter joins `dialogs.current_relation_id = relations.id`, verifies both
+organization and dialogue ownership, and preserves the native conversation ID,
+channel number and segment times. Channels have no inferred agent/customer
+roles. Each source index retains the complete selected native CSV rows and
+archive provenance; the source index itself has a content-addressed S3 key.
+Whole-dialogue text is **not** attached as a short segment's source label.
+
+Consequently this pilot gets the existing blind first pass and remains
+review-only. The existing triad reviewer reports missing segment annotation;
+it cannot accept these examples as three-pass candidates or training data.
+Canonical decoded-PCM overlap checking is explicitly false and remains a
+training-release requirement. The adapter checks the known encoded-audio and
+conversation holdouts before publishing an incoming manifest. Failed
+preparation may leave immutable source/audio objects, but publishes no work
+manifest until all selected inputs pass. Retries produce the same manifest;
+the existing queue still enforces audio/pass/model uniqueness.
+
+This is a pilot of dialogue-preserving **segmentation**, not whole-call
+contextual annotation: current windows remain at most 20 seconds, with up to
+0.5 seconds overlap. Full-call recognition and aligned source correction need
+separate validation before expanding this path.
