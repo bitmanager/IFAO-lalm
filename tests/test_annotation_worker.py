@@ -496,6 +496,81 @@ class WorkerErrorTests(unittest.TestCase):
         error['result']['num_turns'] = 1
         self.assertFalse(predispatch_auth_timeout(json.dumps(error), stderr, 65))
 
+    def test_late_completed_auth_timeout_keeps_job_quarantined_without_disabling_account(self):
+        import json
+        from lalm.annotation.worker import classify_cli_failure
+        error = {'event': 'result', 'result': {'status': 'ERROR', 'num_turns': 0,
+                 'duration_seconds': 0, 'error': 'authentication failed or timed out'}}
+        raw = json.dumps(error)
+        stderr = 'Authentication required. Error: authentication timed out.'
+        self.assertFalse(predispatch_auth_timeout(raw, stderr, 215))
+        self.assertEqual(classify_cli_failure(raw, stderr),
+                         ('NEEDS_REVIEW', 'auth_startup_timeout', 'transport_cooldown'))
+        # Process timeout, model activity, malformed streams and explicit denial
+        # must never enter the completed zero-turn exception.
+        for other in ('', 'garbage', 'null', raw+'\n'+json.dumps({'event': 'init'})):
+            self.assertEqual(classify_cli_failure(other, stderr), classify(other+stderr))
+        self.assertEqual(classify_cli_failure(raw, stderr, True), classify(raw+stderr, True))
+        for marker in ('Verify your account', 'permission denied', 'access denied',
+                       'unauthorized', 'forbidden', 'unauthenticated'):
+            self.assertEqual(classify_cli_failure(raw, stderr+' '+marker),
+                             ('NEEDS_REVIEW', 'authentication_or_access_denied',
+                              'authentication_or_access_denied'))
+        for field, value in [('num_turns', 1), ('duration_seconds', 1),
+                             ('status', 'SUCCESS'), ('error', 'permission denied')]:
+            changed = {'event': 'result', 'result': {**error['result'], field: value}}
+            text = json.dumps(changed)
+            self.assertEqual(classify_cli_failure(text, stderr), classify(text+stderr))
+
+    def test_late_auth_timeout_does_not_replay_or_disable_in_process(self):
+        import contextlib
+        import hashlib
+        import io
+        import json
+        from pathlib import Path
+        import tempfile
+        import wave
+        from unittest.mock import Mock, patch
+        import lalm.annotation.worker as worker
+        data = io.BytesIO()
+        with wave.open(data, 'wb') as wav:
+            wav.setnchannels(1)
+            wav.setsampwidth(2)
+            wav.setframerate(16000)
+            wav.writeframes(b'\x01\x00' * 1600)
+        audio = data.getvalue()
+        client = Mock()
+        client.head_object.return_value = {'ContentLength': len(audio)}
+        client.download_file.side_effect = lambda bucket, key, path: Path(path).write_bytes(audio)
+        job = {'id': 'late-auth-test', 'attempt': 1,
+               'sample': {'audio_bucket': 'test', 'audio_key': 'audio.wav',
+                          'audio_sha256': hashlib.sha256(audio).hexdigest()}}
+        raw = json.dumps({'event': 'result', 'result': {'status': 'ERROR',
+                         'num_turns': 0, 'duration_seconds': 0,
+                         'error': 'authentication failed or timed out'}})
+        with tempfile.TemporaryDirectory() as root, \
+             patch.object(worker.tempfile, 'TemporaryDirectory',
+                          return_value=contextlib.nullcontext(root)), \
+             patch.object(worker, 's3', return_value=client), \
+             patch.object(worker, 'zero_user_audio', return_value=False), \
+             patch.object(worker, 'native_api_selected', return_value=False), \
+             patch.object(worker, 'install_cli_hooks', return_value=None), \
+             patch.object(worker.time, 'monotonic', side_effect=[0, 215]), \
+             patch.object(worker, 'run_agy', return_value=(
+                 1, raw, 'Authentication required. Error: authentication timed out.', False)) as run, \
+             patch.object(worker, 'probe_auth') as probe, \
+             patch.object(worker, 'finish') as finish:
+            worker.process(job)
+        run.assert_called_once()
+        probe.assert_not_called()
+        finish.assert_called_once()
+        self.assertEqual(finish.call_args.args, (job, 'NEEDS_REVIEW'))
+        self.assertEqual(finish.call_args.kwargs['error_code'], 'auth_startup_timeout')
+        self.assertEqual(finish.call_args.kwargs['block'], 'transport_cooldown')
+        self.assertGreaterEqual(finish.call_args.kwargs['retry_seconds'], 30)
+        self.assertLessEqual(finish.call_args.kwargs['retry_seconds'], 90)
+        self.assertEqual(client.put_object.call_count, 3)  # Original stream, stderr and request.
+
     def test_probe_requires_success_and_expected_model(self):
         from unittest.mock import patch
         from subprocess import CompletedProcess, TimeoutExpired

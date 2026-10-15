@@ -617,6 +617,20 @@ by this path. Eligibility/verification errors now explicitly block the account.
 This mitigates the observed startup case; it is not a claim that AGY internals
 are fixed. Raw failed and recovered outputs remain auditable in private S3.
 
+On 2026-10-15, a completed AGY-10 startup timeout took 215 seconds and fell
+outside this immediate retry window. The exact one-result, zero-turn,
+zero-duration authentication timeout is now classified as `auth_startup_timeout`
+with a short transport cooldown instead of disabling the account. Its job stays
+`NEEDS_REVIEW`, without replay; the 180-second immediate retry bound is unchanged.
+Explicit denial, verification requirements, process timeouts and streams with
+model activity retain their existing handling. Thirty-nine worker tests passed
+inside the deployed worker image, including a process test that preserves all
+three raw artifacts and makes no second model call. Read-only reclassification
+of the original failed stream is recorded at
+`diagnostics/auth-recovery-20261015/late-timeout-e85c90f14964b8c052c77668b66ce426f8cfe3c1dd5fb07b041363d868990799.json`.
+The source is staged for the normal drain-and-canary rollout; staging alone
+does not change already-running workers.
+
 Six extra slots 08–13 are staged (not enabled) using existing VPN proxies and
 independent home volumes. See `ACCOUNTS.md` and `pending-ultra-slots.json`.
 `check_usage.py --accounts 8 9 10 11 12 13` supports them after authentication.
