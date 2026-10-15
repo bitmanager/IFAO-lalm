@@ -315,11 +315,19 @@ def native_project():
     global NATIVE_PROJECT_CACHE
     from .native_api import discover, token
     with NATIVE_PROJECT_LOCK:
-        # Avoid one discovery request per audio and refresh before expiry.
-        if NATIVE_PROJECT_CACHE and NATIVE_PROJECT_CACHE[1] > time.monotonic():
+        # Native-only traffic cannot rely on a later inference CLI refreshing
+        # OAuth. The existing bounded catalog probe sends no user audio.
+        try:
             token(min_remaining=120)
+        except ValueError as error:
+            if str(error) != 'access_token_expired_before_dispatch' or not probe_auth():
+                raise
+            token(min_remaining=120)  # A successful catalog alone is insufficient.
+            print(json.dumps({'event': 'native_api_credentials_ready',
+                              'account': os.environ.get('ACCOUNT_ID')}), flush=True)
+        # Avoid one discovery request per audio.
+        if NATIVE_PROJECT_CACHE and NATIVE_PROJECT_CACHE[1] > time.monotonic():
             return NATIVE_PROJECT_CACHE[0]
-        token(min_remaining=120)
         project = discover()
         NATIVE_PROJECT_CACHE = (project, time.monotonic() + 900)
         return project

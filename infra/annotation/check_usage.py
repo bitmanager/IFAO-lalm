@@ -4,7 +4,7 @@
 Requires pexpect on the operator host and initialized, running account containers.
 Run: python3 infra/annotation/check_usage.py --output /tmp/agy-usage.json
 """
-import pexpect,concurrent.futures,re,json,time,argparse
+import pexpect,concurrent.futures,re,json,time,argparse,subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 import shlex
@@ -14,6 +14,49 @@ def clean(s):
  s=re.sub(r'\x1b\[[0-?]*[ -/]*[@-~]', '',s)
  s=re.sub(r'[\w.+-]+@[\w.-]+','[account]',s)
  return s
+
+def quota_fields(capture):
+ """The later Claude/GPT section must never replace Gemini's empty quota."""
+ section=capture.split('CLAUDE AND GPT MODELS',1)[0]
+ result={}
+ for name,heading in [('weekly','Weekly'),('five_hour','Five Hour')]:
+  match=re.search(heading+r' Limit Remaining\s*\[[^\]]*\]\s*([0-9.]+)%\s*'
+                  r'(?:Refreshes in ([^\r\n]+)|Quota available)',section)
+  if match:
+   result[name+'_pct']=float(match.group(1))
+   result[name+'_reset']=match.group(2) or 'available'
+ return result
+
+def check_plan(account):
+ # Only a read-only discovery call: no audio or generateContent request.
+ # Never print the OAuth file, full provider response, or subprocess errors.
+ code="""import json
+from lalm.annotation.native_api import post,token
+try:
+ status,raw=post('loadCodeAssist',{'metadata':{'ideType':'ANTIGRAVITY'}},token(),35)
+ data=json.loads(raw) if status==200 else {}
+ tier=data.get('paidTier') or {}
+ print(json.dumps({'http_status':status,'id':tier.get('id'),'name':tier.get('name')}))
+except Exception as error:
+ print(json.dumps({'error_type':type(error).__name__}))
+"""
+ cmd=(f'cd {shlex.quote(ARGS.remote_dir)} && sudo -n infra/annotation/dc exec -T '
+      f'{shlex.quote(account)} python -c {shlex.quote(code)}')
+ try:
+  process=subprocess.run([ARGS.ssh,ARGS.host,cmd],capture_output=True,text=True,timeout=50)
+  if process.returncode:
+   return {'paid_tier_error':'probe_process_failed'}
+  value=json.loads(process.stdout)
+  result={'paid_tier_checked_at':datetime.now(timezone.utc).isoformat()}
+  if value.get('http_status')==200 and isinstance(value.get('id'),str):
+   result.update(paid_tier_id=value['id'],paid_tier_name=value.get('name'))
+  else:
+   result['paid_tier_error']='discovery_failed'
+  if isinstance(value.get('http_status'),int):
+   result['paid_tier_http_status']=value['http_status']
+  return result
+ except (subprocess.TimeoutExpired,OSError,ValueError,TypeError,AttributeError):
+  return {'paid_tier_error':'probe_unavailable'}
 
 def check(n):
  account=f'agy-{n:02d}'
@@ -32,7 +75,8 @@ def check(n):
   matched=p.expect('Within each group|Failed to|Error:',timeout=70)
   if matched != 0: raise RuntimeError('Usage endpoint returned an error')
   capture=clean(p.before+p.after)
-  result={'account':account,'checked_at':datetime.now(timezone.utc).isoformat(),'usage':capture}
+  result={'account':account,'checked_at':datetime.now(timezone.utc).isoformat(),'usage':capture,
+          **quota_fields(capture)}
   p.send('\x1b');time.sleep(.3);p.send('/exit\r')
   try:
    p.expect(pexpect.EOF,timeout=10)
@@ -53,6 +97,8 @@ def check(n):
   result={'account':account,'checked_at':datetime.now(timezone.utc).isoformat(),'error':type(e).__name__,'stage':stage}
  finally:
   p.close(force=True)
+ if 'usage' in result:
+  result.update(check_plan(account))
  return result
 if __name__ == '__main__':
  parser=argparse.ArgumentParser(description=__doc__)

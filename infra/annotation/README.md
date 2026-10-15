@@ -841,6 +841,16 @@ The unified `notebooks/speech_data_progress.ipynb` reads the latest snapshot,
 shows account-level speeds and recent failures, and plots the recent throughput
 trend. `/usage` quota reads remain a separate read-only check via
 `infra/annotation/check_usage.py`.
+The helper also returns structured Gemini quota fields (`weekly_pct`,
+`weekly_reset`, and the five-hour fields when present). It parses only the
+Gemini section, so another model group's quota cannot replace an exhausted
+Gemini quota. After closing its usage TUI, it makes one read-only
+`loadCodeAssist` call and records `paid_tier_id`, `paid_tier_name`,
+`paid_tier_checked_at`, and `paid_tier_http_status`. A failed discovery is
+reported separately as `paid_tier_error`; the observed quota is retained.
+This distinction matters when Google changes an account from Ultra to Starter:
+an earlier percentage belongs to the earlier plan and does not prove that
+the account can still generate. Discovery never submits audio or inference.
 The read-only fleet poll at 04:23–04:25 UTC on 15 October successfully read all
 17 active slots. Its PII-free numeric observation is saved in
 `analytics/usage/latest.json`, with immutable history under
@@ -851,6 +861,14 @@ AGY-03's TUI did not confirm EOF within the helper's ten-second exit wait;
 an authoritative process check afterward found no remaining plain AGY TUI.
 
 ## Bounded native API canary
+
+Before native inference, the worker checks that OAuth remains valid for the
+request budget. On the explicit predispatch expiry error, it uses the existing
+bounded `agy models` catalog probe to let the native CLI refresh credentials,
+then checks token validity again. This also supports native-only traffic.
+Concurrent threads share the existing locks and probe cache. Failed refresh
+or discovery does not send audio; failures after generation starts remain
+quarantined without replay. Loaded worker versions are recorded in ACCOUNTS.md.
 
 `lalm.annotation.native_canary` temporarily reserves an existing account for a
 fixed manifest of at most six distinct, unprotected training audios by default,

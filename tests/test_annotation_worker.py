@@ -4,6 +4,74 @@ from lalm.annotation.worker import classify, quota_reset_delay, predispatch_auth
 
 
 class WorkerErrorTests(unittest.TestCase):
+    def test_native_only_threads_refresh_expired_credentials_once(self):
+        import concurrent.futures
+        from unittest.mock import patch
+        import lalm.annotation.worker as worker
+        ready = False
+
+        def token(**kwargs):
+            if not ready:
+                raise ValueError('access_token_expired_before_dispatch')
+            return 'not-logged'
+
+        def refresh():
+            nonlocal ready
+            ready = True
+            return True
+
+        with patch.object(worker, 'NATIVE_PROJECT_CACHE', None), \
+             patch('lalm.annotation.native_api.token', side_effect=token), \
+             patch('lalm.annotation.native_api.discover', return_value='project') as discover, \
+             patch.object(worker, 'probe_auth', side_effect=refresh) as probe:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
+                self.assertEqual(list(pool.map(lambda _: worker.native_project(), range(6))),
+                                 ['project'] * 6)
+            probe.assert_called_once()
+            discover.assert_called_once()
+
+    def test_failed_auth_refresh_never_dispatches_audio(self):
+        from pathlib import Path
+        from unittest.mock import Mock, patch
+        import lalm.annotation.worker as worker
+        with patch('lalm.annotation.native_api.token',
+                   side_effect=ValueError('access_token_expired_before_dispatch')), \
+             patch.object(worker, 'probe_auth', return_value=False) as probe, \
+             patch('lalm.annotation.native_api.generate') as generate, \
+             patch.object(worker, 'finish') as finish:
+            worker.process_native_api({'id': 'a'}, Path('audio.wav'), 4, 'raw/a/1',
+                                      'verbatim', None, 'gemini-3.8-flash-low', Mock())
+        probe.assert_called_once()
+        generate.assert_not_called()
+        self.assertEqual(finish.call_args.args[1], 'RETRYABLE_FAILED')
+
+    def test_catalog_success_does_not_bypass_token_expiry_guard(self):
+        from pathlib import Path
+        from unittest.mock import Mock, patch
+        import lalm.annotation.worker as worker
+        with patch('lalm.annotation.native_api.token',
+                   side_effect=ValueError('access_token_expired_before_dispatch')), \
+             patch.object(worker, 'probe_auth', return_value=True) as probe, \
+             patch('lalm.annotation.native_api.generate') as generate, \
+             patch.object(worker, 'finish') as finish:
+            worker.process_native_api({'id': 'a'}, Path('audio.wav'), 4, 'raw/a/1',
+                                      'verbatim', None, 'gemini-3.8-flash-low', Mock())
+        probe.assert_called_once()
+        generate.assert_not_called()
+        self.assertEqual(finish.call_args.args[1], 'RETRYABLE_FAILED')
+
+    def test_discovery_outage_does_not_trigger_auth_refresh(self):
+        from unittest.mock import patch
+        import lalm.annotation.worker as worker
+        with patch.object(worker, 'NATIVE_PROJECT_CACHE', None), \
+             patch('lalm.annotation.native_api.token', return_value='not-logged'), \
+             patch('lalm.annotation.native_api.discover',
+                   side_effect=ValueError('native_discovery_http_503')), \
+             patch.object(worker, 'probe_auth') as probe:
+            with self.assertRaisesRegex(ValueError, 'native_discovery_http_503'):
+                worker.native_project()
+            probe.assert_not_called()
+
     def test_model_catalog_retry_requires_observed_zero_turn_failure(self):
         import json
         from lalm.annotation.worker import predispatch_model_catalog_transient
