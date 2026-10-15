@@ -18,6 +18,10 @@ from .native_auth import repair_trailing_auth
 
 ENDPOINT = 'https://daily-cloudcode-pa.googleapis.com'
 USER_AGENT = 'antigravity/cli/1.3.4 (aidev_client; os_type=linux; arch=amd64; auth_method=consumer)'
+# Thinking consumes the output budget too. Observed 2048-token responses spent
+# ~1960 tokens thinking and stopped midway through the transcription JSON.
+GENERATION_CONFIG = {'maxOutputTokens': 8192, 'temperature': 0.2,
+                     'responseMimeType': 'application/json'}
 
 
 def native_prompt(variant, reference=None):
@@ -112,21 +116,23 @@ def generate(audio, project, variant='verbatim', reference=None, model='gemini-3
     if not audio.startswith(b'RIFF') or not 44 < len(audio) < 2 * 1024**2:
         raise ValueError('probe_requires_short_wav')
     instruction = native_prompt(variant, reference)
+    generation_config = dict(GENERATION_CONFIG)
     contract = digest({'transport': 'native_api_v1', 'prompt': instruction,
-                       'schema': SCHEMA, 'model': model})
+                       'schema': SCHEMA, 'model': model,
+                       'generation_config': generation_config})
     payload = {'project': project, 'model': model, 'userAgent': 'antigravity',
         'requestId': 'agent/native-canary/' + str(uuid.uuid4()), 'requestType': 'agent',
         'request': {'sessionId': '-1', 'contents': [{'role': 'user', 'parts': [
             {'text': instruction + '\nJSON schema: ' + json.dumps(SCHEMA)},
             {'inlineData': {'mimeType': 'audio/wav', 'data': base64.b64encode(audio).decode()}}]}],
-            'generationConfig': {'maxOutputTokens': 2048, 'temperature': 0.2,
-                                 'responseMimeType': 'application/json'}}}
+            'generationConfig': generation_config}}
     access_token = token()  # Any auth failure here is explicitly before dispatch.
     started = time.monotonic()
     result = {'transport': 'native_api_v1', 'model': model, 'prompt_variant': variant,
         'audio_sha256': hashlib.sha256(audio).hexdigest(), 'contract_sha256': contract,
         'inference_http_attempts': 1, 'auto_retries': 0, 'human_gold': False,
-        'review_only': True, 'prompt_format': 'result_object_v1'}
+        'review_only': True, 'prompt_format': 'result_object_v1',
+        'generation_config': generation_config}
     raw = b''
     try:
         status, raw = post('generateContent', payload, access_token, 90)

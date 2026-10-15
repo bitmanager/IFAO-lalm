@@ -6,7 +6,7 @@ from pathlib import Path
 import tempfile
 
 from lalm.annotation.contract import prompt
-from lalm.annotation.native_api import generate, validate_response, native_prompt
+from lalm.annotation.native_api import generate, validate_response, native_prompt, GENERATION_CONFIG
 
 
 class NativeAPITests(unittest.TestCase):
@@ -52,6 +52,22 @@ class NativeAPITests(unittest.TestCase):
             self.assertNotIn('view_file', text)
             if reference: self.assertIn(reference, text)
         self.assertIn('view_file', prompt('audio.wav'))
+
+    def test_output_budget_is_recorded_and_changes_contract(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            audio = Path(tmp)/'a.wav'; audio.write_bytes(b'RIFF'+b'0'*100)
+            with patch('lalm.annotation.native_api.token', return_value='local-secret'), \
+                 patch('lalm.annotation.native_api.post', return_value=(200, json.dumps(self.response()).encode())) as send:
+                result, _ = generate(audio, 'project')
+                payload = send.call_args.args[1]
+                self.assertGreaterEqual(payload['request']['generationConfig']['maxOutputTokens'], 4096)
+                self.assertEqual(result['generation_config'], payload['request']['generationConfig'])
+                self.assertEqual(result['status'], 'complete')
+                self.assertEqual(send.call_count, 1)
+                with patch.dict(GENERATION_CONFIG, maxOutputTokens=2048):
+                    previous_budget, _ = generate(audio, 'project')
+                self.assertNotEqual(result['contract_sha256'], previous_budget['contract_sha256'])
+                self.assertEqual(result['generation_config']['maxOutputTokens'], 8192)
 
     def test_native_prompt_requests_result_object_instead_of_schema_echo(self):
         text = native_prompt('verbatim')

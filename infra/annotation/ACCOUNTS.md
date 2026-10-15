@@ -531,3 +531,15 @@ auto_retries=0, audio_heard=true; текст, SHA256 аудио и контра�
 с raw artifact. Новых ошибок до 09:54:17 UTC нет. Проверка структурная,
 не human-gold аудит. S3:
 `diagnostics/agy18-code-refresh-20261015/first-results-2975e5600ffaec157855fc34b1a851a4215fb7931e26012ed26c0d5e810a3343.json`.
+
+### Исправление MAX_TOKENS — 15.10.2026
+
+В выборке 12 последних `native_incomplete_or_ambiguous_candidate` восемь
+ответов имели finishReason=MAX_TOKENS, четыре — не содержали кандидата.
+Для проверенного coverage-прохода 06: HTTP 200, один вызов без автоповтора,
+1962 thinking tokens + 82 answer tokens при общем maxOutputTokens=2048;
+JSON оборван и остаётся в карантине. Новая конфигурация увеличивает предел
+до 8192, включает generation_config в contract SHA и сохраняет её в raw
+метаданных. Проверка требует STOP, старые задания не переотправляются.
+Перед внедрением прошли 46 тестов native API, worker и contract.
+Диагностика: `diagnostics/native-response-audit-20261015/598fed745dff37c21750cd177481fbfeff1f59dc9a84e26de3fa7dfcf9242569.json`.
