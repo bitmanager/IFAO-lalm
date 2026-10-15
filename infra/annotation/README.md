@@ -1137,6 +1137,15 @@ quota waits remain in effect; these profiles are not counted as active workers.
 The disabled duplicate 17 was not started. New account containers receive the
 policy through the worker startup path.
 
+At 05:54:55 UTC, a read-only audit of 24 rejected CLI streams from slots
+07, 24 and 25 found a production search attempt on slot 25. The stream recorded
+`search_web` ACTIVE followed by ERROR, the exact configured denial reason, and
+no DONE event. Its job remained quarantined; it was not replayed. The other
+23 streams reported SUCCESS with two to four turns and were rejected by the
+existing one-turn contract. These are contract rejections, not evidence that
+the account could not authenticate. The metadata-only evidence is in
+`speech-datasets/diagnostics/cli-rejects-20261015/0555-2597afe02a28c785bdc3a7f4d4b6dc250a876454d62bdd82694bd708c0bc9d4f.json`.
+
 ### Native response-object prompt investigation, 2026-10-15
 
 A metadata-only audit of twelve recent `native_schema_keys` responses found
