@@ -1,0 +1,28 @@
+services:
+  viewer:
+    image: node:24-slim
+    container_name: asr-bench-view
+    restart: unless-stopped
+    user: "2026:2026"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: ["/tmp:rw,nosuid,nodev,size=128m"]
+    ports: ["127.0.0.1:15500:15500"]
+    volumes:
+      - /mnt/local/drive2/checkpoint-response-bench-v1/tools/node-v22.23.3-linux-x64:/opt/node:ro
+      - /mnt/local/drive2/checkpoint-response-bench-v1/tools/node_modules:/opt/node_modules:ro
+      - /mnt/local/drive2/checkpoint-response-bench-full-v1/ui-state:/state:rw
+      - /mnt/local/drive2/checkpoint-response-bench-full-v1/ui-imports:/imports:ro
+    environment:
+      PROMPTFOO_CONFIG_DIR: /state
+      PROMPTFOO_DISABLE_TELEMETRY: "1"
+      PROMPTFOO_DISABLE_UPDATE: "1"
+      HOME: /tmp
+      PATH: /opt/node/bin:/usr/local/bin:/usr/bin:/bin
+    command: [/opt/node/bin/node, /opt/node_modules/promptfoo/dist/src/entrypoint.js, view, -p, "15500", -n]
+    healthcheck:
+      test: [CMD, /opt/node/bin/node, -e, "fetch('http://127.0.0.1:15500/api/results').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

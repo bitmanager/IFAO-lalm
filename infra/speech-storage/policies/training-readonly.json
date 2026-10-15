@@ -1,0 +1,20 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["s3:GetBucketLocation", "s3:ListBucket"],
+      "Resource": ["arn:aws:s3:::speech-corpora", "arn:aws:s3:::speech-annotations", "arn:aws:s3:::speech-datasets"]
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["s3:GetObject", "s3:GetObjectVersion"],
+      "Resource": ["arn:aws:s3:::speech-corpora/*", "arn:aws:s3:::speech-annotations/*", "arn:aws:s3:::speech-datasets/*"]
+    },
+    {
+      "Effect": "Deny",
+      "Action": ["s3:*"],
+      "Resource": ["arn:aws:s3:::speech-benchmarks", "arn:aws:s3:::speech-benchmarks/*"]
+    }
+  ]
+}

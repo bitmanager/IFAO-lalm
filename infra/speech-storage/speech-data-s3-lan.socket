@@ -1,0 +1,11 @@
+[Unit]
+Description=SpeechLLM S3 private LAN listener
+Wants=network-online.target
+After=network-online.target
+
+[Socket]
+ListenStream=172.16.0.234:19000
+NoDelay=true
+
+[Install]
+WantedBy=sockets.target

@@ -1,0 +1,52 @@
+{
+  "date": "2026-10-12",
+  "host": "dev-1",
+  "root": "/mnt/local/drive2/speech-data-storage-20261012",
+  "tls_endpoints": [
+    "https://100.119.47.17:19000",
+    "https://172.16.0.234:19000"
+  ],
+  "service_user": "speech-data-minio",
+  "service_uid": 990,
+  "training_uid": 2026,
+  "buckets": 5,
+  "bucket_versioning_checked": true,
+  "IAM_read_write_and_benchmark_denial_checked": true,
+  "private_LAN_training_client_checked_from_exp": true,
+  "filesystem_read_of_admin_eval_credentials_and_data_denied_for_training_UID": true,
+  "original_sealed_metadata_copy_and_complete_readback_verified": true,
+  "original_metadata_bytes": 4956703506,
+  "original_metadata_sha256": "981e4ddf1cf1404a8d55357bad26667da35421ec74b3111d7aab72780e5347c1",
+  "reported_rows": 1946766,
+  "reported_hours": 2731.8017911214606,
+  "audio_copy_started": true,
+  "audio_copy_scope": "Completed native source copies for all seven corpus families with full SHA256 readback. See native-corpus-catalog.json for exact local scopes and exclusions from training-publication claims",
+  "native_seven_family_corpus_catalog": "native-corpus-catalog.json",
+  "sealed_seven_corpus_source_audio_copy_started": false,
+  "native_balalaika_archive_receipt": "balalaika-native-archive-verification.json",
+  "portable_parquet_dataset_published": false,
+  "final_production_holdout_cohort_not_yet_selected": true,
+  "existing_research_benchmarks_archived_separately": "research-benchmark-catalog.json",
+  "real_research_benchmark_evaluator_read_and_training_ingest_denial_verified": true,
+  "adapter_approval_pending": true,
+  "native_evidence": [
+    "/mnt/local/drive2/speech-data-storage-20261012/audit/filesystem-isolation.json",
+    "/mnt/local/drive2/speech-data-storage-20261012/audit/initialization-and-iam-smoke.json",
+    "/mnt/local/drive2/speech-data-storage-20261012/audit/sealed-source-copy-preflight.json",
+    "/mnt/local/drive2/speech-data-storage-20261012/audit/sealed-source-copy-verification.json",
+    "/mnt/local/drive2/speech-data-storage-20261012/audit/tls-local-verification.json",
+    "/mnt/local/drive2/speech-data-storage-20261012/audit/training-write-native-denial.json"
+  ],
+  "source_object_stat": {
+    "status": "success",
+    "name": "all-new-source.jsonl",
+    "lastModified": "2026-10-12T16:45:53Z",
+    "size": 4956703506,
+    "etag": "5c748fcec145e8a0fb4fad16e922ea0c-296",
+    "type": "file",
+    "metadata": {
+      "Content-Type": "application/octet-stream"
+    },
+    "versionID": "de31b288-9f35-4ce9-a86d-17da1ece6875"
+  }
+}
