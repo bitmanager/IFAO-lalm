@@ -181,13 +181,16 @@ def classify_cli_failure(stdout, stderr, timed_out=False):
     # A completed zero-turn auth timeout can outlast the immediate recovery
     # window. Preserve that job for review without disabling a healthy account.
     # This classification never permits a retry or overrides explicit denial.
+    failure = classify(stdout + stderr, timed_out)
+    if failure[2] == 'quota_exhausted':
+        return failure
     denial = any(marker in stderr.lower() for marker in
                  ('verify your account', 'permission denied', 'access denied',
                   'unauthorized', 'forbidden', 'unauthenticated'))
     if (not timed_out and not denial
             and predispatch_auth_timeout(stdout, stderr, elapsed=0)):
         return 'NEEDS_REVIEW', 'auth_startup_timeout', 'transport_cooldown'
-    return classify(stdout + stderr, timed_out)
+    return failure
 
 
 def probe_auth(model=MODEL, ttl_seconds=60):

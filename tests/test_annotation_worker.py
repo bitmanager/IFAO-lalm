@@ -511,6 +511,9 @@ class WorkerErrorTests(unittest.TestCase):
         for other in ('', 'garbage', 'null', raw+'\n'+json.dumps({'event': 'init'})):
             self.assertEqual(classify_cli_failure(other, stderr), classify(other+stderr))
         self.assertEqual(classify_cli_failure(raw, stderr, True), classify(raw+stderr, True))
+        for marker in ('Individual quota reached', 'quota exhausted', 'quota exceeded'):
+            self.assertEqual(classify_cli_failure(raw, stderr+' '+marker),
+                             ('NEEDS_REVIEW', 'quota_exhausted', 'quota_exhausted'))
         for marker in ('Verify your account', 'permission denied', 'access denied',
                        'unauthorized', 'forbidden', 'unauthenticated'):
             self.assertEqual(classify_cli_failure(raw, stderr+' '+marker),

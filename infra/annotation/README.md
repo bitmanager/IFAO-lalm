@@ -630,6 +630,16 @@ of the original failed stream is recorded at
 `diagnostics/auth-recovery-20261015/late-timeout-e85c90f14964b8c052c77668b66ce426f8cfe3c1dd5fb07b041363d868990799.json`.
 The source is staged for the normal drain-and-canary rollout; staging alone
 does not change already-running workers.
+The initial classifier revision was loaded on AGY-07 at 21:19:50 UTC after
+draining all jobs and CLI processes. Four ordinary CLI outputs passed strict
+model/schema, audio hash, prompt/reference, contract and stored-text checks;
+its previous concurrency 3 / interval 2s was restored at 21:21:52 UTC without
+changing the current readiness deadline. Evidence:
+`diagnostics/auth-recovery-20261015/agy07-late-timeout-canary-0ae259abcf5b610c5bdf611a0fb31e5c5ea3fcaf1120738028daba34214b208a.json`.
+A subsequent source-only refinement preserves quota-error precedence even if
+stderr contains both a quota marker and the exact startup timeout. All 39
+worker tests passed again, including these mixed-log cases. The refinement is
+staged; the already-running AGY-07 pilot still has its initial revision.
 
 Six extra slots 08–13 are staged (not enabled) using existing VPN proxies and
 independent home volumes. See `ACCOUNTS.md` and `pending-ultra-slots.json`.
