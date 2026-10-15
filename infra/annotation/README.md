@@ -1382,6 +1382,10 @@ Git. Проверены записанные prompt, contract, audio SHA, exit c
 артефактов нет. Полное соответствие prompt/contract для них не подтверждено.
 Исходный список ошибок сохранён до изменений; итоговый receipt:
 `speech-datasets/diagnostics/storage-tier-20261015/recovery-receipt2-6a444e6fecc0ff5b84bf6e8af31af982abfe83262226f92ae31c48d3cfdc1b86.json`.
+Все 32 восстановленных задания найдены в snapshot `2026-10-15T16:33:50.227911Z`:
+проверены 15 полей, включая текст, модель, contract SHA, human flag, длительность,
+raw prefix и nullable CLI inference time; пропусков и расхождений нет.
+`speech-datasets/diagnostics/storage-tier-20261015/recovered-parquet-eb16d2efcd91858e5f9a473372366d69214f2c2f05255c680ed81f30b07dcb3f.json`.
 В 16:12 UTC подтверждены scanner `default`, ILM workers `8`, тот же PID MinIO,
 отсутствие OOM kills и нулевое текущее cgroup memory pressure:
 `speech-datasets/diagnostics/storage-tier-20261015/recovery-9138fb43f64d4be132291bdc42eaf6ae874649ceb57b1f8535ab076414d2db7a.json`.
