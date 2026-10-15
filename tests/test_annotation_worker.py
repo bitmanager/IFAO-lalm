@@ -113,10 +113,11 @@ class WorkerErrorTests(unittest.TestCase):
             job['sample']['review_only'] = False
             self.assertFalse(native_api_selected(job, 4, 1000, 'verbatim', None, 'gemini-3.8-flash-low'))
         job['sample']['review_only'] = True
-        with patch.dict('os.environ', {'ACCOUNT_ID': 'agy-11', 'NATIVE_API_PERCENT': '100',
-                                      'NATIVE_API_MAX_PERCENT': '100'}), \
-             patch('lalm.annotation.worker.NATIVE_API_DISABLED_UNTIL', 0):
-            self.assertTrue(native_api_selected(job, 4, 1000, 'verbatim', None, 'gemini-3.8-flash-low'))
+        for account in ('agy-11', 'agy-14'):
+            with patch.dict('os.environ', {'ACCOUNT_ID': account, 'NATIVE_API_PERCENT': '100',
+                                          'NATIVE_API_MAX_PERCENT': '100'}), \
+                 patch('lalm.annotation.worker.NATIVE_API_DISABLED_UNTIL', 0):
+                self.assertTrue(native_api_selected(job, 4, 1000, 'verbatim', None, 'gemini-3.8-flash-low'))
         with patch.dict('os.environ', {'ACCOUNT_ID': 'agy-16', 'NATIVE_API_PERCENT': '20'}), \
              patch('lalm.annotation.worker.NATIVE_API_DISABLED_UNTIL', 0):
             self.assertTrue(native_api_selected(job, 4, 1000, 'verbatim', None, 'gemini-3.8-flash-low'))
