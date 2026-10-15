@@ -632,3 +632,25 @@ S3: `diagnostics/native-budget-canary-20261015/agy13-429b71d636c153f87572f0abd1f
 renderer описывает целевой canary, текущий compose оставлен прежним.
 При размещении renew_lease сохранены существующие различия claim-порядка
 между main и frozen queue; они этим изменением не перезаписывались.
+
+### Canary 13: до 5 CLI + до 8 API включён — 15.10.2026, 11:54 UTC
+
+API автоматически восстановился после RemoteDisconnected: успешные запросы
+начаты 11:49:19 и 11:50:00 UTC. Дождались также окончания короткого CLI
+transport cooldown. Повторный hold 11:52:00 UTC; после RUNNING=0,
+AGY-процессов=0 и отсутствия новых ошибок пересоздан только agy-13.
+Release 11:54:02 UTC. DB concurrency=20/min_interval=0.2 сохранены.
+Подтверждены AGY_CLI_CONCURRENCY=5, NATIVE_API_CONCURRENCY=8,
+NATIVE_API_PERCENT=100, NATIVE_API_MAX_PERCENT=100. Ограничения допустимых
+аудио, circuit breaker и запрет повторной генерации сохранены.
+
+К 11:54:54 UTC: 43 сохранённых ответа, 38 API, ошибок и expired leases нет.
+Первые четыре raw native результата complete/budget8192/one HTTP/no retry;
+тексты и контракты совпадают с DB. CLI-процессы в пяти замерах: 5/5/5/5/5.
+Это короткий стартовый интервал, не доказательство устойчивости или ускорения.
+S3: `diagnostics/cli5-api8-canary-20261015/d34ff5658e64736282afcda2a6aac5d35421dd1112949288acc3039d09d08688.json`.
+
+Свежая партия 11:23:16 UTC: 128 строк/127 уникальных аудио. Первый проход
+всех 127 проверен по шести полям относительно snapshot 11:40:01 UTC:
+127 найдены, расхождений нет; исходная метка хранится отдельно. S3:
+`diagnostics/input-conservation-20261015/first-pass-parquet-39dff59c64ba52f4fd72755dce0833eac835a3052b3b873a2d06f7ace4d8a7a5.json`.
