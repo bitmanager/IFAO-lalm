@@ -18,13 +18,16 @@ def clean(s):
 def check(n):
  account=f'agy-{n:02d}'
  # Bound the process inside Docker too: closing SSH alone can leave its TUI alive.
- cmd=f'cd {shlex.quote(ARGS.remote_dir)} && infra/annotation/dc exec {account} sh -c "stty rows 60 cols 150; exec timeout --foreground --kill-after=5s 180s agy"'
+ cmd=f'cd {shlex.quote(ARGS.remote_dir)} && sudo -n infra/annotation/dc exec {account} sh -c "stty rows 60 cols 150; exec timeout --foreground --kill-after=5s 180s agy"'
  p=pexpect.spawn(ARGS.ssh,['-tt',ARGS.host,cmd],encoding='utf-8',timeout=70,dimensions=(60,150))
+ stage='startup'
  try:
   k=p.expect(['Choose your color scheme','Terms of Service & Data Use','Do you trust','for shortcuts','is not running',pexpect.EOF])
   if k != 3:
+   stage='interactive_setup' if k<3 else 'container_unavailable' if k==4 else 'process_eof'
    raise RuntimeError('Interactive setup required; complete it manually before polling usage')
   p.send('/usage\r')
+  stage='usage'
   p.expect('Models & Quota')
   matched=p.expect('Within each group|Failed to|Error:',timeout=70)
   if matched != 0: raise RuntimeError('Usage endpoint returned an error')
@@ -37,7 +40,7 @@ def check(n):
   except pexpect.TIMEOUT:
    result['cleanup_confirmed']=False
  except Exception as e:
-  result={'account':account,'checked_at':datetime.now(timezone.utc).isoformat(),'error':type(e).__name__}
+  result={'account':account,'checked_at':datetime.now(timezone.utc).isoformat(),'error':type(e).__name__,'stage':stage}
  finally:
   p.close(force=True)
  return result

@@ -575,6 +575,11 @@ From the operator host with `pexpect` installed, run:
 python3 infra/annotation/check_usage.py --output /tmp/agy-usage-latest.json
 ```
 
+The helper uses the existing noninteractive `sudo -n` access for `dc`, because
+the private runtime Compose file is not readable by the SSH user. Failure
+records include a `stage` field, distinguishing startup/interactive-setup errors
+from errors after reaching `/usage`. No inference request is submitted.
+
 Reads native `/usage` for the twelve original slots through `ssh-gpu dev-1`, with three
 concurrent read sessions. It does not submit model prompts or change worker
 limits. Output includes UTC timestamps and remaining weekly/five-hour quota;
