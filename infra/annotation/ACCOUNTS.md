@@ -672,3 +672,25 @@ S3: `diagnostics/cli5-api8-canary-20261015/d34ff5658e64736282afcda2a6aac5d35421d
 Precheck отложил изменение: native_api_result_rejected в 11:58:47 UTC,
 после него ещё нет нового успешного API-запроса. Hold не устанавливался,
 compose и настройки 12 не менялись; guard не сброшен.
+
+### 19 переведён на CLI5/API5 — 15.10.2026, 12:05 UTC
+
+Precheck 12:02:49 UTC: новый успешный native-запрос после последнего
+неполного ответа (11:57:55 UTC), активная пауза не сбрасывалась. Baseline
+перед hold: 95 сохранённых ответов/5 минут, 19 API. После RUNNING=0,
+AGY-процессов=0 и отсутствия новых ошибок пересоздан только 19.
+Release 12:05:16 UTC. DB concurrency=10/min_interval=0.2 сохранены;
+подтверждены CLI cap5/API cap5/percent100/max100, budget8192.
+
+В 12:06:14 UTC: 26 сохранённых ответов, 23 API; один CLI native_result_rejected,
+ошибок API и expired leases нет. Четыре native artifact complete, one HTTP,
+no retry, текст/контракт совпадают с DB. CLI-процессы: 5/5/5. S3:
+`diagnostics/cli5-api5-canary-20261015/216a2b58c828b8871a02025b3aa9f83e1c041132f52df0724c22e3a0e76b61b9.json`.
+Короткий интервал пока не доказывает ускорение и устойчивость.
+
+Партия 11:23 UTC завершила все проходы: 325 заданий, 319 текстовых результатов,
+активных/ожидающих нет. Консервативное решение по 127 уникальным аудио:
+25 candidate_3of3, 51 disagreement, 27 rejected_first, 18 rejected_quality,
+6 rejected_failed_pass. Это кандидаты без human verification, не измерение
+precision. S3:
+`diagnostics/input-conservation-20261015/triad-1123-final-b26662ddde2ebddd6480d9d5e8e01617fadb0ec8ea08ecab1ce18c619d9db376.json`.
