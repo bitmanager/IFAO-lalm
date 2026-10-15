@@ -813,6 +813,17 @@ Recent attempt diagnostics use `attempts_started_at(started_at)`. Existing
 databases should also build this index with `CREATE INDEX CONCURRENTLY` outside
 a transaction, so monitoring does not scan the full attempt history or block
 worker writes. Check `pg_index.indisvalid` before treating the build as complete.
+`IF NOT EXISTS` does not repair an invalid index left by an interrupted build;
+use `REINDEX INDEX CONCURRENTLY attempts_started_at` for that case. Concurrent
+builds can wait for the inspection export's old snapshot to finish. Do not
+restart the export merely because the index is waiting.
+
+The live index became valid on 15 October after a concurrent rebuild lasting
+126 seconds; 669 attempts finished during that interval. The five-minute
+per-account count used the index and took 1.486 ms afterward. The original plan
+scanned the entire 429 MB attempt heap. This measures one diagnostic query,
+not model throughput. Plans and the build receipt are stored under
+`speech-datasets/diagnostics/queue-contention-20261015/`.
 
 The `annotation_ops_monitor` Airflow DAG runs every five minutes and publishes a
 compact, transcript-free snapshot to
