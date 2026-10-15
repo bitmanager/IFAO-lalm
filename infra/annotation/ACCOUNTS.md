@@ -714,3 +714,24 @@ S3: `diagnostics/cli5-api8-canary-20261015/agy21-33ed590d364b71f65d2ef5cc6f5b388
 До hold было 95/5min, 19 API; это наблюдение, не изолированная причинная
 оценка ускорения. S3:
 `diagnostics/cli5-api5-canary-20261015/five-minute-63ea7ff9ab2bfdec7557e8a14015227b4af81558961c98e96049556127b9315c.json`.
+
+### 11 впервые включён в native API — 15.10.2026, 12:22 UTC
+
+Read-only loadCodeAssist на 11: HTTP200/1.62s/project найден; квотной или
+авторизационной паузы нет. 11 использует тот же Google identity, что 19.
+Добавлен в whitelist, без изменения ограничений review-only/модели/аудио.
+48 тестов прошли (69db58b). Активен worker.py SHA256
+`48d5b92a1912343b5f2f1040ddd09a869204e2dc4d40087018fe8b11b1477fb4`.
+
+Hold 12:20:43 UTC, после RUNNING=0/AGY-процессов=0/новых ошибок=0 пересоздан
+только 11. Release 12:22:55.751059 UTC. DB concurrency10/min_interval0.2
+сохранены; подтверждены CLI cap5/API cap5/percent100/max100/budget8192.
+К 12:23:33 UTC: 21 сохранённый ответ, все API; ошибок/expired leases нет.
+Первые четыре raw complete/one HTTP/no retry, тексты/контракты совпадают.
+CLI-процессы в четырёх замерах: 5/5/5/5. S3:
+`diagnostics/cli5-api5-canary-20261015/agy11-72b60b49a091dc1fa5a24e39d7566089fa23c20451417fa317c5c3a6380e667d.json`.
+
+Полная проверка сохранения партии 11:23 UTC: snapshot 12:10:01 UTC,
+все 325 заданий найдены, расхождений по 11 полям нет, включая исходную
+метку/ошибку/review_required/human_verified. S3:
+`diagnostics/input-conservation-20261015/all-passes-parquet-bdd1b636614556d4b6ce50bb83fea40265e2a62bc4561e96cac1cdd3d5ecfd70.json`.
