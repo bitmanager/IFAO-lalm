@@ -1307,6 +1307,15 @@ StorageClass без Date/Days соответствует тому же нуле�
 в этом префиксе существенно больше данных. Проверять оба диска по `df`, а не
 считать логический размер S3 равным физическому освобождению.
 
+После ограничения ILM до восьми workers повторное пятиминутное окно scanner
+`fastest` в 16:41–16:46 UTC прошло без memory pressure; возврат в `default`
+прочитан из конфигурации в 16:48 UTC. Старые Parquet ещё ждут обхода большого
+`annotations/raw/`. В 16:50 UTC включено ограниченное 30-минутное окно с timer
+`speech-minio-scanner-restore-20261015e` (возврат около 17:20 UTC), при сохранённых
+ILM workers=8 и лимитах памяти 48/64 GiB. Перед включением: память 30.1 GiB,
+pressure=0, HEAD bucket 1–6 ms. Проверять S3 latency и cgroup pressure в ходе
+обхода; для раннего возврата использовать приватный `restore-scanner.py`.
+
 Tier использует уже существующий второй MinIO на drive1, bucket
 `speech-annotation-archive`, prefix `primary-annotation/`. Его отдельная учётка
 ограничена этим префиксом; credentials хранятся только в закрытом server audit,
