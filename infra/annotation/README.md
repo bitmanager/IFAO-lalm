@@ -640,6 +640,21 @@ A subsequent source-only refinement preserves quota-error precedence even if
 stderr contains both a quota marker and the exact startup timeout. All 39
 worker tests passed again, including these mixed-log cases. The refinement is
 staged; the already-running AGY-07 pilot still has its initial revision.
+The final revision (`c437af5c94e1b0c455f22dab612fdc12f0e92baed5fd9920a7fbf5e1610086f5`)
+was loaded on AGY-10 at 21:33:12 UTC after 43 valid native responses following
+its token recovery, no active native pause, and a complete drain with no errors.
+It also loads the existing proactive token-expiry check and account claim
+`SKIP LOCKED` that this older process lacked. Four new native API responses
+passed raw model/schema, audio SHA, prompt/reference, contract and stored-text
+checks, with one HTTP attempt and no retry each. Concurrency 5 / interval 1s
+was restored at 21:34:08 UTC without modifying the current readiness deadline.
+Evidence:
+`diagnostics/auth-recovery-20261015/agy10-refresh-roll-95abbcdfd135cf2d02424707c5b18c5e4186178cb3f861628f53c61075b903b6.json`.
+Token recovery itself used stock interactive `/usage`, confirmed Ultra and
+fresh expiry, and was followed by five independently verified raw responses:
+`diagnostics/auth-recovery-20261015/agy10-expiry-ec18c44729355cae731c6fe9c46c502dd37c1277af84e0844369f93ce045a4fa.json`.
+This confirms current recovery; the next natural expiry remains a monitoring
+check rather than a claimed production refresh test.
 
 Six extra slots 08–13 are staged (not enabled) using existing VPN proxies and
 independent home volumes. See `ACCOUNTS.md` and `pending-ultra-slots.json`.
@@ -1554,3 +1569,23 @@ backup — runtime/backups/schema-identity-20261015. Новый SHA256:
 `9de926ea71a0bc73af6a08ce81c666d253a6e6e6ea49d5281f9c75dbd649f9d8`.
 Доказательство:
 `speech-datasets/diagnostics/queue-contention-20261015/schema-identity-d37183836ea32ba564dea3f9d736b51e59dec0ad4d632d43d598b5d6f08e0d9d.json`.
+
+### Проверка полной входной партии, 15.10.2026, 21:26 UTC
+
+Для manifest `incoming/c366d8842f6a50100c8333e67a11f7ce947d373e3dee24fb1bee8639c88f9ecb.jsonl`
+проверены все 128 WAV и decoded PCM: SHA256 уникальны, длительность 441.6 s,
+исходные метки и provenance сохранены, пересечений с защищёнными identities нет.
+103 допустимых первых ответа получили все 206 дополнительных проходов.
+Всего 334 задания завершены: 325 сохранённых ответов полностью сверены с raw,
+девять ошибок остались в карантине без автоматического повтора.
+28 совпадений трёх проходов — кандидаты до проверки исторических конфликтов,
+не human-gold и не разрешение публикации train-набора.
+
+После завершения штатного Airflow export все 334 задания найдены в immutable
+Parquet со срезом 21:06:34 UTC; 11 полей, включая текст, исходную разметку,
+state/error, attempt, contract и review flags, совпали с DB. Пропусков,
+повторных job IDs и расхождений в проверенной партии нет. Проверка прочитала
+14.5 MB через Range, без повторного inference или перезапуска exporter.
+Доказательства в `speech-datasets/diagnostics/input-conservation-20261015/`:
+`fresh-c366-followups-74c0933dfbe177ecdec438cd93f87b1316249ebbdb80e96cec643c508b243961.json`
+и `fresh-c366-final-parquet-a5d74a59bcd42b5520d3e274f0c892408c63bd2836f4cea8bf0a24cd39d383a5.json`.
