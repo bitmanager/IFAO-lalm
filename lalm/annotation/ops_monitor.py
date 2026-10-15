@@ -52,7 +52,10 @@ def collect_metrics():
                 count(*) FILTER (WHERE finished_at >= now()-interval '15 minutes'
                   AND error_code='non_russian')::bigint AS rejected_language_15m,
                 count(*) FILTER (WHERE finished_at >= now()-interval '15 minutes'
-                  AND (error_code LIKE 'native_api_%' OR error_code LIKE 'native_generation_http_%'))::bigint AS native_api_failures_15m,
+                  -- API response/schema failures also use the native_ namespace.
+                  -- native_result_rejected is the generic CLI parser failure.
+                  AND starts_with(error_code,'native_')
+                  AND error_code <> 'native_result_rejected')::bigint AS native_api_failures_15m,
                 count(*) FILTER (WHERE finished_at >= now()-interval '60 minutes' AND error_code='ambiguous_timeout')::bigint AS timeouts_60m,
                 percentile_cont(0.5) WITHIN GROUP (ORDER BY extract(epoch FROM (finished_at-started_at)))
                   FILTER (WHERE finished_at >= now()-interval '15 minutes'

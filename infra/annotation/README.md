@@ -797,6 +797,11 @@ source-preparation states. `pilot_review_only` is counted separately as a
 completed review output, not as an operational error. Recent failure traces
 contain only job ID, account, error code, timestamps, and duration; raw
 transcripts and audio are excluded.
+`native_api_failures_15m` includes the API `native_` response-validation errors
+such as `native_schema_keys` and `native_incomplete_or_ambiguous_candidate`,
+as well as HTTP/transport failures. The generic CLI `native_result_rejected`
+is excluded from that API counter. This was corrected on 15 October; earlier
+immutable snapshots can undercount API response-validation failures.
 
 The unified `notebooks/speech_data_progress.ipynb` reads the latest snapshot,
 shows account-level speeds and recent failures, and plots the recent throughput
