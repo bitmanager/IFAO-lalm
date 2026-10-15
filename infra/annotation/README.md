@@ -1487,3 +1487,26 @@ next_request_at. Доказательство:
 `speech-datasets/diagnostics/queue-contention-20261015/agy07-canary-a2691705908a0ea1e9854891d4f7f654b188524f487b8dc7e9086b0beb9df249.json`.
 Остальные старые воркеры ещё могут создавать очереди блокировок;
 это обновление одного слота не доказывает устранение всех ожиданий PostgreSQL.
+
+
+### Обновление AGY-06, 15.10.2026, 20:25 UTC
+
+Перед maintenance после последней native API ошибки подтверждены 166
+успешных native результатов. Точный hold установлен в 20:21:47 UTC,
+полностью завершены DB RUNNING и AGY-процессы; во время drain ошибок нет.
+Перезапущен только 06, новый StartedAt — 20:22:56 UTC. Загружены
+account `SKIP LOCKED`, обработка provider prompt blocks и ранее проверенный
+worker-код; CLI остаётся pinned 1.3.4. Проверочные задания начались
+в 20:23:34 UTC с concurrency=1. Четыре результата (один CLI, три API)
+прошли проверки raw output, модели, схемы, контракта, аудио SHA256 и
+сохранённого текста. Для CLI проверены один успешный turn, audio-only tools
+и точный prompt; для API — generation config, один HTTP-запрос, ноль retries.
+В 20:25:38 UTC возвращены concurrency=10 и interval=1 без изменения
+текущего next_request_at. Доказательство:
+`speech-datasets/diagnostics/queue-contention-20261015/agy06-canary-e88fedce99ea83ab9d040908919be7760df01e0b3e76d23271d39d77f3335d48.json`.
+
+Подача данных отдельно проверена: свежие manifests по 128 строк выходят
+примерно каждые 20–25 секунд, ошибок текущего source cursor нет.
+Проверка pending_work заняла 14 ms; запас ограничен PREPARE_MAX_PENDING=6000.
+Редкие поступления в предыдущем окне не означали остановку ingest:
+при большом запасе preparer штатно ждёт, а затем продолжает выпуск.
