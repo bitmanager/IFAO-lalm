@@ -1037,3 +1037,12 @@ The two hook tests and all 26 worker tests passed inside the worker image;
 worker tests unset deployment-specific native percentage caps in their test
 process. An initial test invocation inherited AGY-07's disabled API cap and
 failed its unrelated positive API-route assertion; no live setting was changed.
+
+AGY-07 was drained before restart and released at 04:00:28 UTC with its prior
+readiness and transport backoffs preserved. At 04:02:37 UTC, the first ten
+completed production jobs all recorded the policy hash and a completed
+`view_file`: nine Russian review-only outputs and one non-Russian rejection,
+with no web-tool events. This is an initial compatibility check, not evidence
+that the guard has been exercised by a production web-search attempt. The
+metadata-only readback is stored alongside the probe as
+`production-pilot-first-readback.json`.
