@@ -113,7 +113,7 @@ class WorkerErrorTests(unittest.TestCase):
             job['sample']['review_only'] = False
             self.assertFalse(native_api_selected(job, 4, 1000, 'verbatim', None, 'gemini-3.8-flash-low'))
         job['sample']['review_only'] = True
-        for account in ('agy-11', 'agy-14'):
+        for account in ('agy-05', 'agy-10', 'agy-11', 'agy-14'):
             with patch.dict('os.environ', {'ACCOUNT_ID': account, 'NATIVE_API_PERCENT': '100',
                                           'NATIVE_API_MAX_PERCENT': '100'}), \
                  patch('lalm.annotation.worker.NATIVE_API_DISABLED_UNTIL', 0):
