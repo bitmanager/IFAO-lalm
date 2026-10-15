@@ -543,3 +543,18 @@ JSON оборван и остаётся в карантине. Новая кон
 метаданных. Проверка требует STOP, старые задания не переотправляются.
 Перед внедрением прошли 46 тестов native API, worker и contract.
 Диагностика: `diagnostics/native-response-audit-20261015/598fed745dff37c21750cd177481fbfeff1f59dc9a84e26de3fa7dfcf9242569.json`.
+
+### Canary бюджета на agy-06 — 15.10.2026, 10:17 UTC
+
+Код `374ad79` (native_api.py SHA256
+`94f634a375fdc74a963f652c83ce57626b3a2a89f398342117e9052e115d7830`)
+атомарно установлен в main/frozen mounts. Активные процессы других воркеров
+не перезапускались. На 06 hold начат в 10:15:46 UTC; после RUNNING=0,
+процессов AGY=0 и отсутствия новых ошибок перезапущен только 06.
+Собственный hold снят в 10:17:39 UTC, DB concurrency=10 и API 50/max70,
+cap5 сохранены. Первые четыре ответа имеют generation_config.maxOutputTokens=8192,
+новый contract SHA, complete=true, один HTTP-вызов, auto_retries=0;
+текст/аудио/контракт совпадают с raw artifact. Фактический totalTokenCount
+556–711; это не проверка качества транскрипции и не доказательство отсутствия
+будущих MAX_TOKENS. Ошибок до 10:18:30 UTC нет. S3:
+`diagnostics/native-budget-canary-20261015/3dfb823b0662675491d1a638b1777a03525f594eadc2a6300a54c49feb2ecefd.json`.
