@@ -4,7 +4,7 @@
       "ID": "archive-old-review-reports",
       "Status": "Enabled",
       "Filter": {"Prefix": "reviews/"},
-      "Transitions": [{"Days": 1, "StorageClass": "ANNOTATION-OVERFLOW"}]
+      "Transitions": [{"Days": 0, "StorageClass": "ANNOTATION-OVERFLOW"}]
     }
   ]
 }
