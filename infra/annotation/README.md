@@ -1349,3 +1349,15 @@ https://github.com/minio/minio/blob/RELEASE.2025-09-07T16-13-09Z/internal/config
 После изменения health отвечал за 3–7 ms, чтение ops JSON за 52 ms. В 16:09 UTC
 свободное место drive2 выросло с 199 до 211 GiB; проверять дальнейшую скорость,
 обновление inspection pointer и memory pressure, а не считать перенос законченным.
+
+Из 61 задания с `ambiguous_worker_error` во время просадки шесть восстановлены
+без генерации из полных пар исходных артефактов: повторная строгая проверка
+модели, схемы, контракта, SHA256 аудио и текста. Результаты остались
+`NEEDS_REVIEW`, human gold не выставлялся, новых attempts и публикаций нет.
+Остальные 55 не переотправлялись: отсутствует полная пара артефактов либо не
+прошла штатная строгая проверка. Исходный список ошибок сохранён до изменений;
+receipt восстановления:
+`speech-datasets/diagnostics/storage-tier-20261015/recovery-receipt-de628dd1bc59086c732dc85094ebe1a30a523fa0a11248c29e552e280aa72eba.json`.
+В 16:12 UTC подтверждены scanner `default`, ILM workers `8`, тот же PID MinIO,
+отсутствие OOM kills и нулевое текущее cgroup memory pressure:
+`speech-datasets/diagnostics/storage-tier-20261015/recovery-9138fb43f64d4be132291bdc42eaf6ae874649ceb57b1f8535ab076414d2db7a.json`.
