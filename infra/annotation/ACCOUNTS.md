@@ -889,3 +889,36 @@ S3: `diagnostics/native-network-backoff-20261015/agy11-922ac5011e83738295224b6ec
 301 API; одна CLI eligibility_transport_transient до генерации,
 native ошибок нет. S3:
 `diagnostics/native-network-backoff-20261015/five-minute-8fa8fc4ba67e2efefe13b5af6443c0063f778ca760b8dc1dfb16043824399592.json`.
+
+### Сетевая политика внедрена на 19 — 15.10.2026, 13:56 UTC
+
+После RemoteDisconnected13:37:17 UTC аккаунт самостоятельно восстановил
+API; перед обслуживанием подтверждён121 успешный native attempt, начатый
+после сбоя. Восстановление DEGRADED не сбрасывалось преждевременно.
+Hold13:54:38 UTC, RUNNING=0/AGY-процессов=0/новых ошибок=0.
+Перезапущен только19; release13:56:07.843985 UTC. Concurrency10/
+min_interval0.2, CLI5/API5/percent100 сохранены. Worker SHA тот же2a46957b.
+Новая политика теперь загружена на11/19/21; остальные процессы не обновлены
+этим развёртыванием.
+
+К13:56:58 UTC:53 сохранённых ответа,44 API; ошибок/expired leases нет.
+Первые четыре raw complete/one HTTP/no retry/budget8192; текст, контракт
+и SHA аудио совпадают с сохранённым результатом и входным sample.
+Реальное восстановление после нового сетевого сбоя на этой политике
+пока не наблюдалось. S3:
+`diagnostics/native-network-backoff-20261015/agy19-bfd2ffb4300ee07e28c66245ff5fdce1e1b3749d91c0975fca0d1f883e50a54b.json`.
+
+Usage13:47 UTC получен для всех14 рабочих слотов, cleanup_confirmed=true.
+Новых исчерпаний нет; минимальный недельный остаток08/14≈13.61%.
+Пятичасовое окно08/14 обновилось. Обновлены14 записей, старые записи
+остальных слотов сохранены; latest опубликован с проверкой ETag.
+S3: `analytics/usage/history/2026/10/15/134948-ded9d43a826b.json`.
+
+Свежая партия incoming/f30b5286… завершена:128 уникальных SHA,338 проходов,
+330 ответов с текстом,28 candidate_3of3; автоматической публикации нет.
+Все338 проходов сверены по11 полям с Parquet snapshot13:50:01 UTC:
+пропусков/расхождений0. Три повторённых задания проверены по raw stream:
+каждая первая попытка — eligibility_transport_transient, ноль ходов/токенов,
+без init. S3:
+`diagnostics/input-conservation-20261015/fresh-all-passes-parquet-7a2d6f00ac409408d544249079030bf0425a87df80fa69e50c6a983a5133c45e.json`;
+`diagnostics/input-conservation-20261015/fresh-retry-audit-e9697ebf1c47efe83a9ebc9d3f55933fe506a5038ff4df6d65e92f2c340ff3bd.json`.
