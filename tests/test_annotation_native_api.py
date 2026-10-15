@@ -53,6 +53,16 @@ class NativeAPITests(unittest.TestCase):
             if reference: self.assertIn(reference, text)
         self.assertIn('view_file', prompt('audio.wav'))
 
+    def test_native_prompt_requests_result_object_instead_of_schema_echo(self):
+        text = native_prompt('verbatim')
+        self.assertNotIn('Return the supplied JSON schema.', text)
+        self.assertIn('not the schema definition', text)
+        self.assertIn('Put spoken words in transcript, not text.', text)
+        for variant in ('verbatim', 'coverage', 'source_correction'):
+            instruction = native_prompt(variant, 'Draft' if variant == 'source_correction' else None)
+            self.assertIn('audio_heard, language, transcript, uncertain_fragments, context_consistency_notes', instruction)
+            self.assertNotIn('responseJsonSchema', instruction)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -29,6 +29,12 @@ def native_prompt(variant, reference=None):
     result = result.replace(
         f'The only input is audio file {path}. Open it as audio using view_file. ',
         'The only input is the attached audio. ')
+    result = result.replace('Return the supplied JSON schema.',
+        'Return one JSON object conforming to the supplied schema. '
+        'Return the transcription result, not the schema definition.')
+    result += (' Use exactly these field names: audio_heard, language, transcript, '
+               'uncertain_fragments, context_consistency_notes. '
+               'Put spoken words in transcript, not text.')
     if 'view_file' in result:
         raise ValueError('unexpected_native_tool_instruction')
     return result
@@ -120,7 +126,7 @@ def generate(audio, project, variant='verbatim', reference=None, model='gemini-3
     result = {'transport': 'native_api_v1', 'model': model, 'prompt_variant': variant,
         'audio_sha256': hashlib.sha256(audio).hexdigest(), 'contract_sha256': contract,
         'inference_http_attempts': 1, 'auto_retries': 0, 'human_gold': False,
-        'review_only': True}
+        'review_only': True, 'prompt_format': 'result_object_v1'}
     raw = b''
     try:
         status, raw = post('generateContent', payload, access_token, 90)

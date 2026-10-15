@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 
-PILOT_ACCOUNTS = frozenset({'agy-07'})
+PILOT_ACCOUNTS = frozenset({'agy-07', 'agy-25'})
 POLICY = {
     'audio-transcription-no-web': {'PreToolUse': [{
         'matcher': '^search_web$',

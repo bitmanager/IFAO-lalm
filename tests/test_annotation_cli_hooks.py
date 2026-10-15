@@ -10,6 +10,12 @@ from lalm.annotation.cli_hooks import install_cli_hooks, POLICY_SHA256
 
 
 class CliHookTests(unittest.TestCase):
+    def test_expanded_slot_receives_same_policy(self):
+        with tempfile.TemporaryDirectory() as temp:
+            self.assertEqual(install_cli_hooks(temp, 'agy-25'), POLICY_SHA256)
+            self.assertEqual(hashlib.sha256(
+                (Path(temp) / '.agents/hooks.json').read_bytes()).hexdigest(), POLICY_SHA256)
+
     def test_pilot_installs_executable_deny_and_reproducible_hash(self):
         with tempfile.TemporaryDirectory() as temp:
             self.assertEqual(install_cli_hooks(temp, 'agy-07'), POLICY_SHA256)

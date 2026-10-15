@@ -1046,3 +1046,49 @@ with no web-tool events. This is an initial compatibility check, not evidence
 that the guard has been exercised by a production web-search attempt. The
 metadata-only readback is stored alongside the probe as
 `production-pilot-first-readback.json`.
+
+The pilot is extended to AGY-25 after a separate fixed cohort of 22 rejected
+AGY-25 streams contained seven web-search attempts, six completed. Its API
+selection cap and result validators remain unchanged; pause/drain and any
+outstanding native API cooldown must be preserved during the rollout.
+AGY-25 was released at 04:10:07 UTC after its previous API cooldown expired.
+The first twenty inspected CLI outputs all recorded the policy hash and a
+completed audio read, without web-tool events. Its API route also resumed.
+Readback metadata is in
+`evaluation/no-web-hook-probe-20261015/agy-25/production-pilot-first-readback.json`.
+
+### Native response-object prompt investigation, 2026-10-15
+
+A metadata-only audit of twelve recent `native_schema_keys` responses found
+JSON Schema fields (`type`, `properties`, `required`) instead of, or alongside,
+the result. Over the preceding hour, 29 of 31 such failures used the English
+`verbatim` prompt. The shared English prompt says “Return the supplied JSON
+schema.” CLI's separate structured-output mechanism usually disambiguates
+this, but a plain API text instruction can reasonably elicit the schema itself.
+
+The [public Gemini generation reference](https://ai.google.dev/api/generate-content)
+documents structured response configuration. It does not establish which
+fields the internal AGY gateway enforces. One diagnostic request with
+`responseJsonSchema` returned HTTP 200 but used `text` instead of the required
+`transcript`; it failed the existing strict validator. That setting is not
+enabled in production and the failed output remains diagnostic-only.
+
+`native_prompt` now explicitly requests a result object conforming to the
+schema and names the required fields, including `transcript` rather than
+`text`. The English instruction explicitly excludes returning a schema
+definition. The same-audio `verbatim` probe then passed the unchanged validator
+without `responseJsonSchema`. This is a format compatibility observation, not
+an accuracy or reliability measurement. Artifacts live under
+`speech-annotations/evaluation/native-response-schema-probe-20261015/agy-12/`.
+Generation results record `prompt_format=result_object_v1`; their existing
+contract hash includes the exact changed prompt. Prompt changes must first
+be observed on one worker before expanding or increasing API traffic.
+The additional Russian and source-correction probes also passed the unchanged
+validator on the same audio. No diagnostic response was inserted into the
+annotation queue. Four native API tests, three hook tests and all 26 worker
+tests passed in the actual worker environment. AGY-12 alone was restarted
+after draining; its prior native API cooldown had already expired. It resumed
+at 04:12:30 UTC with its existing 100% selection cap and five-call semaphore.
+At 04:12:52 UTC, fifteen new saved responses identified `result_object_v1`.
+Other workers retain their already-loaded native module; no traffic cap was
+increased as part of this prompt trial. Future restarts load the current source.
