@@ -37,8 +37,18 @@ def check(n):
   try:
    p.expect(pexpect.EOF,timeout=10)
    result['cleanup_confirmed']=True
+   result['cleanup_method']='exit_command'
   except pexpect.TIMEOUT:
-   result['cleanup_confirmed']=False
+   # This PTY runs only the interactive /usage reader, never a print-mode job.
+   # A modal can swallow /exit; the CLI's double interrupt exits that TUI.
+   result['cleanup_method']='double_interrupt'
+   try:
+    p.sendcontrol('c');time.sleep(.3)
+    if p.isalive():p.sendcontrol('c')
+    p.expect(pexpect.EOF,timeout=5)
+    result['cleanup_confirmed']=True
+   except (pexpect.TIMEOUT,pexpect.EOF,OSError):
+    result['cleanup_confirmed']=not p.isalive()
  except Exception as e:
   result={'account':account,'checked_at':datetime.now(timezone.utc).isoformat(),'error':type(e).__name__,'stage':stage}
  finally:
