@@ -654,3 +654,21 @@ S3: `diagnostics/cli5-api8-canary-20261015/d34ff5658e64736282afcda2a6aac5d35421d
 всех 127 проверен по шести полям относительно snapshot 11:40:01 UTC:
 127 найдены, расхождений нет; исходная метка хранится отдельно. S3:
 `diagnostics/input-conservation-20261015/first-pass-parquet-39dff59c64ba52f4fd72755dce0833eac835a3052b3b873a2d06f7ace4d8a7a5.json`.
+
+### Первый полный интервал 5+8 на 13 — 15.10.2026, 11:59 UTC
+
+За [11:54:02.232532,11:59:02.232532) UTC сохранено 344 ответа, из них
+297 native API (86.3%). Ошибок, кроме штатного non_russian/review-only,
+нет; expired leases=0. S3 с window_complete=true:
+`diagnostics/cli5-api8-canary-20261015/five-minute-b213ec73e2e95ca8511c1316de746fd9fc720d034d5d302b05265b235c6d9e84.json`.
+Предыдущий диагностический five-minute-2c1797... захватывал лишь часть окна
+(его at раньше window_end); для полного интервала использовать отчёт выше.
+
+Прямые read-only loadCodeAssist на 06/16/08/13 вернули HTTP200 за
+0.74/0.70/0.77/2.14 секунды; это не доказывает устойчивость generateContent
+и не устанавливает причину периодических CLI eligibility/transport ошибок.
+
+Следующим рассматривался 12 с CLI5/API5 без увеличения DB concurrency10.
+Precheck отложил изменение: native_api_result_rejected в 11:58:47 UTC,
+после него ещё нет нового успешного API-запроса. Hold не устанавливался,
+compose и настройки 12 не менялись; guard не сброшен.
