@@ -34,15 +34,15 @@ compose['services']['jupyterhub'] = {
         str(repo/'lalm/annotation')+':/opt/speech/lalm/annotation:ro']}
 compose['volumes'].update({'jupyter-state': {}, 'jupyter-home': {}})
 # Same read-only source tree is imported by notebooks and all Airflow components.
-for name in ('airflow-api','airflow-scheduler','airflow-dag-processor','source-preparer','control',
-             'agy-01','agy-02','agy-03','agy-04','agy-05','agy-06','agy-07'):
+for name in ('airflow-api','airflow-scheduler','airflow-dag-processor',
+             'source-preparer','control'):
     volumes = compose['services'][name]['volumes']
     mount = str(repo/'lalm/annotation')+':/opt/speech/lalm/annotation:ro'
-    if mount not in volumes:
+    targets = [v.get('target') if isinstance(v, dict) else
+               v.split(':')[1] if ':' in v else v for v in volumes]
+    if '/opt/speech/lalm/annotation' not in targets:
         volumes.append(mount)
 ports=compose['services']['airflow-api']['ports']
 if '100.119.47.17:18080:8080' not in ports:
     ports.append('100.119.47.17:18080:8080')
-for account in json.loads((root/'accounts.example.json').read_text())['accounts']:
-    compose['services'][account['id']]['environment']['WORKER_CONCURRENCY']=str(account['concurrency'])
 (root/'compose.generated.json').write_text(json.dumps(compose, indent=2)+'\n')
