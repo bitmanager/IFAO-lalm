@@ -735,3 +735,25 @@ CLI-процессы в четырёх замерах: 5/5/5/5. S3:
 все 325 заданий найдены, расхождений по 11 полям нет, включая исходную
 метку/ошибку/review_required/human_verified. S3:
 `diagnostics/input-conservation-20261015/all-passes-parquet-bdd1b636614556d4b6ce50bb83fea40265e2a62bc4561e96cac1cdd3d5ecfd70.json`.
+
+### 12: CLI5/API5 и budget8192 — 15.10.2026, 12:34 UTC
+
+После штатного сброса общей 12/13 пятичасовой квоты (4.43% ->98.90%)
+precheck 12:32:10 UTC подтвердил новый успешный API-запрос и отсутствие
+native ошибок за 20 минут. Hold, RUNNING=0, AGY-процессов=0, новых ошибок=0;
+пересоздан только 12. Release 12:34:30.276061 UTC. DB concurrency10 и
+min_interval0.2 сохранены; CLI cap5/API cap5/percent100/max100/budget8192
+подтверждены. CLI-процессы: 5/5/5/5.
+
+К 12:35:33 UTC: 22 сохранённых ответа, 17 API, expired leases=0. Первые
+четыре raw API complete/one HTTP/no retry/budget8192, тексты/контракты совпали.
+**Два RemoteDisconnected** в 12:34:56.809778/.900330 UTC, HTTP-ответа нет,
+по одному POST без автоповтора; guard API до приблизительно 12:44:56 UTC.
+Не называть этот запуск стабильным, дальнейшее расширение отложено.
+S3: `diagnostics/cli5-api5-canary-20261015/agy12-d2479f8d57823f9468b12c3af7c736e9d72174b6bc8c6c45b583f52a9c71d780.json`.
+
+На 13 также два RemoteDisconnected в 12:28:57/12:29:00 UTC, guard примерно
+до 12:39 UTC. Не перезапускать для сброса guards; CLI продолжает работу.
+Связь с провайдером/VPN/общим Google identity пока не установлена.
+Доказательство штатного обновления квоты, без генерации или снятия пауз:
+`diagnostics/quota-refresh-20261015/agy12-7485ffa73ea31e98487f9db0f62b9d1691f3182daee09391e5855d42c0776e43.json`.

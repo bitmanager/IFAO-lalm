@@ -105,7 +105,7 @@ def build(accounts, agy_path):
                     'agy-18': '70', 'agy-19': '100', 'agy-21': '100',
                     'agy-25': '70'}.get(aid, '50'),
                 'NATIVE_API_CONCURRENCY': '8' if aid in ('agy-13', 'agy-21') else '5',
-                'AGY_CLI_CONCURRENCY': '5' if aid in ('agy-11', 'agy-13', 'agy-19', 'agy-21') else '64',
+                'AGY_CLI_CONCURRENCY': '5' if aid in ('agy-11', 'agy-12', 'agy-13', 'agy-19', 'agy-21') else '64',
                 'ANNOTATION_ALLOWED_MODELS': ','.join(models),
                 'HTTPS_PROXY': f'http://{aid}-proxy:1080', 'HTTP_PROXY': f'http://{aid}-proxy:1080',
                 'NO_PROXY': 'postgres,minio,127.0.0.1,localhost'},
