@@ -1447,3 +1447,25 @@ raw prefix и nullable CLI inference time; пропусков и расхожд�
 В 16:12 UTC подтверждены scanner `default`, ILM workers `8`, тот же PID MinIO,
 отсутствие OOM kills и нулевое текущее cgroup memory pressure:
 `speech-datasets/diagnostics/storage-tier-20261015/recovery-9138fb43f64d4be132291bdc42eaf6ae874649ceb57b1f8535ab076414d2db7a.json`.
+
+
+### Обслуживание истории AGY-03, 15.10.2026, 20:10 UTC
+
+На фоне насыщения drive2 записью (около 400 MB/s в коротком замере)
+измерена история CLI слота 03: protobuf 15.8 MB, SQLite 41.6 MB,
+активный WAL около 300 MB. Большой WAL сам по себе не доказывает сбой.
+Штатный `cli_history` заархивировал 10 разрешённых элементов после точного
+maintenance hold и полного drain DB/AGY. Профиль не изменён; файлы сохранены
+на том же volume, поэтому это обслуживание истории, а не освобождение диска.
+Воркер не перезапускался, его API guard и реальные паузы сохранились.
+В 20:10:28 UTC возвращены DB concurrency=10 и interval=0.2; единственная
+ошибка во время drain — терминальный `native_result_rejected`, без replay.
+Проверены четыре новых результата (три CLI, один API): raw output, модель,
+контракт и сохранённый текст согласованы. Для API также проверены SHA256
+аудио, один HTTP-запрос и отсутствие автоматического повтора.
+Доказательства: `speech-datasets/diagnostics/cli-history-20261015/`:
+`agy03-5a2d67444c2c94d48a8928cb83af50de100b1b2ca0c59cd5eff3f20e3d66be73.json`
+и `agy03-post-6e9ef03825d71a0f9a41d0dec857edab5c63a73b776121c0cc1b632f65cdd0c6.json`.
+Замер не доказывает устранение общей нагрузки диска: остальные слоты и
+PostgreSQL продолжают писать. Обновление старого claim-кода 03 отложено
+после свежего API failure; перезапуск для сброса guard не выполнялся.
