@@ -910,8 +910,13 @@ control became a review candidate.
 AGY-19 starts at 20% after a 30-audio canary. One of 78 responses failed strict
 schema validation and was not retried; both listened non-Russian controls were
 rejected, and the listened Russian control was also rejected. An account-local
-`NATIVE_API_MAX_PERCENT=20` holds its route at 20% despite the normal successful
-response ramp until further review.
+20% ceiling initially held its route below the normal successful-response ramp.
+On 15 October at 03:17 UTC, AGY-19 began a bounded 35% base/ceiling trial with
+the existing five-call semaphore. The preceding 45-minute inspection contained
+205 valid API outputs and two response-validation failures, with no API
+transport failures observed. Those invalid responses stay quarantined; this is
+not an error-free or human-gold quality claim. Existing response checks and
+account-local fallback remain enabled.
 After several error-free operational snapshots, AGY-08 and AGY-25 route up to
 70% of eligible short review-only jobs via API, while AGY-21 routes up to 60%.
 The normally five-call-per-container semaphore still limits simultaneous API requests;
@@ -989,9 +994,10 @@ can otherwise leave already-dispatched jobs ambiguous; these must remain in
 `NEEDS_REVIEW` without automatic replay. Validate with `dc config --quiet`
 before restart and check the account's actual proxy, DB/S3 access, fresh API
 outputs, and error codes afterward.
-After live error-free ramps, the configured restart floors are 50% for AGY-03,
-35% for AGY-16, 20% for AGY-19, 60% for AGY-21, and 70% for AGY-08 and AGY-25. This keeps a container restart from
-resetting a proven route to the original 20%. A bad API response temporarily
+Per-account restart floors are explicit in [render.py](render.py) and the private
+runtime Compose configuration. AGY-19's current trial floor and ceiling are 35%.
+Explicit settings keep a container restart from resetting a proven route to
+the original 20%. A bad API response temporarily
 reduces the effective share to 20% until 25 fresh valid responses; quota/auth
 or server errors additionally suspend the API route for ten minutes.
 An ambiguous transport failure without any HTTP response also suspends the
