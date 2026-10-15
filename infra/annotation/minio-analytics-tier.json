@@ -1,0 +1,10 @@
+{
+  "Rules": [
+    {
+      "ID": "archive-old-inspection-parquet",
+      "Status": "Enabled",
+      "Filter": {"Prefix": "analytics/tables/"},
+      "Transitions": [{"Days": 1, "StorageClass": "ANNOTATION-OVERFLOW"}]
+    }
+  ]
+}
