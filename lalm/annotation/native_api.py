@@ -22,6 +22,8 @@ USER_AGENT = 'antigravity/cli/1.3.4 (aidev_client; os_type=linux; arch=amd64; au
 # ~1960 tokens thinking and stopped midway through the transcription JSON.
 GENERATION_CONFIG = {'maxOutputTokens': 8192, 'temperature': 0.2,
                      'responseMimeType': 'application/json'}
+PROMPT_BLOCK_CODES = frozenset('native_prompt_blocked_' + reason for reason in (
+    'OTHER', 'SAFETY', 'BLOCKLIST', 'PROHIBITED_CONTENT', 'IMAGE_SAFETY'))
 
 
 def native_prompt(variant, reference=None):
@@ -88,6 +90,11 @@ def validate_response(value, model):
     if response.get('modelVersion') != expected_version:
         raise ValueError('native_model_mismatch')
     candidates = response.get('candidates', [])
+    feedback = response.get('promptFeedback')
+    if not candidates and isinstance(feedback, dict):
+        code = 'native_prompt_blocked_' + str(feedback.get('blockReason', ''))
+        if code in PROMPT_BLOCK_CODES:
+            raise ValueError(code)
     if len(candidates) != 1 or candidates[0].get('finishReason') != 'STOP':
         raise ValueError('native_incomplete_or_ambiguous_candidate')
     parts = candidates[0].get('content', {}).get('parts', [])

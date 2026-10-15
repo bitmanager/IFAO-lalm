@@ -344,7 +344,7 @@ def process_native_api(job, audio, duration, prefix, variant, reference, model, 
                retry_seconds=120, block='transport_cooldown')
         return
     try:
-        from .native_api import generate
+        from .native_api import generate, PROMPT_BLOCK_CODES
         native, raw = generate(audio, project, variant, reference, model)
     except Exception as error:
         finish(job, 'NEEDS_REVIEW', error_code='native_api_ambiguous_'+type(error).__name__)
@@ -354,6 +354,11 @@ def process_native_api(job, audio, duration, prefix, variant, reference, model, 
     if raw:
         client.put_object(Bucket=bucket(), Key=f'{prefix}/native-api-response.json', Body=raw)
     if native.get('status') != 'complete':
+        # A provider-declared prompt block is terminal for this sample, not
+        # evidence of a broken route. Preserve existing pauses and counters.
+        if native.get('http_status') == 200 and native.get('error_code') in PROMPT_BLOCK_CODES:
+            finish(job, 'NEEDS_REVIEW', error_code=native['error_code'])
+            return
         http_status = native.get('http_status')
         pause = None
         with NATIVE_API_FAILURE_LOCK:

@@ -977,6 +977,15 @@ strictly valid API responses the route rises to 35%; after 100 it rises to
 50%, at most about five of this account's ten active jobs. A bad API response
 resets this ramp. These checks measure transport/schema stability, not acoustic
 accuracy; all routed labels remain outside training publication.
+Provider-declared prompt blocks are classified separately as
+`native_prompt_blocked_<reason>`. A recognized `promptFeedback.blockReason`
+with HTTP 200, the expected model and no candidates remains `NEEDS_REVIEW`,
+retains the raw response, and is never retried. It does not change route failure
+counters, ramp state or an existing cooldown. Missing candidates without this
+feedback, unknown reasons, truncation and transport failures keep the existing
+guard behavior. Google defines `OTHER` as a block for an unknown reason; this
+does not establish that the audio or draft contains prohibited content. See the
+[GenerateContent response reference](https://ai.google.dev/api/generate-content#BlockReason).
 AGY-16 uses the same initial 20% route after its successful bounded canary;
 each account reads only its own OAuth file and uses its own VPN. Other accounts
 continue through CLI.

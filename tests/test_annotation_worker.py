@@ -284,6 +284,29 @@ class WorkerErrorTests(unittest.TestCase):
             self.assertEqual(worker.NATIVE_API_CONSECUTIVE_FAILURES, 3)
             self.assertGreater(worker.NATIVE_API_DISABLED_UNTIL, worker.time.monotonic())
 
+    def test_prompt_block_preserves_route_guard_and_quarantines_without_replay(self):
+        from pathlib import Path
+        from unittest.mock import Mock, patch
+        import lalm.annotation.worker as worker
+        failed = {'status': 'failed_do_not_auto_retry', 'http_status': 200,
+                  'error_code': 'native_prompt_blocked_OTHER'}
+        with patch.object(worker, 'NATIVE_API_CONSECUTIVE_FAILURES', 2), \
+             patch.object(worker, 'NATIVE_API_DISABLED_UNTIL', 1500), \
+             patch.object(worker, 'NATIVE_API_GOOD_COUNT', 12), \
+             patch.object(worker, 'NATIVE_API_DEGRADED', True), \
+             patch.object(worker, 'native_project', return_value='project'), \
+             patch('lalm.annotation.native_api.generate', return_value=(failed, b'blocked')) as generate, \
+             patch.object(worker, 'finish') as finish:
+            worker.process_native_api({'id': 'a'}, Path('audio.wav'), 4, 'raw/a/1',
+                                      'verbatim', None, 'gemini-3.8-flash-low', Mock())
+            generate.assert_called_once()
+            finish.assert_called_once_with({'id': 'a'}, 'NEEDS_REVIEW',
+                                           error_code='native_prompt_blocked_OTHER')
+            self.assertEqual(worker.NATIVE_API_CONSECUTIVE_FAILURES, 2)
+            self.assertEqual(worker.NATIVE_API_DISABLED_UNTIL, 1500)
+            self.assertEqual(worker.NATIVE_API_GOOD_COUNT, 12)
+            self.assertTrue(worker.NATIVE_API_DEGRADED)
+
     def test_valid_native_responses_raise_route_only_at_thresholds(self):
         from unittest.mock import patch
         import lalm.annotation.worker as worker

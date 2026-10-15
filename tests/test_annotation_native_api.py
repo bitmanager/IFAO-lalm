@@ -45,6 +45,34 @@ class NativeAPITests(unittest.TestCase):
             self.assertIn('inlineData', payload['request']['contents'][0]['parts'][1])
             self.assertEqual(result['status'], 'failed_do_not_auto_retry')
 
+    def test_prompt_feedback_is_terminal_and_not_a_missing_candidate(self):
+        blocked = {'response': {'modelVersion': 'gemini-3.8-flash',
+                               'promptFeedback': {'blockReason': 'OTHER'}}}
+        with self.assertRaisesRegex(ValueError, '^native_prompt_blocked_OTHER$'):
+            validate_response(blocked, 'gemini-3.8-flash-low')
+        blocked['response']['modelVersion'] = 'different-model'
+        with self.assertRaisesRegex(ValueError, '^native_model_mismatch$'):
+            validate_response(blocked, 'gemini-3.8-flash-low')
+        blocked['response']['modelVersion'] = 'gemini-3.8-flash'
+        for reason in ('BLOCK_REASON_UNSPECIFIED', 'future_unknown_reason'):
+            blocked['response']['promptFeedback']['blockReason'] = reason
+            with self.assertRaisesRegex(ValueError, '^native_incomplete_or_ambiguous_candidate$'):
+                validate_response(blocked, 'gemini-3.8-flash-low')
+
+    def test_prompt_block_keeps_raw_response_and_never_retries(self):
+        raw = json.dumps({'response': {'modelVersion': 'gemini-3.8-flash',
+                         'promptFeedback': {'blockReason': 'OTHER'}}}).encode()
+        with tempfile.TemporaryDirectory() as tmp:
+            audio = Path(tmp)/'a.wav'; audio.write_bytes(b'RIFF'+b'0'*100)
+            with patch('lalm.annotation.native_api.token', return_value='local-secret'), \
+                 patch('lalm.annotation.native_api.post', return_value=(200, raw)) as send:
+                result, saved_raw = generate(audio, 'project')
+        send.assert_called_once()
+        self.assertEqual(saved_raw, raw)
+        self.assertEqual(result['error_code'], 'native_prompt_blocked_OTHER')
+        self.assertEqual(result['status'], 'failed_do_not_auto_retry')
+        self.assertEqual(result['auto_retries'], 0)
+
     def test_shared_prompt_keeps_language_policy_and_reference(self):
         for variant in ('verbatim', 'coverage', 'source_correction'):
             reference = 'Черновик' if variant == 'source_correction' else None
