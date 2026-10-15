@@ -18,6 +18,7 @@ from .contract import CONTRACT_SHA, MODEL, SCHEMA, prompt, contract_sha, source_
 from .queue import claim, finish
 from .store import bucket, s3
 from .native_auth import repair_trailing_auth
+from .cli_hooks import install_cli_hooks
 
 STOP = threading.Event()
 AUTH_PROBE_LOCK = threading.Lock()
@@ -373,6 +374,7 @@ def process(job):
             finally:
                 NATIVE_API_SLOTS.release()
             return
+        tool_policy_sha256 = install_cli_hooks(workspace, os.environ.get('ACCOUNT_ID'))
         started = time.monotonic()
         rc, stdout, stderr, timed_out = run_agy(audio, workspace, variant, reference, model)
         elapsed = time.monotonic() - started
@@ -400,6 +402,7 @@ def process(job):
                              ('request.json', json.dumps({'model': model, 'prompt': prompt(audio, variant, reference),
                               'schema': SCHEMA, 'contract_sha256': contract_sha(variant, model),
                               'cli_sha256': os.environ.get('AGY_EXPECTED_SHA256'),
+                              'tool_policy_sha256': tool_policy_sha256,
                               'audio_sha256': sample['audio_sha256'], 'exit_code': rc}))):
             client.put_object(Bucket=bucket(), Key=f'{prefix}/{suffix}', Body=body.encode())
         try:

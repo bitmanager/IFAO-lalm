@@ -1013,3 +1013,27 @@ reduces the effective share to 20% until 25 fresh valid responses; quota/auth
 or server errors additionally suspend the API route for ten minutes.
 An ambiguous transport failure without any HTTP response also suspends the
 route immediately; its dispatched request is quarantined without replay.
+
+### CLI web-tool guard pilot, 2026-10-15
+
+Strict result validation rejects unexpected tools, but a rejected response can
+already have executed `search_web`. A read-only audit found seven completed web
+searches in a fixed cohort of forty rejected CLI streams. Those outputs remain
+quarantined; they are never automatically replayed or admitted as labels.
+
+The installed AGY 1.3.4 documents workspace `.agents/hooks.json` and synchronous
+`PreToolUse` command hooks. A single public-query smoke test on AGY-07 verified
+an attempted `search_web` changed from ACTIVE to ERROR with the denial reason
+visible, no DONE event, and no timeout. This test contained no production audio.
+Private evidence is stored under
+`speech-annotations/evaluation/no-web-hook-probe-20261015/agy-07/035502-58a36c9e/`.
+
+`lalm.annotation.cli_hooks` installs that stock hook only for AGY-07, in each
+temporary CLI workspace. It denies the exact `search_web` tool and leaves
+`view_file` unchanged. Request artifacts record `tool_policy_sha256`; prompts,
+schemas, result validation and the no-uncertain-replay rule remain unchanged.
+Other slots receive no hook until ordinary production jobs confirm the pilot.
+The two hook tests and all 26 worker tests passed inside the worker image;
+worker tests unset deployment-specific native percentage caps in their test
+process. An initial test invocation inherited AGY-07's disabled API cap and
+failed its unrelated positive API-route assertion; no live setting was changed.
