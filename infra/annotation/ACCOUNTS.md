@@ -581,3 +581,18 @@ eligibility_service_unavailable и один native_incomplete_or_ambiguous_candi
 приписать изменение темпа только интервалу. Интервал 1.0 оставлен для более
 длительного наблюдения, настройка обратима; другие слоты не изменены.
 Диагностика: `diagnostics/shared-pt-spacing-20261015/first-window-fac478fffdcc61f65ebcf0a9a43df07057fc19fa2fb7a2f0f5abcf9003e301e2.json`.
+
+### Бюджет 8192 на agy-18 — 15.10.2026, 11:07 UTC
+
+Подтверждён ещё один MAX_TOKENS на старом бюджете 2048 (10:49:36 UTC:
+1967 thinking + 77 answer tokens). После чистого десятиминутного интервала
+по сетевым/server отказам установлен hold 11:05:28 UTC. Перед перезапуском
+RUNNING=0, процессов AGY=0, новых ошибок после precheck нет. Перезапущен
+только 18, hold снят 11:07:27 UTC. Сохранены concurrency=10,
+min_interval_seconds=1.0 и API 50/max70/cap5. Активен native_api.py SHA256
+`94f634a375fdc74a963f652c83ce57626b3a2a89f398342117e9052e115d7830`.
+Первые четыре ответа complete, budget=8192, один HTTP-вызов без повторов,
+текст/аудио/контракт совпадают с raw artifact. Новых ошибок до 11:08:13 UTC
+нет. Действующий предел 8192 теперь проверяется на 06 и 18; остальные
+работающие процессы не перезапускались этим внедрением. S3:
+`diagnostics/native-budget-canary-20261015/agy18-d77175f68838cfed67272b2ef56d069d27633d1afaff3a29dd390354c694b647.json`.
