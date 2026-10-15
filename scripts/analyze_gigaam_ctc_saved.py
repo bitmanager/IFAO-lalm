@@ -33,7 +33,9 @@ def analyze(key, expected_sha):
         captured = conn.execute('SELECT transaction_timestamp() AS t').fetchone()['t'].isoformat()
         with conn.cursor(name='gigaam_ctc_saved_comparison') as cursor:
             cursor.execute("""SELECT batch_id,sample_id,audio_sha256,prompt_variant,
-                gemini_text,language,uncertain_spans,source_provenance
+                gemini_text,language,uncertain_spans,source_provenance,
+                (SELECT sample->>'source_audio_sha256' FROM jobs j
+                  WHERE j.id=review_passes.job_id) AS source_audio_sha256
                 FROM review_passes WHERE corpus='sova-rudevices'
                 AND batch_id LIKE 'precision-ru-triad-v1%'
                 AND gemini_text IS NOT NULL""")
@@ -52,15 +54,18 @@ def analyze(key, expected_sha):
                     group = groups.setdefault(identity, {
                         'ctc': normalized_words(ctc['gigaam_transcription']),
                         'exact_hash': row['audio_sha256'] == ctc['audio_sha256'],
+                        'source_hash_matches': row['source_audio_sha256'] == ctc['audio_sha256'],
                         'passes': {}})
                     group['passes'][row['prompt_variant']] = (
                         normalized_words(row['gemini_text']), row['language'],
                         not row['uncertain_spans'])
     comparisons = {}
-    for scope in ('source_locator_only', 'same_encoded_audio_sha256'):
+    for scope in ('source_locator_only', 'same_source_audio_sha256', 'same_encoded_audio_sha256'):
         out = Counter()
         for group in groups.values():
             if scope == 'same_encoded_audio_sha256' and not group['exact_hash']:
+                continue
+            if scope == 'same_source_audio_sha256' and not group['source_hash_matches']:
                 continue
             out['samples'] += 1
             passes = group['passes']
@@ -87,7 +92,7 @@ def analyze(key, expected_sha):
             'ctc_rows': table.num_rows, 'counts': dict(counts),
             'comparisons': comparisons,
             'limitations': ['No human-gold accuracy measurement',
-                'Locator-only joins do not verify waveform identity or full-segment coverage',
+                'Source-hash joins verify original bytes but not full-segment coverage after preparation',
                 'Saved-pass selection is not a random corpus sample']}
 
 

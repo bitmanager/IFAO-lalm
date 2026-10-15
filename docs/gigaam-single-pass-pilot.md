@@ -79,7 +79,7 @@ This discovery does not enqueue restricted sources or promote single-pass
 matches to clean labels. The current high-precision flow remains in place
 pending an exact audio join and a separate quality comparison of the CTC layer.
 
-### Saved SOVA CTC comparison, 2026-10-15 01:35:52 UTC
+### Saved SOVA CTC comparison, 2026-10-15 01:45:43 UTC
 
 All 81,607 source-linked CTC rows were extracted using Parquet column reads;
 no audio was retranscribed. The separate diagnostic artifact is
@@ -93,6 +93,7 @@ The query is read-only and sends no model requests.
 | Measure | Count |
 | --- | ---: |
 | Source-linked examples with first Gemini text | 4,121 |
+| Those with identical original audio SHA256 in both layers | 4,121 |
 | Russian, uncertainty-free first Gemini text matches CTC | 2,161 |
 | Those with an independent second text | 2,115 |
 | Independent second text disagrees | 257 (12.2%) |
@@ -100,11 +101,13 @@ The query is read-only and sends no model requests.
 | All three agree | 1,682 (80.2%) |
 
 The query saw 11,820 saved pass rows, including 115 from a separate server
-pilot that could not be joined to this source locator scheme. None of the
-joined prepared-audio SHA256 values equalled the CTC layer's encoded-audio
-SHA256. Therefore these figures describe **source-locator matches**, not a
-verified full-waveform cohort. Re-encoding or segmentation needs explicit
-validation before this can become an admission rule. The evaluated examples
+pilot that could not be joined to this source locator scheme. Prepared-audio
+SHA256 values differ from the CTC input hashes after preprocessing. A follow-up
+comparison against the separate `jobs.sample.source_audio_sha256` field verified
+the original input bytes for all 4,121 linked examples, with the same agreement
+counts. This verifies source identity, not full-segment coverage after
+preparation; segmentation boundaries still need validation for an admission
+rule. The evaluated examples
 are also a selected subset, not a random SOVA sample. These are agreement
 statistics, not human-gold accuracy. The result does not justify automatically
 publishing half the queue under a one-pass rule.
