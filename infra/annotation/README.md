@@ -824,6 +824,14 @@ The unified `notebooks/speech_data_progress.ipynb` reads the latest snapshot,
 shows account-level speeds and recent failures, and plots the recent throughput
 trend. `/usage` quota reads remain a separate read-only check via
 `infra/annotation/check_usage.py`.
+The read-only fleet poll at 04:23–04:25 UTC on 15 October successfully read all
+17 active slots. Its PII-free numeric observation is saved in
+`analytics/usage/latest.json`, with immutable history under
+`analytics/usage/history/2026/10/15/0424-20d476eb4c7a.json`. This is an operator
+observation, not a new scheduled DAG; each row carries its own check time.
+Do not sum percentages across duplicate slots of the same subscription.
+AGY-03's TUI did not confirm EOF within the helper's ten-second exit wait;
+an authoritative process check afterward found no remaining plain AGY TUI.
 
 ## Bounded native API canary
 
