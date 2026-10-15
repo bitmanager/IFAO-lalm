@@ -25,6 +25,8 @@ class WorkerErrorTests(unittest.TestCase):
     def setUp(self):
         from unittest.mock import patch
         self.enterContext(patch('lalm.annotation.worker.repair_trailing_auth', return_value=False))
+        self.enterContext(patch('lalm.annotation.worker.NATIVE_NETWORK_BACKOFF_STEP', 0))
+        self.enterContext(patch('lalm.annotation.worker.NATIVE_NETWORK_LAST_FAILURE', 0.0))
 
     def test_native_api_concurrency_has_hard_upper_bound(self):
         from unittest.mock import patch
@@ -161,14 +163,42 @@ class WorkerErrorTests(unittest.TestCase):
              patch.object(worker, 'NATIVE_API_CONSECUTIVE_FAILURES', 0), \
              patch.object(worker, 'NATIVE_API_GOOD_COUNT', 0), \
              patch.object(worker, 'NATIVE_API_DEGRADED', False), \
+             patch('lalm.annotation.worker.time.monotonic', return_value=1000), \
              patch('lalm.annotation.worker.native_project', return_value='project'), \
              patch('lalm.annotation.native_api.generate', return_value=(failed, b'')) as generate, \
              patch('lalm.annotation.worker.finish') as finish:
             worker.process_native_api({'id': 'a'}, Path('audio.wav'), 4, 'raw/a/1',
                                       'verbatim', None, 'gemini-3.8-flash-low', Mock())
-            self.assertGreater(worker.NATIVE_API_DISABLED_UNTIL, worker.time.monotonic())
+            self.assertEqual(worker.NATIVE_API_DISABLED_UNTIL, 1060)
             generate.assert_called_once()
             self.assertEqual(finish.call_args.args[1], 'NEEDS_REVIEW')
+            generate.reset_mock()
+            worker.NATIVE_API_DISABLED_UNTIL = 1500
+            worker.process_native_api({'id': 'b'}, Path('audio.wav'), 4, 'raw/b/1',
+                                      'verbatim', None, 'gemini-3.8-flash-low', Mock())
+            self.assertEqual(worker.NATIVE_API_DISABLED_UNTIL, 1500)
+            generate.assert_called_once()
+
+    def test_network_pause_grows_on_recurrence_and_coalesces_inflight_failures(self):
+        from unittest.mock import patch
+        import lalm.annotation.worker as worker
+        native = {'http_status': None, 'error_type': 'RemoteDisconnected'}
+        with patch.object(worker, 'NATIVE_API_DISABLED_UNTIL', 0):
+            now = 1000
+            for expected in (60, 120, 240, 480, 600, 600):
+                self.assertEqual(worker.native_api_cooldown(native, now), expected)
+                worker.NATIVE_API_DISABLED_UNTIL = now + expected
+                self.assertEqual(worker.native_api_cooldown(native, now + 1), expected)
+                now += expected + 2
+            self.assertEqual(worker.native_api_cooldown(native, now + 901), 60)
+
+    def test_http_auth_rate_and_unknown_failures_keep_long_pause(self):
+        from lalm.annotation.worker import native_api_cooldown
+        for status in (200, 401, 403, 429, 500, 503, 0):
+            self.assertEqual(native_api_cooldown(
+                {'http_status': status, 'error_type': 'RemoteDisconnected'}, 1000), 600)
+        self.assertEqual(native_api_cooldown(
+            {'http_status': None, 'error_type': 'UnknownError'}, 1000), 600)
 
     def test_three_bad_native_responses_suspend_new_api_routes(self):
         from pathlib import Path

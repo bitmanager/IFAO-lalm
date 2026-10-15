@@ -30,6 +30,25 @@ NATIVE_API_FAILURE_LOCK = threading.Lock()
 NATIVE_API_CONSECUTIVE_FAILURES = 0
 NATIVE_API_GOOD_COUNT = 0
 NATIVE_API_DEGRADED = False
+NATIVE_NETWORK_BACKOFF_STEP = 0
+NATIVE_NETWORK_LAST_FAILURE = 0.0
+
+
+def native_api_cooldown(native, now):
+    """Called under NATIVE_API_FAILURE_LOCK; never retries an existing job."""
+    global NATIVE_NETWORK_BACKOFF_STEP, NATIVE_NETWORK_LAST_FAILURE
+    if (native.get('http_status') is None
+            and native.get('error_type') in ('RemoteDisconnected', 'TimeoutError')):
+        if now - NATIVE_NETWORK_LAST_FAILURE > 900:
+            NATIVE_NETWORK_BACKOFF_STEP = 0
+        # Concurrent failed requests in an already open pause are one episode.
+        if not NATIVE_NETWORK_BACKOFF_STEP or now >= NATIVE_API_DISABLED_UNTIL:
+            NATIVE_NETWORK_BACKOFF_STEP = min(5, NATIVE_NETWORK_BACKOFF_STEP + 1)
+        NATIVE_NETWORK_LAST_FAILURE = now
+        return min(600, 60 * 2 ** (NATIVE_NETWORK_BACKOFF_STEP - 1))
+    return 600  # HTTP/auth/rate-limit and repeated schema failures stay conservative.
+
+
 def native_api_concurrency():
     return min(8, max(1, int(os.environ.get('NATIVE_API_CONCURRENCY', '5'))))
 
@@ -328,13 +347,22 @@ def process_native_api(job, audio, duration, prefix, variant, reference, model, 
         client.put_object(Bucket=bucket(), Key=f'{prefix}/native-api-response.json', Body=raw)
     if native.get('status') != 'complete':
         http_status = native.get('http_status')
+        pause = None
         with NATIVE_API_FAILURE_LOCK:
             NATIVE_API_CONSECUTIVE_FAILURES += 1
             NATIVE_API_GOOD_COUNT = 0
             NATIVE_API_DEGRADED = True
             if (NATIVE_API_CONSECUTIVE_FAILURES >= 3 or http_status in (None, 401, 403, 429, 0)
                     or (http_status or 0) >= 500):
-                NATIVE_API_DISABLED_UNTIL = max(NATIVE_API_DISABLED_UNTIL, time.monotonic() + 600)
+                now = time.monotonic()
+                NATIVE_API_DISABLED_UNTIL = max(
+                    NATIVE_API_DISABLED_UNTIL, now + native_api_cooldown(native, now))
+                pause = {'event': 'native_api_route_paused', 'account': job.get('account_id'),
+                         'cooldown_seconds': round(NATIVE_API_DISABLED_UNTIL - now, 1),
+                         'http_status': http_status,
+                         'reason': native.get('error_code', native.get('error_type'))}
+        if pause:
+            print(json.dumps(pause), flush=True)
         finish(job, 'NEEDS_REVIEW', error_code=native.get('error_code', 'native_api_result_rejected'))
         return
     with NATIVE_API_FAILURE_LOCK:
