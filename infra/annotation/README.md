@@ -1316,6 +1316,13 @@ ILM workers=8 и лимитах памяти 48/64 GiB. Перед включе�
 pressure=0, HEAD bucket 1–6 ms. Проверять S3 latency и cgroup pressure в ходе
 обхода; для раннего возврата использовать приватный `restore-scanner.py`.
 
+Окно e завершилось штатно: в 17:24 UTC прочитаны scanner `default` и ILM
+workers `8`. Из примерно 85 GB STANDARD Parquet осталось 0.11 GB; текущий
+перенесённый объём analytics составил 102.7 GB (включая ранее перенесённые
+снимки). Это логические размеры current S3 objects. Фактически свободно
+286 GiB на drive2 и 364 GiB на drive1; cgroup memory pressure=0.
+`speech-datasets/diagnostics/storage-tier-20261015/after-window-e-2811c6e1edf055f33a8cdbad56f887f8244eb32a31dbfa514eb211c33a20ce56.json`.
+
 Tier использует уже существующий второй MinIO на drive1, bucket
 `speech-annotation-archive`, prefix `primary-annotation/`. Его отдельная учётка
 ограничена этим префиксом; credentials хранятся только в закрытом server audit,

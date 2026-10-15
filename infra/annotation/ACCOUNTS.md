@@ -1077,3 +1077,6 @@ CLI/API пределы остались 5/8. OAuth-исправление теп
 срабатывание при реальном expiry на 13 ещё не наблюдалось.
 S3: `diagnostics/native-oauth-refresh-20261015/agy13-canary-0d2984bcb0eec08b77689b24c5221d564a34f76f1cec06ecd63aa0faf8a98f2d.json`;
 `diagnostics/native-oauth-refresh-20261015/agy13-restored-99c6d5d6dddf5a2325403f369addbd0900f25d13b4324e187cc14f94ffbc9d47.json`.
+К 17:22 UTC после release получены 219 native и 29 CLI результатов без ошибок,
+ещё пять попыток выполнялись; лимиты 20/0.2, enabled=true, blocked_reason=null.
+S3: `diagnostics/native-oauth-refresh-20261015/agy13-post-ramp-5e0c94e1504c34f84be60822929fdd5670c54e296cda598e976297d40582b0c5.json`.
