@@ -14,8 +14,8 @@ On dev-1, from `/mnt/local/drive2/speech-annotation-20261012/code`:
 
 ```sh
 docker build --network host -t speech-jupyter:local -f infra/jupyter/Dockerfile .
-python3 infra/jupyter/deploy.py
-infra/annotation/dc up -d --no-deps jupyterhub
+sudo python3 infra/jupyter/deploy.py
+sudo infra/annotation/dc up -d --no-deps jupyterhub
 ```
 
 Run `deploy.py` again after regenerating the annotation Compose file. It adds
