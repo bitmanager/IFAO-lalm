@@ -519,3 +519,15 @@ DB concurrency=10, WORKER_CONCURRENCY=20, API percent=50/max=70, API cap=5.
 S3: `diagnostics/agy06-code-refresh-20261015/first-results-e0f1e44e76c6602521ae53de24309677239c90218ebc293c08049c60f0818d4d.json`.
 03/13/18 не перезапускались из-за свежих transport/API ошибок; защитные
 паузы сохранены.
+
+### Обновление кода agy-18 — 15.10.2026, 09:53 UTC
+
+После стабильного интервала установлен собственный hold в 09:52:08 UTC.
+Перед перезапуском RUNNING=0, процессов AGY=0, новых ошибок после precheck
+нет. Перезапущен только 18; собственный hold снят в 09:53:32 UTC. Сохранены
+DB concurrency=10, WORKER_CONCURRENCY=20, API percent=50/max=70, API cap=5.
+Первые четыре API-ответа: `result_object_v1`, complete=true, один HTTP-вызов,
+auto_retries=0, audio_heard=true; текст, SHA256 аудио и контракт совпадают
+с raw artifact. Новых ошибок до 09:54:17 UTC нет. Проверка структурная,
+не human-gold аудит. S3:
+`diagnostics/agy18-code-refresh-20261015/first-results-2975e5600ffaec157855fc34b1a851a4215fb7931e26012ed26c0d5e810a3343.json`.
