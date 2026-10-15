@@ -1311,8 +1311,11 @@ lifecycle-конфигурацию и объединять правила, а н
 Учётка tier получает 403 при чтении вне своего префикса. Временный ускоренный
 scanner возвращён в `default` в 15:44 UTC. Закрытые доказательства и backup
 исходной конфигурации находятся на dev-1 в audit-каталоге
-`annotation-tier-canary-20261015` второго MinIO. Начало движения рабочих объектов
-и фактическое освобождение места требуют отдельной проверки.
+`annotation-tier-canary-20261015` второго MinIO. В 16:00 UTC подтверждён переход
+рабочих объектов. Для шести файлов из `passes`, `examples` и `reviews`, включая
+Parquet 106 MB и JSON 112 MB, полный SHA256 совпал с хешем в исходном ключе,
+ETag сохранился, Parquet footer читается через исходный endpoint. Доказательство:
+`speech-datasets/diagnostics/storage-tier-20261015/production-readback-0ee7608f5274f045361ad8e78959ea125c2b93f19d38986013065e1c3da1e1df.json`.
 
 В 15:57 UTC аналогичное правило `minio-review-tier.json` добавлено для
 `speech-annotations/reviews/` (только старые JSON-отчёты сравнения проходов,
@@ -1323,3 +1326,26 @@ audit-каталоге. Сырые ответы `annotations/raw/` не вход
 `speech-minio-scanner-restore-20261015c` на 16:09 UTC. После включения измеренные
 Range-запросы занимали 2–4 ms, а обработка продолжалась без просроченных leases.
 Проверять окончание окна по фактической конфигурации MinIO, а не только timer.
+
+Во время первого массового переноса возникла просадка S3: исходные
+`MemoryHigh=12G`, `MemoryMax=16G` вызвали cgroup memory reclaim (около 48% full
+memory pressure), очередь listener выросла до 535 подключений. Промежуточного
+лимита 20/24 GiB тоже оказалось мало. Процесс MinIO не перезапускался. Scanner
+досрочно возвращён в `default` в 16:06 UTC. Штатный ILM ограничен с 100 до 8
+параллельных переносов; изменение применено динамически и прочитано обратно.
+Для primary MinIO сохранены лимиты 48/64 GiB на сервере с 251 GiB RAM; перед
+увеличением проверено более 129 GiB MemAvailable. Secondary не менялся.
+
+Воспроизведение ресурсных настроек на dev-1 (не требует restart):
+
+```sh
+sudo systemctl set-property speech-data-minio.service MemoryHigh=48G MemoryMax=64G
+# В приватном admin-окружении существующего MinIO:
+mc admin config set speech ilm transition_workers=8
+```
+
+`ilm` поддерживает динамические настройки в используемом MinIO release:
+https://github.com/minio/minio/blob/RELEASE.2025-09-07T16-13-09Z/internal/config/config.go
+После изменения health отвечал за 3–7 ms, чтение ops JSON за 52 ms. В 16:09 UTC
+свободное место drive2 выросло с 199 до 211 GiB; проверять дальнейшую скорость,
+обновление inspection pointer и memory pressure, а не считать перенос законченным.
