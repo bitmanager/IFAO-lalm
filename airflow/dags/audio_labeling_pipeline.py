@@ -33,7 +33,8 @@ def audio_labeling_pipeline():
 
     ingested = ingest_manifests()
     compared = compare_independent_passes()
-    discover_source_objects() >> queue_source_preparation() >> ingested
+    # Prepared manifests already exist independently of this inventory scan.
+    discover_source_objects() >> queue_source_preparation()
     ingested >> compared
     compared >> publish_validated()
 
