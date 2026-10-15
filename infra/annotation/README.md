@@ -1589,3 +1589,32 @@ state/error, attempt, contract и review flags, совпали с DB. Пропу
 Доказательства в `speech-datasets/diagnostics/input-conservation-20261015/`:
 `fresh-c366-followups-74c0933dfbe177ecdec438cd93f87b1316249ebbdb80e96cec643c508b243961.json`
 и `fresh-c366-final-parquet-a5d74a59bcd42b5520d3e274f0c892408c63bd2836f4cea8bf0a24cd39d383a5.json`.
+
+### Обновление AGY-12, 15.10.2026, 21:45 UTC
+
+Перед обновлением подтверждены как минимум 77 успешных native ответов после
+последней ошибки, без действующей паузы маршрута. Maintenance hold установлен
+в 21:39:19 UTC; полностью завершены DB RUNNING и AGY-процессы, ошибок при
+drain нет. Перезапущен только 12, новый StartedAt — 21:40:33 UTC. Загружен
+worker `c437af5c94e1b0c455f22dab612fdc12f0e92baed5fd9920a7fbf5e1610086f5`
+с account `SKIP LOCKED`, обработкой provider prompt blocks и проверкой OAuth
+expiry перед native запросом. В 21:41:07 UTC начат canary с concurrency=1.
+
+Четыре native результата сверены с raw: model/schema, фактический WAV SHA256,
+prompt/reference, contract и сохранённый текст совпали. Каждый использовал
+один HTTP-запрос и ноль retries; в артефактах generation config — 8192 токена.
+В 21:41:50 UTC возвращены concurrency=10 и interval=0.2 без изменения текущего
+next_request_at. К 21:45:54 UTC после восстановления сохранены ещё 128
+review-only ответов без ошибок; два задания выполняются. Это проверка
+работоспособности и сохранности, а не человеческое подтверждение транскрипций.
+Доказательства в `speech-datasets/diagnostics/queue-contention-20261015/`:
+`agy12-canary-c8f165670999526d97059fb4f88c15acc09d3760059db5ca071085637eec9057.json`
+и `agy12-post-fd442cb1167ddf514bf42e37527f532d608552f26f83a735a6019febcf29919d.json`.
+
+Отдельно проверен прежний incomplete-ответ 03: HTTP 200, ноль кандидатов,
+`promptFeedback=OTHER`, без исчерпания 8192-токенного бюджета. Новый validator
+на том же immutable ответе возвращает `native_prompt_blocked_OTHER`; исходное
+задание не изменено и не повторялось. Это один подтверждённый случай provider
+sample rejection, не доказательство причины всех неполных ответов или VPN-сбоя.
+Доказательство:
+`speech-datasets/diagnostics/native-incomplete-20261015/agy03-classification-80acacf14c429a6bbef63ee46872aaa8a6e900939c6a11a9eb85d4d877add1fd.json`.
