@@ -922,3 +922,25 @@ S3: `analytics/usage/history/2026/10/15/134948-ded9d43a826b.json`.
 без init. S3:
 `diagnostics/input-conservation-20261015/fresh-all-passes-parquet-7a2d6f00ac409408d544249079030bf0425a87df80fa69e50c6a983a5133c45e.json`;
 `diagnostics/input-conservation-20261015/fresh-retry-audit-e9697ebf1c47efe83a9ebc9d3f55933fe506a5038ff4df6d65e92f2c340ff3bd.json`.
+
+### Восстановление после настоящих сетевых таймаутов — 15.10.2026, 14:06 UTC
+
+19: TimeoutError14:02:02/14:02:15 UTC, оба события оставили ступень60s.
+Первый успешный новый API attempt начат14:03:18 UTC, через2.66s после
+окончания последней паузы; ответ сохранён14:03:21 UTC, через66.64s после
+последнего таймаута. Следующий сетевой эпизод14:05:10 UTC увеличил паузу
+до120s. 21: TimeoutError14:02:35 UTC, пауза60s; новый успешный API attempt
+начат14:04:05 UTC, ответ сохранён14:04:09 UTC — через93.39s после ошибки.
+
+Все четыре неудачные попытки проверены по raw metadata: один HTTP,
+auto_retries0, attempt остаётся1, состояниеNEEDS_REVIEW. Первые успешные
+новые попытки complete/one HTTP/no retry. Внутри основной части пауз
+успешных native attempts с новым временем claim нет. `started_at` — время
+claim, не точная отметка HTTP-dispatch; ранее запущенные запросы могут
+завершаться во время паузы. Свидетельство:
+`diagnostics/native-network-backoff-20261015/live-recovery-04bb8976ddf0d5cb40a947133fa4ea03800a8129d63c01357667408e89f6a5ea.json`.
+
+19 за первые полные5min после обновления:165 сохранённых ответов,133 API,
+два CLI eligibility_transport_transient до генерации; native ошибок за
+этот интервал нет. Сетевые таймауты выше произошли позже. S3:
+`diagnostics/native-network-backoff-20261015/agy19-five-minute-50910ccf270f361d35ab8fe70890508058295473d179ba1545effc0eb0e83648.json`.
