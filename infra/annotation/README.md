@@ -1114,6 +1114,11 @@ audio-only validator. This establishes initial fleet compatibility; the
 public diagnostic remains the direct evidence of a denied search attempt.
 The metadata-only readback is stored alongside the installation report as
 `production-first-readback.json`.
+At 04:48:54–55 UTC the same policy was installed on the seven quota-waiting
+profiles (01, 02, 04, 09, 15, 20, 22), without a model request. Their existing
+quota waits remain in effect; these profiles are not counted as active workers.
+The disabled duplicate 17 was not started. New account containers receive the
+policy through the worker startup path.
 
 ### Native response-object prompt investigation, 2026-10-15
 
