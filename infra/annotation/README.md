@@ -1222,3 +1222,32 @@ the two trial values were still owned. Evidence is stored under
 `speech-datasets/diagnostics/agy11-lower-burst-20261015/`:
 `window-53ba43719533efe8d771dcdddf91f997bac6a039e59b78da8e089314ba34d70a.json`
 and `restore-0ac8c73b8a4a1047ce6f31f172a4d387b0b62169d6d419d87b6a94e3dda3d91f.json`.
+
+### Post-dispatch 429 replay fix, 2026-10-15
+
+A live audit found 429 errors after audio access, model activity and structured
+output. The generic rate-limit classifier had marked them retryable; 23
+distinct jobs from the overnight window had already retried before detection.
+This consumed additional generation attempts even though the audio/pass/model
+unique index still kept one durable job. The original raw attempts remain
+available; historical attempts were not rewritten to hide the retries.
+
+Generic 429 errors now become `NEEDS_REVIEW` with
+`ambiguous_rate_limit_after_dispatch`, retaining a five-minute account cooldown.
+No generic 429 alone proves that generation did not start, including a
+zero-turn envelope. Existing narrowly verified predispatch retries retain their
+separate codes and behavior.
+
+At 07:01:52 UTC, small BEFORE triggers on jobs and attempts enforced the same
+quarantine for old workers still emitting `RETRYABLE_FAILED / rate_limited`.
+This closes the retry path without restarting the fleet or clearing live API
+guards. The triggers leave unrelated retry codes unchanged. Temporary-table
+INSERT/UPDATE tests passed, and rollback probes on both live tables confirmed
+the stored state becomes `NEEDS_REVIEW`. No model calls were used for these
+tests. All 28 worker tests passed; their process-level API routing overrides
+were unset to avoid inheriting slot 07's disabled-API test environment.
+
+Slot 25 was briefly held during investigation. A real provider quota cooldown
+subsequently superseded that hold across shared-quota slots 23/24/25; it must
+not be cleared as if it were an operator maintenance hold. Diagnostics:
+`speech-datasets/diagnostics/rate-limit-retry-incident-20261015/guard-bfaa8e3526f9433668b3ca9a99751ce6363b0278fe4efe2de9e3c5d70c25ba54.json`.

@@ -352,7 +352,28 @@ class WorkerErrorTests(unittest.TestCase):
 
     def test_explicit_service_rate_error_keeps_backoff(self):
         for text in ('RESOURCE_EXHAUSTED (code 429)', '{"error_code":429}', 'Too many requests'):
-            self.assertEqual(classify(text), ('RETRYABLE_FAILED', 'rate_limited', None))
+            self.assertEqual(classify(text),
+                ('NEEDS_REVIEW', 'ambiguous_rate_limit_after_dispatch', 'transport_cooldown'))
+
+    def test_429_after_audio_and_structured_generation_never_retries(self):
+        import json
+        events = [
+            {'event': 'init', 'init': {'model': 'gemini-3.8-flash-low'}},
+            {'event': 'step_update', 'step_update': {
+                'step_type': 'tool', 'tool_name': 'view_file', 'state': 'DONE'}},
+            {'event': 'result', 'result': {'status': 'ERROR', 'num_turns': 1,
+                'error': 'RESOURCE_EXHAUSTED (code 429)',
+                'structured_output': {'transcript': 'test'}}}]
+        raw = '\n'.join(json.dumps(e) for e in events)
+        self.assertEqual(classify(raw),
+            ('NEEDS_REVIEW', 'ambiguous_rate_limit_after_dispatch', 'transport_cooldown'))
+
+    def test_zero_turn_429_alone_does_not_prove_no_dispatch(self):
+        import json
+        raw = json.dumps({'event': 'result', 'result': {'status': 'ERROR',
+            'num_turns': 0, 'duration_seconds': 0, 'error': 'Too many requests'}})
+        self.assertEqual(classify(raw),
+            ('NEEDS_REVIEW', 'ambiguous_rate_limit_after_dispatch', 'transport_cooldown'))
 
     def test_quota_and_auth_stay_distinct(self):
         self.assertEqual(classify('Individual quota reached. Resets in 2h10m6s.')[2], 'quota_exhausted')

@@ -124,7 +124,9 @@ def classify(text, timed_out=False):
         return 'NEEDS_REVIEW', 'inference_service_unavailable', 'transport_cooldown'
     if (any(x in text for x in ('too many requests', 'rate limit'))
             or re.search(r'\b(?:code|error_code|status|http)\b[\s\"=:()]*429\b', text)):
-        return 'RETRYABLE_FAILED', 'rate_limited', None
+        # CLI may report 429 after audio access and structured generation.
+        # A generic rate-limit marker does not prove a predispatch rejection.
+        return 'NEEDS_REVIEW', 'ambiguous_rate_limit_after_dispatch', 'transport_cooldown'
     return 'NEEDS_REVIEW', 'native_result_rejected', None
 
 
@@ -433,7 +435,8 @@ def process(job):
             if block == 'quota_exhausted' and delay is not None:
                 block = 'quota_cooldown'
             elif block == 'transport_cooldown':
-                delay = random.uniform(30, 90)
+                delay = (300 if code == 'ambiguous_rate_limit_after_dispatch'
+                         else random.uniform(30, 90))
             finish(job, state, error_code=code, retry_seconds=delay or 300 * job['attempt'],
                    block=block)
             return

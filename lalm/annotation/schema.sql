@@ -107,3 +107,23 @@ CREATE UNIQUE INDEX IF NOT EXISTS precision_v1_audio_pass_model_uq
 ON jobs ((sample->>'audio_sha256'), (sample->>'prompt_variant'),
          (COALESCE(sample->>'annotation_model','gemini-3.8-flash-low')))
 WHERE sample->>'pilot_id' LIKE 'precision-ru-triad-v1-%';
+
+-- Older workers may classify a 429 after generation as retryable. Enforce
+-- quarantine at the durable boundary too, without restarting live workers.
+CREATE OR REPLACE FUNCTION quarantine_ambiguous_rate_limit() RETURNS trigger
+LANGUAGE plpgsql AS '
+BEGIN
+  NEW.state := ''NEEDS_REVIEW'';
+  NEW.error_code := ''ambiguous_rate_limit_after_dispatch'';
+  RETURN NEW;
+END;';
+CREATE OR REPLACE TRIGGER jobs_quarantine_rate_limit
+BEFORE INSERT OR UPDATE OF state,error_code ON jobs
+FOR EACH ROW
+WHEN (NEW.state = 'RETRYABLE_FAILED' AND NEW.error_code = 'rate_limited')
+EXECUTE FUNCTION quarantine_ambiguous_rate_limit();
+CREATE OR REPLACE TRIGGER attempts_quarantine_rate_limit
+BEFORE INSERT OR UPDATE OF state,error_code ON attempts
+FOR EACH ROW
+WHEN (NEW.state = 'RETRYABLE_FAILED' AND NEW.error_code = 'rate_limited')
+EXECUTE FUNCTION quarantine_ambiguous_rate_limit();
