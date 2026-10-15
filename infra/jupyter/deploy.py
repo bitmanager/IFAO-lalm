@@ -25,7 +25,7 @@ compose = json.loads((root/'compose.generated.json').read_text())
 compose['services']['jupyterhub'] = {
     'image': 'speech-jupyter:local', 'restart': 'unless-stopped',
     'ports': ['100.119.47.17:18888:8000', '127.0.0.1:18888:8000'],
-    'networks': ['ui'], 'mem_limit': '6g', 'cpus': 4,
+    'networks': ['ui'], 'mem_limit': '12g', 'cpus': 4,
     'volumes': ['jupyter-state:/srv/jupyterhub', 'jupyter-home:/home/analyst',
         str(repo/'notebooks')+':/opt/notebooks:ro',
         str(password)+':/run/secrets/notebook-password:ro',

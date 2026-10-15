@@ -35,6 +35,9 @@ PAM authentication and LocalProcessSpawner run notebooks as unprivileged
 `analyst`. Hub state and analyst notebooks persist in separate Docker volumes.
 A source notebook is copied on first boot only; subsequent user edits survive.
 To refresh it, copy the repository version explicitly after preserving edits.
+The Hub and analyst server share a 12 GiB memory limit. On 15 October the
+previous 6 GiB limit had a recorded 5.84 GiB peak with no OOM kills. The limit
+was increased live for growing inspection snapshots; the server stayed running.
 
 Never commit credentials, notebook outputs, or production examples.
 Snapshots and Gemini responses remain inspection/review data, not human gold.
