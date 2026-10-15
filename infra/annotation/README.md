@@ -807,6 +807,18 @@ such as `native_schema_keys` and `native_incomplete_or_ambiguous_candidate`,
 as well as HTTP/transport failures. The generic CLI `native_result_rejected`
 is excluded from that API counter. This was corrected on 15 October; earlier
 immutable snapshots can undercount API response-validation failures.
+The additive `storage` field records total, used and available bytes of the
+filesystem containing the deployed code bind mount, using Python's standard
+`shutil.disk_usage`. On the current deployment this is dev-1's local drive2;
+it is not a capacity measurement of any S3 endpoint. An OS read failure is
+reported by exception type without aborting the operational snapshot. Existing
+timestamped history provides a disk-space trend without another service.
+The scheduled 04:20 UTC snapshot was read back with this field present and
+approximately 502 GiB available. The unified notebook displays available and
+total GiB from that snapshot, while retaining compatibility with older snapshots
+that lack `storage`. Deployment used the existing notebook synchronizer after
+checking that browser and repository sources agreed; the previous live copy
+was backed up before replacement.
 
 The unified `notebooks/speech_data_progress.ipynb` reads the latest snapshot,
 shows account-level speeds and recent failures, and plots the recent throughput

@@ -3,6 +3,8 @@ from datetime import datetime, timezone
 import hashlib
 import json
 from decimal import Decimal
+from pathlib import Path
+import shutil
 
 from .store import connect, dataset_bucket, s3
 
@@ -106,6 +108,17 @@ def collect_metrics():
         shadow = conn.execute('SELECT id,state,account_id,result_key,error_code,created_at,started_at,finished_at '
                               'FROM native_shadow_batches ORDER BY created_at DESC LIMIT 5').fetchall()
 
+    # This bind-mounted code path is on dev-1's local data filesystem. It is
+    # deliberately not presented as capacity of the separate S3 stores.
+    storage_path = Path(__file__).resolve().parent
+    try:
+        disk = shutil.disk_usage(storage_path)
+        storage = {'path': str(storage_path), 'scope': 'deployed_code_filesystem',
+                   'total_bytes': disk.total, 'used_bytes': disk.used,
+                   'free_bytes': disk.free}
+    except OSError as error:
+        storage = {'path': str(storage_path), 'scope': 'deployed_code_filesystem',
+                   'error_type': type(error).__name__}
     metrics = {
         'schema_version': 1,
         'captured_at': captured_at.astimezone(timezone.utc).isoformat(),
@@ -116,6 +129,7 @@ def collect_metrics():
         'recent_errors': [dict(row) for row in recent_errors],
         'source_assets_by_state': {row['state']: row['count'] for row in source_states},
         'native_shadow_recent': [dict(row) for row in shadow],
+        'storage': storage,
     }
     return json.loads(json.dumps(metrics, default=_json_value))
 
