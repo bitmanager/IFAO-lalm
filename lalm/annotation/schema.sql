@@ -27,6 +27,9 @@ CREATE TABLE IF NOT EXISTS jobs (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS jobs_queue ON jobs(state,next_attempt_at,created_at);
+-- Frequent state changes need cleanup before the global 20% threshold is met.
+ALTER TABLE jobs SET (autovacuum_vacuum_scale_factor=0.02,
+                     autovacuum_vacuum_threshold=1000);
 CREATE INDEX IF NOT EXISTS jobs_claim_fifo ON jobs(created_at,id)
   WHERE state IN ('PENDING','RETRYABLE_FAILED') AND attempt<3;
 CREATE TABLE IF NOT EXISTS attempts (

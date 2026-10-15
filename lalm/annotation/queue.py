@@ -32,8 +32,13 @@ def enqueue(conn, sample):
 
 def claim(account):
     with connect() as conn:
+        # Polling threads must not queue behind a busy account or lock one
+        # whose quota/cooldown already prevents dispatch. The row lock still
+        # serializes successful claims and the running-count limit below.
         row = conn.execute('SELECT *, next_request_at<=now() AS ready FROM accounts '
-                           'WHERE id=%s FOR UPDATE', (account,)).fetchone()
+                           "WHERE id=%s AND enabled AND COALESCE(blocked_reason,'')='' "
+                           'AND next_request_at<=now() FOR UPDATE SKIP LOCKED',
+                           (account,)).fetchone()
         if not row or not row['enabled'] or row['blocked_reason'] or not row['ready']:
             return None
         active = conn.execute("SELECT count(*) AS n FROM jobs WHERE account_id=%s AND state='RUNNING'",
