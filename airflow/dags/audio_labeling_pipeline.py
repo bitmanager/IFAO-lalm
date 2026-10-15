@@ -17,11 +17,6 @@ def audio_labeling_pipeline():
         return queue_sources()
 
     @task(retries=2)
-    def ingest_manifests():
-        from lalm.annotation.pipeline import ingest
-        return ingest()
-
-    @task(retries=2)
     def publish_validated():
         from lalm.annotation.pipeline import publish
         return publish()
@@ -31,11 +26,9 @@ def audio_labeling_pipeline():
         from lalm.annotation.review import reconcile
         return reconcile()
 
-    ingested = ingest_manifests()
     compared = compare_independent_passes()
     # Prepared manifests already exist independently of this inventory scan.
     discover_source_objects() >> queue_source_preparation()
-    ingested >> compared
     compared >> publish_validated()
 
 

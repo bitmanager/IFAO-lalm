@@ -7,11 +7,14 @@ Runtime работает только на dev-1 (`exp-srv-rtx6000x4-02`), в
 только для доступа; прежний локальный стенд удалён после проверенного переноса.
 Используется существующий S3/MinIO, второй экземпляр не разворачивается.
 
-В `audio_labeling_pipeline` обход исходников и импорт готовых manifests запускаются
-независимо. Подготовщик публикует manifests отдельно, поэтому импорт не ждёт
-повторного обхода всего каталога S3. После импорта последовательно выполняются
-сравнение проходов и публикация; обработчик импорта сохраняет проверку holdout,
-контроль неизменяемости и блокировку от параллельного импорта.
+`annotation_ingest_pipeline` каждые пять минут импортирует готовые manifests
+независимо от обхода S3 и сравнения проходов в `audio_labeling_pipeline`.
+У каждого DAG остаётся `max_active_runs=1`: долгий review больше не задерживает
+следующее пополнение очереди. Обработчик импорта сохраняет проверку holdout,
+контроль неизменяемости и блокировку от параллельного импорта. Сравнение проходов
+и последующая публикация остаются в `audio_labeling_pipeline`.
+При переходе сначала дождитесь завершения старого `ingest_manifests`, проверьте
+новый сериализованный граф без этого задания и только затем включайте новый DAG.
 PostgreSQL хранит служебную очередь и состояние Airflow; аналитические таблицы
 и датасеты публикуются в Parquet на S3.
 
@@ -330,6 +333,7 @@ infra/annotation/dc run --rm control publish
 
 ```bash
 infra/annotation/dc exec airflow-scheduler airflow dags unpause audio_labeling_pipeline
+infra/annotation/dc exec airflow-scheduler airflow dags unpause annotation_ingest_pipeline
 infra/annotation/dc exec airflow-scheduler airflow dags unpause inspection_snapshot_pipeline
 ```
 
