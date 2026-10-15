@@ -1626,3 +1626,43 @@ sample rejection, не доказательство причины всех не
 работать. Не следует переносить диагноз `OTHER` на этот сетевой случай.
 Доказательство:
 `speech-datasets/diagnostics/native-incomplete-20261015/agy03-route-f228a377ad04cbab173a983f8a313d390b6297ad5379702cbf4d5cdbec0ba008.json`.
+
+### Inspection snapshot v2, 15.10.2026, 22:17 UTC
+
+Full inspection exports repeatedly aggregated the complete JSON-heavy job
+history in PostgreSQL. The export now reads sources, passes and publications
+in the same read-only repeatable-read transaction, then derives examples and
+progress from that exact pass Parquet using DuckDB 1.4.1. It reuses
+`review_views.sql`; notebook and pipeline counts have one definition.
+The aggregation uses one CPU thread, a 2 GB memory limit and bounded temporary
+spill. No new service is introduced. DuckDB is already used by Jupyter;
+the Airflow image pins the same standalone package without upgrading its
+existing boto3/psycopg/pyarrow/numpy dependencies.
+
+Source annotations are recovered from structured provenance: a string that
+looks like JSON stays a string, and JSON null differs from a missing label.
+Snapshot manifest version 2 records the engine and annotation serialization.
+Examples' annotation JSON may have different whitespace/key order; tiny
+floating-point aggregation rounding differences are expected. Raw pass
+serialization, transcript text, review flags and training publication rules
+are unchanged. All five immutable files precede the discovery pointer.
+
+The actual new Parquet writer was compared against one existing consistent
+snapshot with 1,497,771 passes and 565,720 examples. Both output schemas match;
+all examples match after JSON normalization, with no missing groups or other
+field differences. All 157 progress groups have identical integer counts,
+timestamps and nullness. Maximum differences were 1.03e-10 audio-hours and
+2.92e-13 mean inference seconds. Deriving and writing the two tables took
+8.11 seconds; this excludes PostgreSQL scanning and S3 uploads, and is not a
+claim that the whole export completes in eight seconds.
+
+Four runtime tests cover typed labels/review flags, empty tables, single pass
+reading and pointer-last publication, and failed aggregation leaving the old
+pointer intact. They passed in the live scheduler's Python environment.
+Evidence:
+`speech-datasets/diagnostics/inspection-duckdb-20261015/full-fixture-e3d414fb82b2c8b5fecc27853f4a7c3f7a2dd9d6bb0c9320f918dcb1678e80f5.json`.
+
+The inspection DAG's previous unpaused state was restored at 22:17:33 UTC
+after a source-update hold. Its already-running 22:00 export was preserved;
+no scheduler or annotation worker was restarted. The next export loads v2.
+First live v2 publication remains a monitoring check, not an asserted result.
