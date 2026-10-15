@@ -18,7 +18,8 @@ from lalm_core.model.gigaam_adapter import GigaAMAudioTower, gigaam_output_lengt
 
 
 class SGLangClient:
-    def __init__(self, checkpoint, endpoint, embedding_format="json"):
+    def __init__(self, checkpoint, endpoint, embedding_format="json", *,
+                 encoder_name="gigaam", encoder_path=None):
         if embedding_format not in ("json", "bytes"):
             raise ValueError("Unknown embedding format")
         self.embedding_format = embedding_format
@@ -53,8 +54,35 @@ class SGLangClient:
             self.embedding = torch.nn.Embedding.from_pretrained(
                 handle.get_tensor(keys[0]).to(torch.bfloat16), freeze=True)
         self.tokenizer = runtime.processor().tokenizer
-        self.encoder = GigaAMAudioTower.from_checkpoint(runtime.CKPT).requires_grad_(False).eval()
-        self.projector = LALMProjector(768, 5120, downsample_rate=2, hidden_size=6144)
+        self.encoder_name = encoder_name
+        if encoder_name == "gigaam":
+            if encoder_path is not None:
+                raise ValueError("GigaAM benchmark uses the frozen runtime checkpoint")
+            self.encoder = GigaAMAudioTower.from_checkpoint(runtime.CKPT).requires_grad_(False).eval()
+            self.output_length = gigaam_output_length
+            audio_dim = 768
+        elif encoder_name == "gemma":
+            from lalm_core.model.gemma_adapter import GemmaAudioTower, gemma_output_length
+            if encoder_path is None:
+                raise ValueError("Gemma requires the frozen encoder snapshot path")
+            # Match the native Gemma training/validation frontend (not the server).
+            torch.backends.cuda.enable_flash_sdp(False)
+            torch.backends.cuda.enable_mem_efficient_sdp(False)
+            torch.backends.cuda.enable_cudnn_sdp(False)
+            torch.backends.cuda.matmul.allow_bf16_reduced_precision_reduction = False
+            self.encoder = GemmaAudioTower.from_pretrained(encoder_path).to("cuda").requires_grad_(False).eval()
+            self.output_length = gemma_output_length
+            audio_dim = self.encoder.audio_dim
+            self.server_recipe["audio_encoder"] = {
+                "name": encoder_name, "path": str(encoder_path),
+                "adapter_sha256": runtime.digest(Path(__import__(
+                    "lalm_core.model.gemma_adapter", fromlist=["__file__"]).__file__)),
+                "files": {p.name: runtime.digest(p) for p in sorted(Path(encoder_path).iterdir())
+                          if p.is_file() and (p.suffix in (".json", ".safetensors"))},
+            }
+        else:
+            raise ValueError("Unknown audio encoder")
+        self.projector = LALMProjector(audio_dim, 5120, downsample_rate=2, hidden_size=6144)
         self.projector.load_state_dict(torch.load(checkpoint, map_location="cpu", weights_only=True)["projector"])
         self.projector.to("cuda", dtype=torch.float32).requires_grad_(False).eval()
 
@@ -64,10 +92,11 @@ class SGLangClient:
         embeds = self.embedding(ids)
         if wave is not None:
             lengths = torch.tensor([wave.numel()], device="cuda")
-            encoded = self.encoder(wave.unsqueeze(0).cuda(), lengths)
+            with torch.autocast("cuda", dtype=torch.bfloat16, enabled=self.encoder_name == "gemma"):
+                encoded = self.encoder(wave.unsqueeze(0).cuda(), lengths)
             projected = self.projector(encoded.float())[0].to(torch.bfloat16).cpu()
             mask = ids == self.tokenizer.convert_tokens_to_ids("<|audio|>")
-            expected = int(gigaam_output_length(lengths)[0]) // 2
+            expected = int(self.output_length(lengths)[0]) // 2
             if int(mask.sum()) != expected or len(projected) != expected:
                 raise ValueError("Audio placeholder/projector lengths differ")
             embeds[mask] = projected

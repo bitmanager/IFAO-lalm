@@ -57,6 +57,9 @@ def main():
     from lalm_core.model.gigaam_adapter import gigaam_output_length
 
     spec = json.loads(args.manifest.read_text())
+    encoder_name = spec.get("encoder_name", "gigaam")
+    if encoder_name != "gigaam" and not args.sglang_url:
+        raise ValueError("Alternative audio encoders require the SGLang frontend")
     assert spec["history_mode"] in ("self_transcripts_and_agent", "reference_history_v2", "reference_history_v3", "no_history")
     gpu = spec.get("gpu_uuid", "GPU-de629798-46d4-ac37-e28e-d73f59094ab7")
     assert os.environ["CUDA_VISIBLE_DEVICES"] == gpu
@@ -68,10 +71,14 @@ def main():
     args.output.mkdir(parents=True, exist_ok=True)
     if args.sglang_url:
         import benchmark_sglang_client as sglang_client
-        model = sglang_client.SGLangClient(checkpoint, args.sglang_url, args.sglang_embedding_format)
+        model = sglang_client.SGLangClient(
+            checkpoint, args.sglang_url, args.sglang_embedding_format,
+            encoder_name=encoder_name, encoder_path=spec.get("encoder_path"))
+        audio_output_length = model.output_length
         tokenizer = model.tokenizer
         generated = sglang_client.generated
     else:
+        audio_output_length = gigaam_output_length
         model, processor = runtime.load_model()
         model.projector.load_state_dict(torch.load(checkpoint, map_location="cpu", weights_only=True)["projector"])
         model.requires_grad_(False).eval()
@@ -83,7 +90,9 @@ def main():
     recipe["native_runtime_sha256"] = runtime.digest(Path(runtime.__file__))
     recipe["model_runtime_sha256"] = runtime.digest(Path(__import__("model_runtime").__file__))
     recipe["base_model_manifest_sha256"] = runtime.digest(runtime.ROOT / "model_download.json")
-    recipe["gigaam_checkpoint_sha256"] = runtime.digest(Path(runtime.CKPT))
+    recipe["encoder_name"] = encoder_name
+    if encoder_name == "gigaam":
+        recipe["gigaam_checkpoint_sha256"] = runtime.digest(Path(runtime.CKPT))
     if args.sglang_url:
         recipe["backend"] = "sglang-0.5.21-qwen-input-embeds"
         recipe["sglang_adapter_sha256"] = runtime.digest(Path(sglang_client.__file__))
@@ -118,7 +127,7 @@ def main():
             wave, rate = sf.read(audio, start=start, stop=end, dtype="float32")
             wave = torch.from_numpy(wave.copy())
             assert rate == 16000 and torch.isfinite(wave).all()
-            count = int(gigaam_output_length(torch.tensor(wave.numel()))) // 2
+            count = int(audio_output_length(torch.tensor(wave.numel()))) // 2
             history = []
             for h in segment["history"]:
                 assert h["source_at_seconds"] < segment["start"]
