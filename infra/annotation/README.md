@@ -1291,11 +1291,21 @@ not be cleared as if it were an operator maintenance hold. Diagnostics:
 ### Перенос старых inspection-снимков на второй MinIO, 15.10.2026
 
 `minio-analytics-tier.json` задаёт стандартное lifecycle-правило для
-`speech-datasets/analytics/tables/`: переход в `ANNOTATION-OVERFLOW` с `Days: 1`.
-Удаления и expiration нет. MinIO применяет правило асинхронно своим scanner;
-возраст округляется по правилам S3 lifecycle, поэтому освобождение места не
-мгновенное. Указатели `analytics/latest.json`, входные manifests, аудио и
+`speech-datasets/analytics/tables/`: переход в `ANNOTATION-OVERFLOW` с `Days: 0`
+(первоначально использовался `Days: 1`; нулевой срок подтверждён 15.10 в 16:40 UTC).
+Удаления и expiration нет. MinIO применяет правило своим scanner.
+Для ненулевого возраста действует округление S3 lifecycle. Сам перенос
+асинхронный, поэтому освобождение места не мгновенное. Указатели
+`analytics/latest.json`, входные manifests, аудио и
 бенчмарки этим правилом не затронуты.
+
+При `Days: 0` текущий MinIO в ответе GET lifecycle опускает поле Days;
+StorageClass без Date/Days соответствует тому же нулевому transition, который
+проверен на synthetic canary. Не считать отсутствие поля расхождением с JSON.
+Перед изменением измерено около 85 GB ещё не перенесённых current Parquet при
+более 500 GiB свободного места на destination. Для `reviews/` оставлен `Days: 1`:
+в этом префиксе существенно больше данных. Проверять оба диска по `df`, а не
+считать логический размер S3 равным физическому освобождению.
 
 Tier использует уже существующий второй MinIO на drive1, bucket
 `speech-annotation-archive`, prefix `primary-annotation/`. Его отдельная учётка
