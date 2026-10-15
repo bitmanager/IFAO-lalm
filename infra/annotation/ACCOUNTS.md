@@ -20,7 +20,7 @@
 | agy-07 | mohammed738255602@gmail.com | Google AI Ultra | Первоначально скопирована действующая авторизация с хоста; см. README | Да | 3, пробное повышение 15.10 после часа без сбоев генерации |
 | agy-08 | vipukuma369@gmail.com | Google AI Ultra | Импорт предоставленного refresh token, 13.10.2026 | Да | 20 |
 | agy-09 | wszbit@gmail.com | Antigravity Starter (ранее Ultra; paidTier API 15.10.2026, 16:55–16:58 UTC, подтверждено также 15/20/22) | Импорт предоставленного refresh token, 13.10.2026 | Да | 20, квотная пауза |
-| agy-10 | lenguyen020180@gmail.com | Google AI Ultra | Импорт предоставленного refresh token, 13.10.2026 | Да | 20 |
+| agy-10 | lenguyen020180@gmail.com | Google AI Ultra | Импорт предоставленного refresh token, 13.10.2026 | Да | 5, интервал 1 с; временно после auth/startup timeout 15.10.2026; CLI5/API8 |
 | agy-11 | kaisanxuatvideo@gmail.com | Google AI Ultra (восстановлен по API 15.10.2026, 14:45 UTC; временно Starter в14:33) | Импорт предоставленного refresh token, 13.10.2026; копия в agy-19 | Да | 11 и19 — по10, CLI5/API5 |
 | agy-12 | chinmayimorris27491@gmail.com | Google AI Ultra | Импорт предоставленного refresh token, 13.10.2026; копия в agy-13 | Да | 10, временно после повторных startup auth timeout; копия 13 — 20 |
 | agy-23 | kyanh4927@gmail.com | Antigravity Starter (ранее Ultra; API 15.10.2026) | Импорт предоставленного refresh token, 14.10.2026; копии в agy-24/25 | Да | 2, пробное восстановление 15.10; копии 24 — 5, 25 — 20 |
@@ -1080,3 +1080,14 @@ S3: `diagnostics/native-oauth-refresh-20261015/agy13-canary-0d2984bcb0eec08b7768
 К 17:22 UTC после release получены 219 native и 29 CLI результатов без ошибок,
 ещё пять попыток выполнялись; лимиты 20/0.2, enabled=true, blocked_reason=null.
 S3: `diagnostics/native-oauth-refresh-20261015/agy13-post-ramp-5e0c94e1504c34f84be60822929fdd5670c54e296cda598e976297d40582b0c5.json`.
+
+### Восстановление agy-10 — 15.10.2026, 19:32 UTC
+
+После zero-turn `authentication failed or timed out` слот был отключён. Свежий
+`/usage` подтвердил Ultra, отдельный `agy models` подтвердил доступ к Flash без
+генерации. Возобновлена выдача новых заданий; четыре результата проверены по
+исходному CLI stream, модели, SHA аудио, промпту, контракту и сохранённому тексту.
+Временно установлен DB concurrency=5 и интервал 1 с вместо 20 / 0.2 с из-за
+долгих startup/catalog ошибок. Текущая транспортная пауза сохранена; исходный
+неудачный job остаётся NEEDS_REVIEW без повторного запуска. Воркер не перезапускался.
+Протокол: `speech-datasets/diagnostics/auth-recovery-20261015/agy10-2529c92b19a676172c02e04050af84425d789a38695a0f40967af8c9e5f69620.json`.
