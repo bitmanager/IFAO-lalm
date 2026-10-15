@@ -1510,3 +1510,23 @@ worker-код; CLI остаётся pinned 1.3.4. Проверочные зад�
 Проверка pending_work заняла 14 ms; запас ограничен PREPARE_MAX_PENDING=6000.
 Редкие поступления в предыдущем окне не означали остановку ingest:
 при большом запасе preparer штатно ждёт, а затем продолжает выпуск.
+
+
+### Схема identity indexes, 15.10.2026, 20:47 UTC
+
+В schema.sql сохранены три уже существующих производственных индекса:
+`jobs_audio_identity`, `jobs_conversation_identity` и частичный уникальный
+`precision_v1_audio_pass_model_uq`. Первые два используются split guard
+(живой EXPLAIN ANALYZE: 0.219 ms), третий запрещает повторную обработку
+одного audio/pass/model в текущем precision-прогоне, включая другой
+conversation_id и явное указание модели по умолчанию. Рабочие индексы
+подтверждены valid/ready; DDL на production не выполнялся.
+
+Полная схема проверена в изолированной транзакции: два дубля отклонены,
+четыре независимых контроля (другой pass, model, audio, исторический pilot)
+приняты. Транзакция откачена, тестовая схема отсутствует. Main и frozen
+копии schema.sql синхронизированы после проверки исходного SHA256;
+backup — runtime/backups/schema-identity-20261015. Новый SHA256:
+`9de926ea71a0bc73af6a08ce81c666d253a6e6e6ea49d5281f9c75dbd649f9d8`.
+Доказательство:
+`speech-datasets/diagnostics/queue-contention-20261015/schema-identity-d37183836ea32ba564dea3f9d736b51e59dec0ad4d632d43d598b5d6f08e0d9d.json`.

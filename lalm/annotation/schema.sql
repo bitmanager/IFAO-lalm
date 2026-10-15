@@ -27,6 +27,15 @@ CREATE TABLE IF NOT EXISTS jobs (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS jobs_queue ON jobs(state,next_attempt_at,created_at);
+-- Keep clean installs aligned with the existing production identity guards.
+CREATE INDEX IF NOT EXISTS jobs_conversation_identity
+  ON jobs ((sample->>'conversation_id'));
+CREATE INDEX IF NOT EXISTS jobs_audio_identity
+  ON jobs ((sample->>'audio_sha256'));
+CREATE UNIQUE INDEX IF NOT EXISTS precision_v1_audio_pass_model_uq
+  ON jobs ((sample->>'audio_sha256'), (sample->>'prompt_variant'),
+           COALESCE(sample->>'annotation_model', 'gemini-3.8-flash-low'))
+  WHERE sample->>'pilot_id' LIKE 'precision-ru-triad-v1-%';
 -- Frequent state changes need cleanup before the global 20% threshold is met.
 ALTER TABLE jobs SET (autovacuum_vacuum_scale_factor=0.02,
                      autovacuum_vacuum_threshold=1000);
