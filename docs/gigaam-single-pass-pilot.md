@@ -78,3 +78,33 @@ Other existing catalog evidence identifies these candidates:
 This discovery does not enqueue restricted sources or promote single-pass
 matches to clean labels. The current high-precision flow remains in place
 pending an exact audio join and a separate quality comparison of the CTC layer.
+
+### Saved SOVA CTC comparison, 2026-10-15 01:35:52 UTC
+
+All 81,607 source-linked CTC rows were extracted using Parquet column reads;
+no audio was retranscribed. The separate diagnostic artifact is
+`speech-datasets/diagnostics/gigaam-ctc-sova-20261015/cc693e4862f452a2d7a56f586b28acec3e38e578a5ad89302a958d84d2f5aedd.parquet`.
+Its filename is its SHA256. Original SOVA labels were retained unchanged.
+
+`scripts/analyze_gigaam_ctc_saved.py` compares saved
+`precision-ru-triad-v1%` passes against the exact source Parquet key and row.
+The query is read-only and sends no model requests.
+
+| Measure | Count |
+| --- | ---: |
+| Source-linked examples with first Gemini text | 4,121 |
+| Russian, uncertainty-free first Gemini text matches CTC | 2,161 |
+| Those with an independent second text | 2,115 |
+| Independent second text disagrees | 257 (12.2%) |
+| Those with all three texts | 2,096 |
+| All three agree | 1,682 (80.2%) |
+
+The query saw 11,820 saved pass rows, including 115 from a separate server
+pilot that could not be joined to this source locator scheme. None of the
+joined prepared-audio SHA256 values equalled the CTC layer's encoded-audio
+SHA256. Therefore these figures describe **source-locator matches**, not a
+verified full-waveform cohort. Re-encoding or segmentation needs explicit
+validation before this can become an admission rule. The evaluated examples
+are also a selected subset, not a random SOVA sample. These are agreement
+statistics, not human-gold accuracy. The result does not justify automatically
+publishing half the queue under a one-pass rule.

@@ -851,7 +851,10 @@ minutes without API failures, was returned to 70% after an HTTP-200 JSON decode
 failure and a post-dispatch disconnect. Both uncertain attempts remain for review.
 Overflow still takes the CLI route. Both changes used a pause of new claims and a
 complete in-flight drain before recreation. The worker enforces a hard ceiling
-of eight; AGY-12 retains an eight-call pilot and other accounts remain at five. HTTP 429 and server failures suspend that
+of eight; all deployed accounts now use five. AGY-12's eight-call pilot was
+returned to five on 15 October after three fresh post-dispatch
+`RemoteDisconnected` artifacts. Its pending work was drained and the existing
+error cooldown preserved during recreation. HTTP 429 and server failures suspend that
 account's API route and new jobs fall back to CLI.
 AGY-06 and AGY-14 were then added as 20%-capped pilots after adaptive
 six-audio canaries (12/12 and 14/14 valid generation responses respectively)
@@ -893,7 +896,7 @@ API share must be read from `native_api_saved_5m / saved_5m`: route percentages
 are caps, and API cooldowns or the concurrency semaphore can lower the actual
 share. HTTP/server and ambiguous transport failures still suspend an affected
 account's API route while CLI continues.
-AGY-12 pilots eight simultaneous API calls with a 100% selection cap; AGY-16
+AGY-12 has five simultaneous API calls with a 100% selection cap; AGY-16
 has a 70% selection cap with five simultaneous calls. AGY-21 briefly piloted
 eight calls and a 100% cap, then returned to five and 60% after five concurrent
 post-dispatch disconnections. The uncertain results were quarantined. At 21:15 UTC,
