@@ -1026,7 +1026,7 @@ Hold19 в15:07:13 UTC; RUNNING0/AGY0/новых ошибок0, restart толь�
 Release15:10:02 UTC, всё ещё concurrency1. К15:12:35 —20 native ответов
 без ошибок, первые четыре прошли сверку raw/версии/SHA/контракта.
 В15:13:38 пределы восстановлены до10/0.2 без сброса next_request_at.
-Исправление OAuth загружено только19; автоматическое срабатывание на
+На момент 15:13 исправление OAuth загружено только19; автоматическое срабатывание на
 следующем реальном истечении ещё не наблюдалось. S3:
 `diagnostics/native-oauth-refresh-20261015/agy19-d78d7d25f4c3fd51f3ae36b1b76df922e6f2392917aec8724f7c5e6f2857c217.json`;
 `diagnostics/subscription-audit-20261015/restored-final-5078fd32c591a1fa5bfac615ae54d3a42b2f9c06630f40cf3d4bb727de0e0e95.json`.
@@ -1057,3 +1057,23 @@ Ultra. На 06 первый paidTier discovery получил HTTP 500, повт
 Малый отображаемый остаток при прежнем окне сброса не трактовался как новый
 бюджет и не отменял серверную Individual quota pause.
 S3: `analytics/usage/history/2026/10/15/170018-c0efc2cb1592.json`.
+
+## Обновление worker 13, 15.10.2026, 17:05–17:14 UTC
+
+Перед обслуживанием подтверждены 308 успешных native попыток, начатых после
+последнего native сбоя 16:41:32 UTC. Установлен точный 15-минутный hold,
+дождались RUNNING=0 и AGY=0; новых blocking errors во время drain не было.
+Перезапущен только контейнер 13, StartedAt=17:10:11 UTC. Загружен тот же worker
+SHA `a9380b57bdc6d874960c4512c660973232ae721a6e0a86fb212ec3adc131e283`,
+ранее проверенный на 19: адаптивная сетевая пауза и predispatch OAuth refresh.
+Очередь, модель, CLI binary и профиль авторизации не менялись.
+
+В 17:10:53 собственный hold снят при concurrency=1/min_interval=1. Первые четыре
+штатных native результата сверены с raw response: строгая версия модели,
+один HTTP/ноль повторов, совпадение текста, contract и audio SHA; ошибок нет.
+В 17:14 восстановлены concurrency=20/min_interval=0.2. Текущий next_request_at
+не менялся при увеличении лимита, in-process API guard не сбрасывался повторно.
+CLI/API пределы остались 5/8. OAuth-исправление теперь загружено на 13 и 19;
+срабатывание при реальном expiry на 13 ещё не наблюдалось.
+S3: `diagnostics/native-oauth-refresh-20261015/agy13-canary-0d2984bcb0eec08b77689b24c5221d564a34f76f1cec06ecd63aa0faf8a98f2d.json`;
+`diagnostics/native-oauth-refresh-20261015/agy13-restored-99c6d5d6dddf5a2325403f369addbd0900f25d13b4324e187cc14f94ffbc9d47.json`.
