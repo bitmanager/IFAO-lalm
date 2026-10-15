@@ -26,6 +26,9 @@ def publish_snapshots():
     tables = {}
     with connect() as conn, tempfile.TemporaryDirectory(prefix='speech-snapshot-') as temp:
         conn.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY')
+        # Wide inspection aggregates spill heavily with PostgreSQL's 4 MB default.
+        # Scope this budget to this export, preserving worker connection settings.
+        conn.execute("SET LOCAL work_mem = '512MB'")
         stamp = conn.execute('SELECT transaction_timestamp() AS stamp').fetchone()['stamp'].isoformat()
         for name, view in TABLES.items():
             path = Path(temp)/(name+'.parquet')
