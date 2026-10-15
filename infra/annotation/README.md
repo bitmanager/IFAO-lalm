@@ -1618,3 +1618,11 @@ review-only ответов без ошибок; два задания выпол
 sample rejection, не доказательство причины всех неполных ответов или VPN-сбоя.
 Доказательство:
 `speech-datasets/diagnostics/native-incomplete-20261015/agy03-classification-80acacf14c429a6bbef63ee46872aaa8a6e900939c6a11a9eb85d4d877add1fd.json`.
+
+Более поздний сбой 03 в 21:43:47 UTC имеет другую причину: `RemoteDisconnected`
+после 15.123 s, HTTP-ответа нет, один вызов inference и ноль auto retries.
+Это неоднозначно завершившаяся генерация: задание остаётся в карантине,
+действующий native cooldown сохранён, обновление воркера отложено. CLI продолжает
+работать. Не следует переносить диагноз `OTHER` на этот сетевой случай.
+Доказательство:
+`speech-datasets/diagnostics/native-incomplete-20261015/agy03-route-f228a377ad04cbab173a983f8a313d390b6297ad5379702cbf4d5cdbec0ba008.json`.
