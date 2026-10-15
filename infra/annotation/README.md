@@ -1700,3 +1700,22 @@ This is a pilot of dialogue-preserving **segmentation**, not whole-call
 contextual annotation: current windows remain at most 20 seconds, with up to
 0.5 seconds overlap. Full-call recognition and aligned source correction need
 separate validation before expanding this path.
+
+The first Meteor/HashTesh pilot used 12 calls (1,519.704 seconds of original
+stereo recordings) and produced 164 distinct windows. Scheduled Airflow ingest
+imported all 164 at 22:51:38 UTC on 15 October. All completed with one queue
+attempt: 109 native API results and 55 CLI results, all using
+`gemini-3.8-flash-low`. Full raw-response audit verified model, schema, prompt
+contract, encoded-audio identity and exact agreement with stored output for
+every result. There are 160 nonempty Russian transcripts, four empty results
+and 19 results reporting uncertainty (these categories may overlap). None is
+human-verified or a training release; recognition accuracy is not established.
+The 3,076.688 seconds summed over windows include both channels and overlaps
+and must not be reported as unique call duration.
+
+Manifest: `incoming/e2e269ca978e67102173d8bfb5433d384921b3f4492051f1374b84fcf88c780c.jsonl`.
+Raw audit:
+`speech-datasets/diagnostics/organization-calls-20261015/pilot-raw-audit-1d5474959e948f0ea233cc469fa5263602fa0fbfd1a19be9d59c83e7acec2e3a.json`.
+Three native results use the legacy contract that did not bind the generation
+budget; their raw completed responses were still independently validated.
+All other native results explicitly record the 8,192-token configuration.
