@@ -1077,6 +1077,44 @@ completed audio read, without web-tool events. Its API route also resumed.
 Readback metadata is in
 `evaluation/no-web-hook-probe-20261015/agy-25/production-pilot-first-readback.json`.
 
+### Global CLI tool policy, 2026-10-15 04:39 UTC
+
+The installed CLI customization guide also documents global discovery at
+`~/.gemini/config/`. A separate public-query probe on AGY-07 verified the same
+`hooks.json` policy from this global location, with no workspace hook: an actual
+`search_web` attempt became ERROR with the denial reason, and no search became
+DONE. Evidence is stored under
+`evaluation/no-web-global-hook-probe-20261015/agy-07/043551-10f8ee1e/`.
+
+The global policy was then installed on all 17 active slots at 04:39:17–18 UTC.
+No worker was restarted, no inference was interrupted, and API traffic caps
+and cooldowns were unchanged. It applies to new CLI sessions; already-running
+sessions retain their earlier configuration. The profile installation report
+is retained in the private runtime directory and S3 evaluation evidence.
+
+`python -m lalm.annotation.cli_hooks` installs the stock global configuration.
+It preserves unrelated named hooks, privately backs up an existing file before
+merging, refuses a conflicting audio hook, and writes atomically. Eight hook
+tests cover idempotence, executable denial, preserved owner hooks, invalid or
+conflicting configuration, failed replacement and concurrent file creation;
+all eight plus the 26 worker tests passed in the actual worker image.
+
+New worker starts install/check the same global policy before claiming jobs.
+CLI request metadata recognizes the global policy hash; the earlier two-slot
+workspace policy remains a fallback. Already-loaded older workers do not gain
+that metadata field without restart, so use the timestamped fleet installation
+record to identify their global policy. Missing request metadata alone does
+not mean the profile lacks its verified global configuration.
+The immutable installation report is
+`evaluation/no-web-global-hook-probe-20261015/fleet/install-2bd1fef537fe749b92893bf0af887e456670593556f8fb09bf46e93b808797a7.json`.
+At 04:41:54 UTC, a fresh completed CLI job from every active slot was read
+back using the actual worker parser. All seventeen input hashes and raw
+transcripts matched their saved records, and all passed the existing strict
+audio-only validator. This establishes initial fleet compatibility; the
+public diagnostic remains the direct evidence of a denied search attempt.
+The metadata-only readback is stored alongside the installation report as
+`production-first-readback.json`.
+
 ### Native response-object prompt investigation, 2026-10-15
 
 A metadata-only audit of twelve recent `native_schema_keys` responses found

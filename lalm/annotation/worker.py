@@ -18,7 +18,7 @@ from .contract import CONTRACT_SHA, MODEL, SCHEMA, prompt, contract_sha, source_
 from .queue import claim, finish
 from .store import bucket, s3
 from .native_auth import repair_trailing_auth
-from .cli_hooks import install_cli_hooks
+from .cli_hooks import install_cli_hooks, install_global_cli_hooks
 
 STOP = threading.Event()
 AUTH_PROBE_LOCK = threading.Lock()
@@ -483,6 +483,8 @@ def main():
     for signum in (signal.SIGINT, signal.SIGTERM):
         signal.signal(signum, lambda *_: STOP.set())
     account = os.environ['ACCOUNT_ID']
+    print(json.dumps({'event': 'cli_global_tool_policy', 'account': account,
+                      **install_global_cli_hooks()}), flush=True)
     if account == 'agy-03' and os.environ.get('NATIVE_SHADOW_ENABLED', 'true') == 'true':
         from .native_shadow_queue import loop as shadow_loop
         threading.Thread(target=shadow_loop, args=(STOP,), daemon=True,
