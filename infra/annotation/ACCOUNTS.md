@@ -694,3 +694,23 @@ no retry, текст/контракт совпадают с DB. CLI-процес
 6 rejected_failed_pass. Это кандидаты без human verification, не измерение
 precision. S3:
 `diagnostics/input-conservation-20261015/triad-1123-final-b26662ddde2ebddd6480d9d5e8e01617fadb0ec8ea08ecab1ce18c619d9db376.json`.
+
+### 21: budget8192 + CLI5/API8 — 15.10.2026, 12:11 UTC
+
+Перед обновлением подтверждён MAX_TOKENS в native raw: 1964 thinking +80
+answer tokens, total2404; старый процесс ещё использовал прежний бюджет.
+Есть новый успешный native-запрос после ошибки 12:08:26 UTC. Hold установлен
+12:09:42 UTC; после RUNNING=0, AGY-процессов=0, новых ошибок=0 пересоздан
+только 21. Release 12:11:59.761128 UTC. DB concurrency20/min_interval0.2
+сохранены, подтверждены CLI cap5/API cap8/percent100/max100/budget8192.
+
+В 12:13:05 UTC: 92 сохранённых ответа, 80 API; ошибок API/expired leases нет,
+один CLI native_result_rejected. Первые четыре raw API: complete, one HTTP,
+no retry, budget8192, тексты/контракты совпадают с DB. CLI-процессы 5/5/5.
+S3: `diagnostics/cli5-api8-canary-20261015/agy21-33ed590d364b71f65d2ef5cc6f5b3889965bff96b00d4c00ecf8f6e6cce22ac6.json`.
+
+Первый полный интервал 19 [12:05:16.943831,12:10:16.943831) UTC:
+216 сохранённых ответов, 176 API; один CLI reject, ошибок API нет.
+До hold было 95/5min, 19 API; это наблюдение, не изолированная причинная
+оценка ускорения. S3:
+`diagnostics/cli5-api5-canary-20261015/five-minute-63ea7ff9ab2bfdec7557e8a14015227b4af81558961c98e96049556127b9315c.json`.
