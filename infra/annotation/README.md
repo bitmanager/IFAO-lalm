@@ -1179,5 +1179,18 @@ tests passed in the actual worker environment. AGY-12 alone was restarted
 after draining; its prior native API cooldown had already expired. It resumed
 at 04:12:30 UTC with its existing 100% selection cap and five-call semaphore.
 At 04:12:52 UTC, fifteen new saved responses identified `result_object_v1`.
-Other workers retain their already-loaded native module; no traffic cap was
-increased as part of this prompt trial. Future restarts load the current source.
+At that point, other workers retained their already-loaded native module; no
+traffic cap was increased. Future restarts load the current source.
+
+At 06:13:46 UTC, AGY-08 resumed with the same result-object prompt. Its preceding
+30-minute window contained 865 native outcomes: five schema-echo rejections and
+one HTTP-200 JSON decoding rejection, with no consecutive failure pair. All
+running jobs drained before recreation; no new API failure occurred during the
+drain. The last old CLI job remained review-only after a contract rejection and
+was not replayed. Compose bytes, worker concurrency 20, native selection 70/70
+and the five-call semaphore were unchanged. At 06:14:44 UTC, 55 new attempts had
+completed without errors. The first four native results passed strict response
+validation; their input hashes, raw/saved text and contract hashes matched, with
+one HTTP attempt and no retries each. This short readback does not establish
+long-term reliability or transcript accuracy. Metadata-only evidence:
+`speech-datasets/diagnostics/native-result-object-prompt-20261015/agy08-544ea175ff294ca046abeef9869f2a339fbcabf516cc314b285ffb196336a0e1.json`.
