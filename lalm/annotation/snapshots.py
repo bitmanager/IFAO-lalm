@@ -62,15 +62,16 @@ def _write_view(conn, view, name, path):
         cursor.execute('SELECT * FROM '+view)
         rows = cursor.fetchmany(10000)
         schema = pa.schema([(d.name, arrow_type(d.type_code)) for d in cursor.description])
+        string_fields = [field.name for field in schema if pa.types.is_string(field.type)]
         count = 0
         with pq.ParquetWriter(path, schema, compression='zstd') as writer:
             while rows:
                 for row in rows:
-                    for field in schema:
-                        value = row[field.name]
-                        if value is not None and pa.types.is_string(field.type):
-                            row[field.name] = (json.dumps(value, ensure_ascii=False, sort_keys=True)
-                                              if isinstance(value, (dict, list)) else str(value))
+                    for field in string_fields:
+                        value = row[field]
+                        if value is not None:
+                            row[field] = (json.dumps(value, ensure_ascii=False, sort_keys=True)
+                                          if isinstance(value, (dict, list)) else str(value))
                 writer.write_table(pa.Table.from_pylist(rows, schema=schema))
                 count += len(rows)
                 rows = cursor.fetchmany(10000)

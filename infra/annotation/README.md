@@ -1671,6 +1671,15 @@ all five file SHA256 values, all footer counts, conservation of pass/text counts
 across examples and progress, and zero human-verified examples. Evidence:
 `speech-datasets/diagnostics/inspection-duckdb-20261015/first-live-v2-51c3d78ba988aac7fd12d17f97607ab4bc0c9ef1b13b556536a16ac3d77c335c.json`.
 
+The view writer now resolves Arrow string-column names once per view rather
+than inspecting Arrow field objects for every cell. Three paired runs over
+10,000 real pass rows produced byte-identical Parquet files. Warm preparation
+and writing took 0.20–0.21 seconds instead of 0.35–0.36 seconds; database reading
+and S3 upload are excluded. All four snapshot tests passed in the actual
+scheduler environment before deployment. This does not establish a speedup
+for the complete export. Benchmark evidence:
+`speech-datasets/diagnostics/inspection-serialization-20261015/benchmark-c09aac9a75d77833dbcf5907e973210d26cd2be4f5758c563ea73046f16b2b69.json`.
+
 ### Native organization-call pilot
 
 `lalm.annotation.organization_calls` stages a bounded pilot (at most 12 calls)
@@ -1719,3 +1728,11 @@ Raw audit:
 Three native results use the legacy contract that did not bind the generation
 budget; their raw completed responses were still independently validated.
 All other native results explicitly record the 8,192-token configuration.
+
+The subsequent 23:08:25 UTC inspection snapshot contains all 164 completed
+pilot passes and examples. Every cohort field matched the live read-only
+views, including text, hashes, provenance, errors and review flags; the
+progress table retained four empty results and zero human approvals. Pass
+and example checks used ETag-pinned range reads, not full-object SHA256
+readbacks; the smaller progress object was fully checksum-verified. Evidence:
+`speech-datasets/diagnostics/organization-calls-20261015/pilot-parquet-dbfbbc66886c91ab4cc9753b852057f77d010eef27fdf2a697868b9a1f8e6dfe.json`.
