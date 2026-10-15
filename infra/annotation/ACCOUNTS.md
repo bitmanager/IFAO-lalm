@@ -782,3 +782,27 @@ CLI15962/508(3.183%); после исключения predispatch CLI314/15768(1
 взвешенные доли неуспеха0.627%/3.035%. Это наблюдение эксплуатации, не
 paired ASR quality benchmark; паузы влияют на общий темп отдельно.
 S3: `diagnostics/api-cli-reliability-20261015/9baf27b699472b9bc7a1d0dced68e3cbe5a7895cead465a2cb58940497418b3b.json`.
+
+### 05 включён, 10 подготовлен — 15.10.2026, 12:55 UTC
+
+Read-only loadCodeAssist 05/10: HTTP200, project найден, 4.83s/3.65s.
+Whitelist/config подготовлены для обоих (0ad2dbc), 48 тестов прошли.
+Worker SHA256 `4696188d84393a8e7aad4e63eac7eadbfb5370708bdd4907a62aa612d22835fe`.
+**10 пока не переключён**, текущий контейнер/compose 10 не менялись.
+
+05: hold12:52:29 UTC, RUNNING=0/AGY-процессов=0/новых ошибок=0,
+пересоздан только 05; release12:54:37.609023 UTC. DB concurrency20/
+min_interval0.2 сохранены; CLI cap5/API cap8/percent100/max100 подтверждены.
+К12:55:28 UTC 24 сохранённых ответа, все API; первые четыре complete/
+one HTTP/no retry/budget8192, тексты/контракты совпали. CLI-процессы5/5/5/4.
+Два RemoteDisconnected в12:55:14 UTC и один HTTP200 без candidates
+в12:55:22 UTC; ни один не повторён. Guard API ориентировочно до13:05 UTC,
+CLI продолжает работать. S3:
+`diagnostics/cli5-api8-canary-20261015/agy05-2d81598f8e5c6114029e3350b9e02612bd4b3b3e628821ff1238b596b327e89d.json`.
+
+14 за первый полный интервал [12:47:47.141244,12:52:47.141244) UTC:
+436 сохранённых ответов, 372 API, ошибок нет. S3:
+`diagnostics/cli5-api8-canary-20261015/agy14-five-minute-7e76c0cc98fc8efea2a6de7caca83e5eea2682f1d8a61ef16fc4a0853c895d6b.json`.
+Usage всех14 рабочих слотов12:50–12:51 UTC получен, cleanup_confirmed=true;
+новых исчерпаний нет. Минимальный недельный остаток08/14≈14.8%.
+S3: `analytics/usage/history/2026/10/15/125304-544abf44f713.json`.
