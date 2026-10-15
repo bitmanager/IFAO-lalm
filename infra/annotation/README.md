@@ -809,6 +809,11 @@ model filtering and `FOR UPDATE SKIP LOCKED`, changed from scanning/sorting
 These are individual query-plan measurements, not an overall throughput claim.
 Private plans are saved in `speech-datasets/diagnostics/claim-fifo-plan-20261015/`.
 
+Recent attempt diagnostics use `attempts_started_at(started_at)`. Existing
+databases should also build this index with `CREATE INDEX CONCURRENTLY` outside
+a transaction, so monitoring does not scan the full attempt history or block
+worker writes. Check `pg_index.indisvalid` before treating the build as complete.
+
 The `annotation_ops_monitor` Airflow DAG runs every five minutes and publishes a
 compact, transcript-free snapshot to
 `s3://speech-datasets/analytics/ops/latest.json`; timestamped history is stored

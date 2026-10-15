@@ -44,6 +44,8 @@ CREATE TABLE IF NOT EXISTS attempts (
   error_code text,
   PRIMARY KEY(job_id,attempt)
 );
+-- Recent fleet/transport diagnostics should not scan the entire attempt history.
+CREATE INDEX IF NOT EXISTS attempts_started_at ON attempts(started_at);
 CREATE TABLE IF NOT EXISTS publications (
   id text PRIMARY KEY,
   manifest_key text NOT NULL,
