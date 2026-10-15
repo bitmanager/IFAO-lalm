@@ -1251,3 +1251,14 @@ Slot 25 was briefly held during investigation. A real provider quota cooldown
 subsequently superseded that hold across shared-quota slots 23/24/25; it must
 not be cleared as if it were an operator maintenance hold. Diagnostics:
 `speech-datasets/diagnostics/rate-limit-retry-incident-20261015/guard-bfaa8e3526f9433668b3ca9a99751ce6363b0278fe4efe2de9e3c5d70c25ba54.json`.
+
+### Повторное обслуживание истории CLI, 15.10.2026, 07:55–08:00 UTC
+
+На работающих слотах обнаружены WAL 8.23 GB (08), 9.35 GB (21) и 4.62 GB (14); большой WAL сам по себе не доказывает сбой. По одному обслужены 08 и 21: точный maintenance hold, полный drain, проверка отсутствия AGY-процессов внутри `cli_history`, архивирование разрешённых файлов и проверка неизменности профиля. Контейнеры не перезапускались, внутренние API backoff не сбрасывались. Слот 14 пока не обслужен.
+
+- 08: архив `20261015T075528Z-d5406ce5`, 10 элементов; приём заданий возобновлён в 07:56:08 UTC. После возобновления активный WAL 6.13 MB, protobuf 97 KB.
+- 21: архив `20261015T075910Z-b2b0e96e`, 13 элементов; приём возобновлён в 07:59:37 UTC. После возобновления WAL 1.55 MB, protobuf 19 KB.
+
+Для каждого слота три новых штатных CLI-ответа повторно проверены строгим парсером: текст, SHA256 аудио и контракт совпали с сохранёнными результатами. Проверка не отправляла модельных запросов. Отчёты: `speech-datasets/diagnostics/cli-history-20261015/agy08-post-0756-65fe72ea86674f9ed33231d3b34b54c630199337012be4333bb4fe86e4b2dab4.json` и `agy21-post-0759-545172c94460954d4c720b729f0b08e6b65aec30b8dfd322033cb98ee5590b0d.json`.
+
+Отдельный HTTP 502 на 21 в 07:43:47 UTC остался в NEEDS_REVIEW, attempt=1. Защитная пауза API истекла без операторского сброса; первые новые native API результаты появились в 07:54 UTC. До этого CLI сохранил 536 результатов.
