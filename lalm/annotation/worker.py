@@ -15,7 +15,7 @@ import wave
 
 from lalm.benchmark_langfuse_asr import agy_result, zero_user_audio
 from .contract import CONTRACT_SHA, MODEL, SCHEMA, prompt, contract_sha, source_text, digest, normalize_language, sample_model
-from .queue import claim, finish
+from .queue import claim, finish, renew_lease
 from .store import bucket, s3
 from .native_auth import repair_trailing_auth
 from .cli_hooks import install_cli_hooks, install_global_cli_hooks
@@ -35,6 +35,8 @@ def native_api_concurrency():
 
 
 NATIVE_API_SLOTS = threading.BoundedSemaphore(native_api_concurrency())
+CLI_SLOTS = threading.BoundedSemaphore(
+    min(64, max(1, int(os.environ.get('AGY_CLI_CONCURRENCY', '64')))))
 NATIVE_API_BASE_PERCENT = {'agy-03': 50, 'agy-06': 20, 'agy-08': 70,
                            'agy-12': 50, 'agy-13': 50, 'agy-16': 35,
                            'agy-18': 20, 'agy-19': 20,
@@ -227,7 +229,21 @@ def agy_env():
         'SSL_CERT_FILE', 'SSL_CERT_DIR'}}
 
 
-def run_agy(audio, workspace, variant="verbatim", reference=None, model=MODEL):
+def run_agy(audio, workspace, variant="verbatim", reference=None, model=MODEL, job=None):
+    # Separate transport limits keep CLI fallback from consuming the whole slot.
+    # Waiting here has not dispatched audio and does not create another attempt.
+    while not CLI_SLOTS.acquire(timeout=30):
+        if job is not None:
+            renew_lease(job)
+    try:
+        if job is not None:
+            renew_lease(job)
+        return _run_agy(audio, workspace, variant, reference, model)
+    finally:
+        CLI_SLOTS.release()
+
+
+def _run_agy(audio, workspace, variant="verbatim", reference=None, model=MODEL):
     try:
         if repair_trailing_auth():
             print(json.dumps({'event': 'auth_storage_suffix_repaired',
@@ -378,7 +394,7 @@ def process(job):
             return
         tool_policy_sha256 = install_cli_hooks(workspace, os.environ.get('ACCOUNT_ID'))
         started = time.monotonic()
-        rc, stdout, stderr, timed_out = run_agy(audio, workspace, variant, reference, model)
+        rc, stdout, stderr, timed_out = run_agy(audio, workspace, variant, reference, model, job=job)
         elapsed = time.monotonic() - started
         # Preserve the failed startup before one bounded recovery. No init/tool/
         # generation event is allowed; ambiguous inference is never repeated.
@@ -389,7 +405,7 @@ def process(job):
             client.put_object(Bucket=bucket(), Key=f'{prefix}/auth-startup-failure/probe.json',
                               Body=json.dumps({'models_access_ok': recovered}).encode())
             if recovered:
-                rc, stdout, stderr, timed_out = run_agy(audio, workspace, variant, reference, model)
+                rc, stdout, stderr, timed_out = run_agy(audio, workspace, variant, reference, model, job=job)
                 elapsed = time.monotonic() - started
             if not recovered or (not timed_out and predispatch_auth_timeout(stdout, stderr, elapsed)):
                 # A failed read-only probe is inconclusive during a network/auth

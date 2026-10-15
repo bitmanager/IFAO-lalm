@@ -34,6 +34,70 @@ class WorkerErrorTests(unittest.TestCase):
         with patch.dict('os.environ', {'NATIVE_API_CONCURRENCY': '100'}):
             self.assertEqual(native_api_concurrency(), 8)
 
+    def test_cli_limit_bounds_fallback_and_releases_after_failure(self):
+        import concurrent.futures
+        import threading
+        import time
+        from unittest.mock import patch
+        import lalm.annotation.worker as worker
+        lock = threading.Lock()
+        active = peak = 0
+        slots = threading.BoundedSemaphore(2)
+
+        def dispatch(audio, *args):
+            nonlocal active, peak
+            with lock:
+                active += 1
+                peak = max(peak, active)
+            try:
+                time.sleep(.02)
+                if audio == 'bad':
+                    raise OSError('dispatch failed')
+                return audio
+            finally:
+                with lock:
+                    active -= 1
+
+        with patch.object(worker, 'CLI_SLOTS', slots), \
+             patch.object(worker, '_run_agy', side_effect=dispatch):
+            with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
+                futures = [pool.submit(worker.run_agy, audio, '/work')
+                           for audio in ['bad', 'a', 'b', 'c', 'd', 'e']]
+                with self.assertRaises(OSError):
+                    futures[0].result(timeout=2)
+                self.assertEqual([f.result(timeout=2) for f in futures[1:]],
+                                 ['a', 'b', 'c', 'd', 'e'])
+        self.assertEqual(peak, 2)
+        self.assertTrue(slots.acquire(blocking=False))
+        self.assertTrue(slots.acquire(blocking=False))
+        self.assertFalse(slots.acquire(blocking=False))
+        slots.release()
+        slots.release()
+
+    def test_cli_wait_renews_lease_and_stale_work_never_dispatches(self):
+        import threading
+        from unittest.mock import Mock, patch, call
+        import lalm.annotation.worker as worker
+        job = {'id': 'job', 'lease_token': 'lease'}
+        slots = Mock()
+        slots.acquire.side_effect = [False, True]
+        with patch.object(worker, 'CLI_SLOTS', slots), \
+             patch.object(worker, 'renew_lease') as renew, \
+             patch.object(worker, '_run_agy', return_value='ok') as dispatch:
+            self.assertEqual(worker.run_agy('audio', '/work', job=job), 'ok')
+            self.assertEqual(renew.call_args_list, [call(job), call(job)])
+            dispatch.assert_called_once()
+            slots.release.assert_called_once()
+        slots = threading.BoundedSemaphore(1)
+        with patch.object(worker, 'CLI_SLOTS', slots), \
+             patch.object(worker, 'renew_lease', side_effect=RuntimeError('stale_lease')), \
+             patch.object(worker, '_run_agy') as dispatch:
+            with self.assertRaisesRegex(RuntimeError, 'stale_lease'):
+                worker.run_agy('audio', '/work', job=job)
+            dispatch.assert_not_called()
+        self.assertTrue(slots.acquire(blocking=False))
+        slots.release()
+
     def test_native_route_is_bounded_to_review_only_short_flash_audio(self):
         from unittest.mock import patch
         from lalm.annotation.worker import native_api_selected

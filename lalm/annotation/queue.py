@@ -64,6 +64,17 @@ def claim(account):
         return job
 
 
+def renew_lease(job):
+    """Keep locally queued, undispatched work leased to its original attempt."""
+    with connect() as conn:
+        updated = conn.execute(
+            "UPDATE jobs SET lease_until=now()+interval '10 minutes' "
+            "WHERE id=%s AND lease_token=%s AND state='RUNNING' AND lease_until>now() RETURNING id",
+            (job['id'], job['lease_token'])).fetchone()
+        if not updated:
+            raise RuntimeError('stale_lease')
+
+
 def finish(job, state, result=None, error_code=None, retry_seconds=60, block=None):
     with connect() as conn:
         # Use the same lock order as claim to avoid deadlocks.
