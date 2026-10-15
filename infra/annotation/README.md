@@ -1350,14 +1350,28 @@ https://github.com/minio/minio/blob/RELEASE.2025-09-07T16-13-09Z/internal/config
 свободное место drive2 выросло с 199 до 211 GiB; проверять дальнейшую скорость,
 обновление inspection pointer и memory pressure, а не считать перенос законченным.
 
-Из 61 задания с `ambiguous_worker_error` во время просадки шесть восстановлены
-без генерации из полных пар исходных артефактов: повторная строгая проверка
-модели, схемы, контракта, SHA256 аудио и текста. Результаты остались
-`NEEDS_REVIEW`, human gold не выставлялся, новых attempts и публикаций нет.
-Остальные 55 не переотправлялись: отсутствует полная пара артефактов либо не
-прошла штатная строгая проверка. Исходный список ошибок сохранён до изменений;
-receipt восстановления:
-`speech-datasets/diagnostics/storage-tier-20261015/recovery-receipt-de628dd1bc59086c732dc85094ebe1a30a523fa0a11248c29e552e280aa72eba.json`.
+Из 61 задания с `ambiguous_worker_error` восстановлены 32 без новых генераций:
+19 API и 13 CLI. Результаты остались `NEEDS_REVIEW`, human gold не выставлялся,
+новых attempts и публикаций нет. Для API проверены модель, схема, исходный
+контракт, SHA256 аудио и совпадение structured output с текстом; у 12 из них
+полные validated native metadata сохранились, но исходный HTTP response
+отсутствует. Это явно отмечено `recovery_raw_response_available=false`.
+Исторический API-контракт до `374ad79` проверяется без добавления отсутствующего
+в его исходном хеше generation config; записанный контракт не заменяется новым.
+
+Первые шесть восстановлены отдельно. Первая диагностическая попытка ошибочно
+отклонила 13 CLI: образ scheduler содержит старый `agy_result(text,path)`, а
+работающий worker использует параметр `expected_model`. Для повторной проверки
+взят точный worker parser, SHA256
+`3fea624d0c08eebbd36adb8753c2b2be2cfec7b5eb216fa1c990a9ff839ffb2a`, совпавший с
+Git. Проверены записанные prompt, contract, audio SHA, exit code и штатный
+строгий парсер. Время CLI inference не восстанавливается из предположений:
+`inference_seconds=null` для восстановленных CLI. Production parser не менялся.
+
+Остальные 29 не переотправлялись: для 23 есть stream без request.json, для шести
+артефактов нет. Полное соответствие prompt/contract для них не подтверждено.
+Исходный список ошибок сохранён до изменений; итоговый receipt:
+`speech-datasets/diagnostics/storage-tier-20261015/recovery-receipt2-6a444e6fecc0ff5b84bf6e8af31af982abfe83262226f92ae31c48d3cfdc1b86.json`.
 В 16:12 UTC подтверждены scanner `default`, ILM workers `8`, тот же PID MinIO,
 отсутствие OOM kills и нулевое текущее cgroup memory pressure:
 `speech-datasets/diagnostics/storage-tier-20261015/recovery-9138fb43f64d4be132291bdc42eaf6ae874649ceb57b1f8535ab076414d2db7a.json`.
