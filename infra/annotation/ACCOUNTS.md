@@ -869,3 +869,23 @@ UTC; DB concurrency20/min_interval0.2 и CLI5/API8/percent100 сохранены
 **Реальное восстановление после сетевого обрыва по новой схеме ещё не
 наблюдалось**; 60s подтверждены кодом/тестами, а не искусственным сбоем.
 S3: `diagnostics/native-network-backoff-20261015/agy21-0bd55e60e5fc653a119b39f417b2d3f5140dd6efcff8948a021eff18966b09f3.json`.
+
+### Сетевая политика внедрена на 11 — 15.10.2026, 13:26 UTC
+
+Перед остановкой: 1355 успешных native attempts за 30 минут, native ошибок
+за этот интервал нет. Hold13:24:31 UTC; RUNNING=0, AGY-процессов=0,
+новых ошибок нет. Перезапущен только11, release13:26:42.212261 UTC.
+DB concurrency10/min_interval0.2 и CLI5/API5 сохранены; worker SHA совпал
+с 2a46957b1d51204f4572595794b654a337d31bf517115b78f29f1b7ec8e247aa.
+
+К13:27:42 UTC:47 сохранённых ответов,37 API, expired leases=0;
+одна native_incomplete_or_ambiguous_candidate, без повторной отправки.
+Первые четыре native raw complete/one HTTP/no retry, текст/контракт совпали.
+Новая сетевая политика загружена только11/21; реальное восстановление
+после сетевого сбоя по ней пока не наблюдалось.
+S3: `diagnostics/native-network-backoff-20261015/agy11-922ac5011e83738295224b6ec487f038969639bf5f20acf3f4f4fe99691b78ed.json`.
+
+21 за первые полные пять минут после обновления:363 сохранённых ответа,
+301 API; одна CLI eligibility_transport_transient до генерации,
+native ошибок нет. S3:
+`diagnostics/native-network-backoff-20261015/five-minute-8fa8fc4ba67e2efefe13b5af6443c0063f778ca760b8dc1dfb16043824399592.json`.
