@@ -1814,6 +1814,26 @@ and a checkpoint created. All rows remain human-unverified and not released
 for training. Receipt:
 `speech-datasets/diagnostics/contextual-review/0f47e99776a5a1dde46da6e7de50821ca40c472aea12493029759edf9774f3eb.json`.
 
+A second Meteor-only batch was staged on 16 October at 16:29 UTC using the
+same adapter: 12 previously unseen conversations, 2,791 declared seconds,
+301 distinct audio windows. Encoded bytes matched the existing native archive
+inventory. Scheduled Airflow ingest imported all 301 at 16:30:23 UTC.
+Manifest: `incoming/7b81de1c75a102a8fe40a2c3801c47008e535e95f5093ddb8f50afef5976ee5a.jsonl`.
+At 16:31, 252 results were saved (251 Russian review-only, one foreign), four
+failed jobs were quarantined and 45 remained running. This is a partial progress
+observation, not a completed batch or a new history export. Two fresh CLI and
+two API outputs passed raw text/contract/audio checks:
+`speech-datasets/diagnostics/storage-integrity-20261016/fresh-native-cli-91d5b17fd7cb780f38c7dd84818eb78d1d41e95f643f14875f59880c4ef0b271.json`.
+Import/state receipt:
+`speech-datasets/diagnostics/organization-calls-20261016/batch2-import-b79b9330acfd51a4c95a2be81450cf55d32a2d859330725844f9c4d7d89ef0ba.json`.
+
+Native metadata joined against the encoded-audio inventory currently identifies
+2,161 Meteor conversations with audio and source text (2,161 unique encoded
+hashes; 82.812 declared hours). HashTesh has 1,917 such conversation IDs but only
+1,477 encoded hashes, so conversation counts do not measure unique audio there.
+These are candidate inventory statistics, not measured durations or human-gold
+quality estimates. Test/holdout checks remain mandatory during staging.
+
 `lalm.annotation.organization_calls` stages a bounded pilot (at most 12 calls)
 through the existing `incoming/` manifests, prepared-manifest registry and
 Airflow ingest DAG. It reuses the production audio segmentation and queue
