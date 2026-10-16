@@ -1,4 +1,4 @@
-"""Resume in-flight sources, then alternate corpora at source boundaries."""
+"""Prefer verified-reference SOVA, then resume sources and alternate corpora."""
 
 
 def select_source(conn):
@@ -21,7 +21,8 @@ def select_source(conn):
           AND split_part(a.object_key,'/',2) <> 'mtedx-ru'
           AND (split_part(a.object_key,'/',2) <> 'mtedx-ru-hf'
                OR a.object_key ~ '/train-[0-9]+-of-[0-9]+[.]parquet$')
-        ORDER BY (a.state='PREPARING') DESC,
+        ORDER BY (c.corpus='sova-rudevices') DESC,
+                 (a.state='PREPARING') DESC,
                  COALESCE(c.last_served,'epoch'::timestamptz), a.created_at, a.id
         FOR UPDATE OF a SKIP LOCKED LIMIT 1
     """).fetchone()

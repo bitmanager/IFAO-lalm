@@ -147,6 +147,31 @@ class MultiPassContractTests(unittest.TestCase):
 
 
 class PrecisionTriadTests(unittest.TestCase):
+    def test_one_pass_gigaam_requires_exact_reference_russian_and_agreement(self):
+        from lalm.annotation.contract import gigaam_single_pass_decision as decide
+        from lalm.annotation.gigaam_reference import REFERENCE_KEY, REFERENCE_SHA
+        sample = dict(AnnotationContractTests().sample(), source_audio_sha256='b' * 64)
+        ref = {'reference_key': REFERENCE_KEY, 'reference_sha256': REFERENCE_SHA,
+               'full_source_coverage': True, 'prepared_audio_sha256': 'a' * 64,
+               'source_audio_sha256': 'b' * 64, 'model': 'v3_ctc',
+               'weights_sha256': 'a20a9b5b8ed929c4a60141753cd3dd1284138879a46fb4a1cef6430ec019a02f',
+               'text': 'Я не согласен'}
+        sample['source_provenance'] = {'gigaam_reference': ref}
+        first = {'verbatim_text': 'я не согласен.', 'language': 'ru', 'uncertain_spans': []}
+        self.assertEqual(decide(sample, {}), 'waiting_first')
+        self.assertEqual(decide(sample, {'verbatim': first}), 'candidate_gigaam_agreement')
+        self.assertEqual(decide(sample, {'verbatim': dict(first, verbatim_text='я согласен')}),
+                         'rejected_gigaam_disagreement')
+        for bad in (dict(first, language='uk'), dict(first, uncertain_spans=['сомнение']),
+                    dict(first, verbatim_text='[неразборчиво]')):
+            self.assertEqual(decide(sample, {'verbatim': bad}), 'rejected_gigaam_quality')
+        self.assertEqual(decide(sample, {'verbatim': first}, ['я согласен']), 'rejected_prior_conflict')
+        for field, bad in [('source_audio_sha256', 'c' * 64), ('full_source_coverage', False),
+                           ('prepared_audio_sha256', 'c' * 64), ('reference_sha256', 'c' * 64),
+                           ('model', 'unknown'), ('text', '')]:
+            changed = dict(sample, source_provenance={'gigaam_reference': dict(ref, **{field: bad})})
+            self.assertEqual(decide(changed, {'verbatim': first}), 'rejected_gigaam_reference')
+
     def test_russian_gate_and_strict_consensus(self):
         from lalm.annotation.contract import triad_decision
         def result(text='Я умею', language='ru', uncertain=None):

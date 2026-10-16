@@ -18,6 +18,30 @@ def wav(values, rate=16000):
 
 
 class SourcePreparationTests(unittest.TestCase):
+    def test_gigaam_whole_file_label_is_not_attached_to_partial_or_multichannel_audio(self):
+        from types import SimpleNamespace
+        asset = {'id': 'source', 'bucket': 'speech-corpora', 'codec': 'audio', 'bytes': 10, 'etag': 'fixed',
+                 'object_key': 'staging/sova-rudevices/revision/train.parquet', 'cursor_json': {}}
+        for channels, start, end, expected in [(1, 0, 2, True), (1, 0, 1, False),
+                                               (1, 1, 2, False), (2, 0, 2, False)]:
+            with self.subTest(channels=channels, start=start, end=end), \
+                    patch('lalm.annotation.prepare.s3') as client, \
+                    patch('lalm.annotation.prepare.connect') as db, \
+                    patch('lalm.annotation.prepare.audio_rows', return_value=iter([('0', b'raw', 'source text')])), \
+                    patch('lalm.annotation.prepare.gigaam_reference', return_value={'text': 'GigaAM'}), \
+                    patch('lalm.annotation.prepare.sf.info', return_value=SimpleNamespace(channels=channels, duration=2)), \
+                    patch('lalm.annotation.prepare.segments', return_value=iter([(0, start, end, b'prepared')])):
+                client.return_value.get_object.return_value = {'Body': io.BytesIO(
+                    json.dumps({'audio_sha256': [], 'conversation_ids': []}).encode())}
+                db.return_value.__enter__.return_value.execute.return_value.fetchone.return_value = {'n': 0}
+                prepare_asset(asset)
+                manifest = next(call.kwargs['Body'] for call in client.return_value.put_object.call_args_list
+                                if call.kwargs['Key'].startswith('incoming/'))
+                row = json.loads(manifest)
+                self.assertEqual(row.get('annotation_policy') == 'gigaam-single-pass-v1', expected)
+                self.assertEqual('gigaam_reference' in row['source_provenance'], expected)
+                self.assertEqual(row['source_provenance']['original_label'], 'source text')
+
     def test_protected_session_is_excluded_before_audio_download(self):
         session = '089e27e9-89b4-4200-9129-db0813970e2a'
         asset = {'id': 'source', 'codec': 'audio',

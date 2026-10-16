@@ -4,7 +4,8 @@ import json
 from difflib import SequenceMatcher
 from .store import connect, s3, bucket
 from .queue import enqueue
-from .contract import source_text, TRIAD_VERSION, triad_decision
+from .contract import source_text, TRIAD_VERSION, triad_decision, gigaam_single_pass_decision
+from .gigaam_reference import POLICY as GIGAAM_POLICY
 from .inspection import normalized_words
 
 
@@ -72,7 +73,11 @@ def reconcile(max_pilots=200):
             continue  # Historical prompts are immutable evidence; never schedule old passes.
         results = {k: v.get('result') for k, v in passes.items()}
         previous = [r['text'] for r in previous_by_sample.get(sample_id, []) if r['pilot_id'] != pilot]
-        row['decision'] = triad_decision(results, previous)
+        if source.get('annotation_policy') == GIGAAM_POLICY:
+            row['decision'] = gigaam_single_pass_decision(source, results, previous)
+            row['annotation_policy'] = GIGAAM_POLICY
+        else:
+            row['decision'] = triad_decision(results, previous)
         row['human_review_required'] = True
         row['automatic_publication'] = False
         if row['decision'] == 'waiting_remaining':
@@ -101,7 +106,8 @@ def reconcile(max_pilots=200):
         summary = {'pilot_id': pilot, 'samples': len(rows),
                    'paired': sum('normalized_agreement' in r for r in rows),
                    'disagreements': sum(r.get('normalized_agreement') is False for r in rows),
-                   'candidates_3of3': sum(r.get('decision') == 'candidate_3of3' for r in rows)}
+                   'candidates_3of3': sum(r.get('decision') == 'candidate_3of3' for r in rows),
+                   'candidates_gigaam_agreement': sum(r.get('decision') == 'candidate_gigaam_agreement' for r in rows)}
         body = json.dumps({'summary': summary, 'rows': rows}, ensure_ascii=False, sort_keys=True).encode()
         sha = hashlib.sha256(body).hexdigest()
         key = f'reviews/{pilot}/{sha}.json'

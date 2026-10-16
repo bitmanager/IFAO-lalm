@@ -1,5 +1,43 @@
 # GigaAM + one Gemini pass: phone1 pilot
 
+## Current deployment: SOVA CTC, 2026-10-16 19:44 UTC
+
+At the user's request, new eligible SOVA work now uses one blind Gemini pass
+and a separate, pinned GigaAM-v3-CTC reference. This produces review candidates,
+not human-verified labels or a training release. The historical phone1/OpenSTT
+analysis below remains diagnostic only; OpenSTT is excluded from new work.
+
+The stock source preparer joins the existing 81,607-row SOVA diagnostic Parquet
+by exact source Parquet key and row, verifies the original encoded-audio SHA256,
+and attaches the CTC reference separately from the original source annotation.
+The reference file's SHA256 is checked before use. Only a mono window covering
+the complete source recording receives `annotation_policy=gigaam-single-pass-v1`.
+Short windows of a longer recording and separate channels never inherit a
+whole-file label under this rule. Other samples retain the existing triad flow.
+
+The existing Airflow reviewer emits `candidate_gigaam_agreement` only when the
+first answer is Russian, nonempty, has no reported uncertainty, and its normalized
+words exactly match the pinned CTC text, without conflicting prior model output.
+Disagreement/foreign/uncertain answers are rejected without coverage or correction
+requests. The blind prompt and inference contract are unchanged. All reports
+retain `human_review_required=true` and `automatic_publication=false`.
+
+The selector prioritizes SOVA before resuming the retained Golos cursor. The
+preparer was restarted gracefully and selected SOVA train shard 00009; at the
+19:44 check it was waiting behind 9,813 existing queued/running/retry requests.
+The 6,000 pending-work threshold remains unchanged. Selection is deployed;
+first-manifest and completed one-pass output checks remain to be observed.
+
+Validation: 23 contract/preparation tests passed, including whole-recording vs
+partial/multichannel coverage, source identity, uncertainty, language, negation
+and prior conflict. Real PostgreSQL fixture checks verify source selection and
+that both one-pass matches and disagreements create no follow-up jobs; fixtures
+roll back and submit no inference.
+
+The saved-output audits below still apply: model agreement is not a measured
+precision guarantee. Keep these candidates separate from three-Gemini agreement
+and audit them by listening before any training publication.
+
 Checked 2026-10-15 (MSK) against the immutable inspection snapshot from
 2026-10-14 22:02:53 UTC. This is an analysis of saved outputs; it made no new
 Gemini requests and did not publish training labels.

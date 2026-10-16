@@ -184,3 +184,32 @@ def triad_decision(passes, previous_texts=()):
     if any(normalized_words(t) != words for t in previous_texts if t):
         return 'rejected_prior_conflict'
     return 'candidate_3of3'
+
+
+def gigaam_single_pass_decision(sample, passes, previous_texts=()):
+    """One blind answer plus an exact-source CTC label, always review-only."""
+    from .inspection import normalized_words
+    from .gigaam_reference import REFERENCE_SHA, REFERENCE_KEY
+    ref = (sample.get('source_provenance') or {}).get('gigaam_reference') or {}
+    if (ref.get('reference_sha256') != REFERENCE_SHA
+            or ref.get('reference_key') != REFERENCE_KEY
+            or ref.get('full_source_coverage') is not True
+            or ref.get('prepared_audio_sha256') != sample.get('audio_sha256')
+            or ref.get('source_audio_sha256') != sample.get('source_audio_sha256')
+            or ref.get('model') != 'v3_ctc'
+            or ref.get('weights_sha256') != 'a20a9b5b8ed929c4a60141753cd3dd1284138879a46fb4a1cef6430ec019a02f'
+            or not isinstance(ref.get('text'), str) or not normalized_words(ref['text'])):
+        return 'rejected_gigaam_reference'
+    first = passes.get('verbatim') or {}
+    if not first:
+        return 'waiting_first'
+    text = first.get('verbatim_text', '')
+    words = normalized_words(text)
+    if (normalize_language(first.get('language', '')) != 'ru' or not words
+            or first.get('uncertain_spans') or '[неразборчиво]' in text.lower()):
+        return 'rejected_gigaam_quality'
+    if words != normalized_words(ref['text']):
+        return 'rejected_gigaam_disagreement'
+    if any(normalized_words(t) != words for t in previous_texts if t):
+        return 'rejected_prior_conflict'
+    return 'candidate_gigaam_agreement'

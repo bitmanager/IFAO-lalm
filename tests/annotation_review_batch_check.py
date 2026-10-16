@@ -137,6 +137,29 @@ with connect() as conn:
         assert reconcile() == {'reports': [], 'third_passes_requested': 0}
         assert reports.writes == writes
 
+        # Explicit one-pass samples never acquire coverage/correction children,
+        # including disagreement. A machine match remains review-only.
+        from lalm.annotation.gigaam_reference import REFERENCE_KEY, REFERENCE_SHA, POLICY
+        for suffix, answer, decision in [('match', 'тест', 'candidate_gigaam_agreement'),
+                                          ('mismatch', 'другой', 'rejected_gigaam_disagreement')]:
+            row = dict(sample('single-' + suffix), annotation_policy=POLICY,
+                       source_audio_sha256='b' * 64)
+            row['source_provenance']['gigaam_reference'] = {
+                'text': 'тест', 'reference_key': REFERENCE_KEY, 'reference_sha256': REFERENCE_SHA,
+                'model': 'v3_ctc',
+                'weights_sha256': 'a20a9b5b8ed929c4a60141753cd3dd1284138879a46fb4a1cef6430ec019a02f',
+                'source_audio_sha256': 'b' * 64, 'prepared_audio_sha256': row['audio_sha256'],
+                'full_source_coverage': True}
+            ident = enqueue(conn, row)
+            conn.execute("UPDATE jobs SET state='NEEDS_REVIEW',result=%s,updated_at=clock_timestamp() WHERE id=%s",
+                         (Jsonb({'verbatim_text': answer, 'language': 'ru', 'uncertain_spans': []}), ident))
+            assert reconcile()['third_passes_requested'] == 0
+            actual = next(r for r in reports.payloads[-1]['rows'] if r['sample_id'] == row['sample_id'])
+            assert actual['decision'] == decision
+            assert actual['human_review_required'] is True and actual['automatic_publication'] is False
+            assert conn.execute("SELECT count(*) n FROM jobs WHERE sample->>'sample_id'=%s",
+                                (row['sample_id'],)).fetchone()['n'] == 1
+
         # Changed pilots remain historical evidence for each other. Filtering
         # all changed pilots at once would incorrectly approve these conflicts.
         current = sample('agreement-multi')

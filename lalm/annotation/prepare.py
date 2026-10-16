@@ -29,6 +29,7 @@ from .store import s3, connect, dataset_bucket
 from .source_labels import original_label
 from .source_identity import production_conversation
 from .source_scheduling import select_source
+from .gigaam_reference import reference as gigaam_reference, POLICY as GIGAAM_POLICY
 
 STOP = False
 
@@ -211,6 +212,8 @@ def prepare_asset(asset):
             if not raw: raise ValueError('missing_or_oversized_audio')
             raw_sha = hashlib.sha256(raw).hexdigest()
             if raw_sha not in protected:
+                reference = gigaam_reference(asset, member, raw_sha)
+                info = sf.info(io.BytesIO(raw)) if reference else None
                 for channel, start, end, data in segments(raw):
                     sha = hashlib.sha256(data).hexdigest()
                     if sha in protected: continue
@@ -233,6 +236,14 @@ def prepare_asset(asset):
                                 and label.get('annotation_source') == 'original_source_index' else None),
                             'group_identity_verified': conversation is not None,
                             'group_identity_source': 'production_session_path' if conversation else 'unresolved'}}
+                    # A whole-file ASR label must never supervise a short window
+                    # or one channel of a multichannel recording.
+                    if (reference and info.channels == 1 and start == 0
+                            and abs(end - info.duration) <= 1 / 16000):
+                        sample['annotation_policy'] = GIGAAM_POLICY
+                        sample['source_provenance']['gigaam_reference'] = dict(
+                            reference, prepared_audio_sha256=sha,
+                            full_source_coverage=True)
                     for variant in ('verbatim',):
                         rows.append(dict(sample, prompt_variant=variant))
                     made += 1

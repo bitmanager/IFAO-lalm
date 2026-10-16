@@ -21,7 +21,9 @@ with connect() as conn:
                      (ident, 'test', f'staging/{corpus}/{ident}', 'test', 'audio', state, stamp))
     assert select_source(conn)['id'] == 's1', 'Must resume the in-flight source'
     conn.execute("UPDATE source_assets SET state='PREPARED',updated_at=now() WHERE id='s1'")
-    assert select_source(conn)['id'] == 'g1', 'Must not prioritize all SOVA objects'
+    assert select_source(conn)['id'] == 's2', 'Prefer sources with the verified GigaAM CTC layer'
+    conn.execute("UPDATE source_assets SET state='PREPARED',updated_at=now() WHERE id='s2'")
+    assert select_source(conn)['id'] == 'g1', 'Return to other corpora after the SOVA reserve'
     conn.execute("UPDATE source_assets SET state='PREPARED',updated_at=now() WHERE id='g1'")
     assert select_source(conn)['id'] == 'b1', 'Must rotate rather than exhaust Golos'
     conn.execute("UPDATE source_assets SET state='PREPARED'")
