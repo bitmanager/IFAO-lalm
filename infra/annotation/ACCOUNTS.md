@@ -1169,3 +1169,19 @@ Worker SHA: `c437af5c94e1b0c455f22dab612fdc12f0e92baed5fd9920a7fbf5e1610086f5`.
 контракта, аудиохеша и сохранённого текста. Восстановлены прежние
 concurrency=10/min_interval=1 без изменения текущего next_request_at.
 Протокол: `speech-datasets/diagnostics/auth-recovery-20261016/agy06-late-auth-canary-8f50d2ad8be8713695cb867e34774fe91c4b17eafe0573602231570639827b37.json`.
+
+### Диагностика HTTP 503 — 16.10.2026, 02:26 UTC
+
+Сохранённый ответ 21 от 02:19:27 UTC содержит `UNAVAILABLE` и
+`google.rpc.ErrorInfo.reason=MODEL_CAPACITY_EXHAUSTED` для
+`gemini-3.8-flash-low`. Google также вернул флаг
+`OVERLOADED_TOO_MANY_RETRIES_PER_REQUEST=true`; наш транспорт выполнил один
+HTTP-запрос и не делал автоматических повторов. Этот ответ указывает на
+нехватку ресурсов модели у провайдера. Он не содержит причины отказа в доступе
+или исчерпания пользовательской квоты; расход квоты по нему не устанавливался.
+
+У 05 ответ от 02:14:16 UTC содержит только обычный `503 UNAVAILABLE` без
+дополнительных деталей. Нельзя приписывать всем HTTP 503 единую причину.
+Существующие паузы API сохранены, повторная отправка этих аудио не выполнялась.
+Диагностика использовала уже сохранённые ответы, без новых генераций.
+Протокол: `speech-datasets/diagnostics/provider-errors-20261016/model-capacity-56d031d2f5a677062a9de514a880fa965745ceaeb1edf1090bcf888b629a2ffc.json`.
