@@ -1121,3 +1121,20 @@ concurrency=10 и min_interval=0.2 без изменения актуально�
 В 00:41–00:42 UTC оба слота 08/14 получили `quota_exhausted`. Фактические
 next_request_at: 08 — 20.10.2026 11:24:13 UTC, 14 — 20.10.2026 11:24:09 UTC.
 Серверные квотные паузы сохранены; новые задания им не выдаются до сброса.
+
+### Обновление agy-13 — 16.10.2026, 00:45 UTC
+
+Сохранённые ответы для двух последних `native_incomplete_or_ambiguous_candidate`
+проверены отдельно: оба HTTP 200 с `promptFeedback.blockReason=OTHER` без
+кандидатов. Перед обслуживанием последние 200 попыток включали 117 сохранённых
+native ответов. Дождались окончания действующей паузы после
+`inference_service_unavailable`; до этого слот не изменялся.
+
+Собственный hold установлен в 00:45:05 UTC. После RUNNING=0, AGY=0 и отсутствия
+новых ошибок проверены SHA worker/queue/native_api и перезапущен только 13.
+Загружена та же версия worker `c437af5c94e1b0c455f22dab612fdc12f0e92baed5fd9920a7fbf5e1610086f5`,
+что проверена на 11. Выдача возобновлена в 00:45:38 UTC с concurrency=1.
+Четыре свежих результата прошли проверку исходных ответов, модели, промпта,
+контракта, аудиохеша и сохранённого текста, включая native API. Возвращены
+concurrency=20/min_interval=0.2 без изменения текущего next_request_at.
+Протокол: `speech-datasets/diagnostics/auth-recovery-20261016/agy13-prompt-block-canary-a6b5d2a9ed118d0deada925c6027cc2339ea71e32ffbd76bbdc4efe110c080bb.json`.
