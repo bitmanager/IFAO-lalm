@@ -1869,6 +1869,16 @@ manifests. Live dedup audit counted 2,879 native-source jobs, all covered by the
 existing precision unique index, with zero audio/pass/model duplicate groups:
 `speech-datasets/diagnostics/input-conservation-20261016/native-dedup-6722522bd08747c67c4ec285e58f8227d7c8709a7f0391d191a62b2e257b1042.json`.
 
+The scheduled 17:00 UTC run completed the inspection export at 17:04:24 and
+the dependent context task at 17:04:36: one new cohort published, twelve existing
+cohorts skipped, zero inference requests. Scheduled-run evidence:
+`speech-datasets/diagnostics/contextual-review/first-scheduled-91667266422198ab91619897ed286d87c55aff035bf4cf7ed0046bedd7aa3f7b.json`.
+After the bounded feed/resume checks, another 1,560 previously unselected Meteor
+calls (60–1,800 declared seconds per call; 245,187 seconds total, 68.108 hours)
+were extracted with encoded-byte hashes verified. Their existing-adapter feeder
+started around 17:01 UTC and waits when pending work reaches 6,000. Source
+preparation for unrelated corpora remains stopped; OpenSTT stays excluded.
+
 `lalm.annotation.organization_calls` stages a bounded pilot (at most 12 calls)
 through the existing `incoming/` manifests, prepared-manifest registry and
 Airflow ingest DAG. It reuses the production audio segmentation and queue
