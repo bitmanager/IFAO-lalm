@@ -1895,11 +1895,12 @@ PostgreSQL fixtures verified a 40/20 split of 60 groups, invalid-limit rejection
 failed-report recovery, follow-up deduplication, holdout guards, negations,
 numbers and historical conflicts. No model prompts or acceptance rules changed.
 The runtime file was replaced atomically with a private backup; no services
-were restarted. The scheduled 17:20 cycle produced 200 reports in 65.374 seconds,
-within its five-minute interval. At 17:21 the backlog was 429 groups while new
-work continued, but the oldest waiting update was about six minutes old.
-This is one cycle's evidence, not proof that the backlog has cleared:
+were restarted. The scheduled 17:20 and 17:25 cycles each produced 200 reports in 65.374 and
+64.756 seconds, within their five-minute interval. The waiting count fell from
+429 at 17:21 to 405 at 17:27 while new work continued; the oldest waiting update
+was six to seven minutes old. The backlog has not cleared. First-cycle evidence:
 `speech-datasets/diagnostics/review-performance-20261016/native-batch200-6f318515dbdc016bd9182c819f008f526e5a9e211bc2b5eb0a7bda1e95115b2a.json`.
+Second cycle: `speech-datasets/diagnostics/review-performance-20261016/native-batch200-f318c7e510d4a1a258d67be7ba6f3c7181bda55f4848ec92c45db10a803b5e5e.json`.
 
 Live feeder logs also verified automatic backpressure: pending work reached
 6,115 at offset 708, then staging resumed and paused again at 6,045 for the next
