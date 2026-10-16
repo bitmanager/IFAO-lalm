@@ -2083,6 +2083,44 @@ stock-preparer handoff through result storage without changing acceptance
 criteria or claiming listening-verified accuracy. Receipt:
 `speech-datasets/diagnostics/storage-integrity-20261016/fresh-native-cli-523504c62d015eff38e09eb0d773719150b6837ffd95c1d2380c6e644fa31999.json`.
 
+Additional source audit, 19:38 UTC: the archived Balalaika-longform segment index
+contains 6,043 train segments, 170.6764 indexed audio hours and 265 source videos.
+These are publisher metadata durations, not a fresh local decode or completed
+Gemini annotation. Train has no encoded-audio SHA256 or video-ID intersection
+with the index's validation/test/excluded rows. This is natural long-form speech
+with GigaAM-v3-e2e-CTC primary labels, rather than a verified dialogue corpus.
+Preserve video IDs and source-time offsets before constructing context; the
+current Meteor/HashTesh exporter does not cover this corpus. Public source:
+[Balalaika-longform](https://huggingface.co/datasets/lab260/Balalaika-longform).
+
+The dataset card explicitly reserves `excluded` for held-out-channel samples.
+The source selector and insert/retry guard therefore also exclude that path
+component/shard prefix. One queued archive was moved to NEEDS_REVIEW; zero
+corresponding pending/retried or running jobs existed. PostgreSQL fixture checks
+cover both an excluded archive and an excluded member inside a mixed archive,
+while allowing an unrelated `excludedness.wav` filename. No inference was sent.
+Policy receipt:
+`speech-datasets/diagnostics/source-policy-20261016/named-heldout-including-excluded-cfd5a523178118439595eac60a51b9bc3cee269cbb1c9f13102f1d260bdd12cb.json`.
+
+Other reserve distinctions matter before counting hours or scheduling context:
+
+| Source already in S3 | Use / remaining preparation |
+| --- | --- |
+| Meteor, HashTesh | Existing production-call feed and context exports remain the dialogue priority. |
+| MTEDx HF train | 18 explicitly named train shards are queued; talk identity needs an adapter before context export. |
+| ToneWebinars Balalaika | Card reports 248.9 hours and single-speaker filtering; ROVER labels include GigaAM, not an independent GigaAM-only reference. Audio and metadata require a filepath join. |
+| Balalaika100H/1000H and other sized variants | Inspected Parquet schemas contain `audio_path`, `giga`, and `whisper`, but no embedded audio. Resolve references and deduplicate before treating these as additional audio hours. |
+| Qwen answer/no-history shards | Derived task data. The first inspected Balalaika train shard has 1,000 rows with GigaAM metadata; it is not automatically 1,000 new recordings or ASR targets from Qwen answers. |
+| DeepSpeech Balalaika | Its card points to GeorgeFedoseev/DeepSpeech, whose upstream describes YouTube-caption collection. No evidence from that check establishes OpenSTT lineage. |
+| ESpeech Balalaika | Upstream link in the card is unresolved; an OpenSTT footer link alone does not establish ancestry. Resolve source provenance before claiming independence. |
+
+This audit downloaded metadata only and submitted no inference. It did not
+increase producer concurrency, bypass the pending-work threshold, or change
+acceptance criteria. Full reserve/segment-index receipt:
+`speech-datasets/diagnostics/data-reserve-20261016/catalog-413b0321c2be110e4a6f9add9d4f51e6dfa779b9f00f782393b2e9088f4e8576.json`.
+DeepSpeech upstream:
+[GeorgeFedoseev/DeepSpeech](https://github.com/GeorgeFedoseev/DeepSpeech).
+
 At 18:42 UTC the read-only Jupyter process verified all current cohort Parquet
 hashes and one audio preview per organization: Meteor 143 cohorts / 1,709
 conversations / 28,809 windows / 22,813 with history; HashTesh 11 cohorts / 125

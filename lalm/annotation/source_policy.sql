@@ -10,9 +10,9 @@ BEGIN
         NEW.error_code := 'corpus_excluded_by_user';
     ELSIF NEW.state IN ('PENDING', 'RETRYABLE_FAILED') AND (
         COALESCE(NEW.sample->'source_provenance'->>'key', '')
-            ~* '(^|/)(test|valid|validation|dev|eval|evaluation)(/|[-_.]|$)'
+            ~* '(^|/)(test|valid|validation|dev|eval|evaluation|excluded)(/|[-_.]|$)'
         OR COALESCE(NEW.sample->'source_provenance'->>'member', '')
-            ~* '(^|/)(test|valid|validation|dev|eval|evaluation)(/|[-_.]|$)'
+            ~* '(^|/)(test|valid|validation|dev|eval|evaluation|excluded)(/|[-_.]|$)'
     ) THEN
         -- Generic preparation currently assigns train to every sample.
         NEW.state := 'NEEDS_REVIEW';

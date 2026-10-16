@@ -41,6 +41,7 @@ with connect() as conn:
         ('gt', 'staging/golos-balalaika/revision/test/shard_000.tar'),
         ('lv', 'staging/balalaika-longform/revision/data/validation/validation-00000.tar'),
         ('gd', 'staging/golos/revision/DEV/audio.tar'),
+        ('le', 'staging/balalaika-longform/revision/data/excluded/excluded-00000.tar'),
         ('gn', 'staging/golos/revision/train/train-00000.tar'),
     ]:
         conn.execute('INSERT INTO source_assets(id,bucket,object_key,etag,bytes,codec,state) '
