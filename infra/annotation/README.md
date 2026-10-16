@@ -2052,6 +2052,29 @@ and preserves unverified conversation identity rather than inventing dialogue
 history. Receipt:
 `speech-datasets/diagnostics/source-handoff-20261016/golos-start-2e26b80f6c5a8d0d4fe72eeba09522f15326b6bdee815c9f2c8ae231876cd16b.json`.
 
+At 19:16 UTC the primary MinIO background scanner was temporarily changed from
+`default` to `fast`, with a 30-minute systemd restore timer armed before the
+change (`speech-data-minio-scan-restore-20261016-1915.timer`). The private restore
+script changes it back only if it is still `fast`, preserving a different
+setting subsequently chosen by another operator. No service restart or ILM
+worker-count change was made. The current scan cycle had started at 15:55 UTC
+and remained active; the selected two source archives were still pending.
+
+The subsequent 20-second I/O sample showed average device waits of 0.75 / 1.77 ms
+and busy fractions of 21.28% / 68.16% on the primary / secondary devices. This
+sample did not show disk saturation. At 19:20 UTC the scanner reported 15,483
+objects checked in the last minute; these global counters do not prove that the
+two selected archives have transitioned. Continue checking their storage class
+and complete original-URI readback before counting their space as freed.
+Control receipt:
+`speech-datasets/diagnostics/storage-tier-20261016/scanner-fast-ed60fd285b00e6ad84c1cc34bc2af05591f6225f338c62c9c5d94d954074a35f.json`.
+
+For a bounded scanner-status read, use the installed mc command's
+`admin scanner status -n 1 --interval 1 speech` with the existing private client
+environment. Its default is an endless stream; waiting for EOF under a short
+timeout does not establish a server failure. Parse the complete JSON object,
+not individual lines of its pretty-printed output.
+
 At 18:42 UTC the read-only Jupyter process verified all current cohort Parquet
 hashes and one audio preview per organization: Meteor 143 cohorts / 1,709
 conversations / 28,809 windows / 22,813 with history; HashTesh 11 cohorts / 125
