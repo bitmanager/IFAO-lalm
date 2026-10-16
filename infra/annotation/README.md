@@ -1841,8 +1841,12 @@ Additional native inventory, 16 October at approximately 17:48 UTC:
   Another 450 unselected calls are shorter than 60 seconds. One unselected call
   declares 7,429 seconds and needs a bounded preparation check before feeding.
 - Meteor has 1,374 additional native dialogue rows whose current audio key is
-  absent from this archive's verified audio inventory. Recovering those original
-  recordings is a useful next acquisition task; they are not runnable input yet.
+  empty. The 18:16 UTC follow-up found no archived audio through previous
+  relations either. All have positive declared duration and 1,327 have source
+  text, but neither proves a usable recording. Of these rows, 1,210 have URLs
+  on the CRM host `meteor.s20.online`; none of those URL paths matches an audio
+  member in the archive. The URLs were not followed. Recovering a verified audio
+  identity/source is required before counting these rows as runnable input.
 - HashTesh has 1,919 native rows, 1,917 distinct conversation IDs, and 1,477
   unique encoded audio hashes (134,498 declared seconds, about 37.36 hours).
   Of these hashes, 1,471 have not been selected in saved pilots/feed selections:
@@ -1859,6 +1863,9 @@ Additional native inventory, 16 October at approximately 17:48 UTC:
 
 Inventory evidence:
 `speech-datasets/diagnostics/organization-calls-20261016/additional-native-inventory-73322ad14b2ba566210c3a9ac09763b10232aacfb579eee6075979b66cc783ac.json`.
+
+Missing-audio follow-up:
+`speech-datasets/diagnostics/organization-calls-20261016/meteor-missing-audio-classification-f0033a15f53c36edaa0967b5fdbbe445ec37e60a0021dfc43a0004babadd3098.json`.
 
 At 17:50 UTC a HashTesh reserve was prepared on dev-1 in
 `/mnt/local/drive2/speech-native-calls-dedup-20261013/hashtesh-context-batch-20261016-1750-reserve`:
