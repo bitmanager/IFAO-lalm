@@ -1926,6 +1926,33 @@ corpus whose name has no OpenSTT prefix.
 Policy receipt:
 `speech-datasets/diagnostics/source-policy-20261016/all-openstt-27bdfe21ce96aeb83e05e17a7896d2851caa862346f81ea2ca955ab3f106c2d4.json`.
 
+The 1,560-call remaining Meteor feed exited successfully at approximately
+18:05 UTC after staging its final 12-call cohort (216 windows). This is input
+preparation completion, not completion of all annotation jobs. The prepared
+758-call HashTesh reserve then started through the same feeder. Its first
+12 calls produced 193 windows in
+`incoming/c389422549d40580b5df730f4733d9577efb717f3b6e15bf80dc612a496b080c.jsonl`;
+the feeder paused normally when combined pending work reached 6,033.
+
+Use separate mount destinations for private metadata and audio selections.
+Nesting a metadata mount under the read-only `/pilot` mount fails at container
+creation. The private 0700/0600 source files also require this one-off container
+to use `--user 0:0`; permissions on the host files remain unchanged. Both initial
+startup failures happened before publishing inputs or dispatching inference.
+The working invocation on dev-1, from the deployed repository, is:
+
+```bash
+sudo -n infra/annotation/dc run --rm --no-deps --user 0:0 \
+  --name speech-data-hashtesh-feed-reserve-20261016 \
+  --volume /mnt/local/drive2/speech-native-calls-dedup-20261013/meteor-pilot-metadata:/native-metadata:ro \
+  --volume /mnt/local/drive2/speech-native-calls-dedup-20261013/hashtesh-context-batch-20261016-1750-reserve:/pilot:ro \
+  --entrypoint python source-preparer -u -m lalm.annotation.organization_feed \
+  --metadata /native-metadata --selection /pilot/selection.json --audio-directory /pilot/audio
+```
+
+Do not launch this again while its container is running. The PostgreSQL feeder
+lock and verified S3 checkpoints retain the existing exclusion/resume behavior.
+
 `python -m lalm.annotation.organization_feed --metadata <native-csv-directory>
 --selection <selection.json> --audio-directory <audio-directory>` feeds explicit
 native selections in batches of at most 12 calls through the same adapter.
