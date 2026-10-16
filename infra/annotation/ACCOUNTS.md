@@ -1154,3 +1154,18 @@ NATIVE_API_PERCENT и NATIVE_API_MAX_PERCENT равны нулю.
 Восстановлены прежние concurrency=3/min_interval=2 без изменения текущего
 next_request_at. Native canary для этого CLI-слота не запускался.
 Протокол: `speech-datasets/diagnostics/auth-recovery-20261016/agy07-late-auth-canary-9776bae99b3684214608c0568c2c61ede68a4c65d68f83345fb7c1b7af504f66.json`.
+
+### Обновление agy-06 — 16.10.2026, 01:03–01:05 UTC
+
+Перед обслуживанием в последних 250 попытках подтверждены 36 сохранённых
+native ответов без новых native сбоев, кроме отдельных блокировок образцов.
+Дождались окончания действующей транспортной паузы; собственный hold установлен
+в 01:03:02 UTC. Все оставшиеся запросы завершились без новых ошибок.
+После RUNNING=0, AGY=0 и проверки SHA исходников перезапущен только контейнер 06.
+Worker SHA: `c437af5c94e1b0c455f22dab612fdc12f0e92baed5fd9920a7fbf5e1610086f5`.
+
+Выдача возобновлена в 01:04:21 UTC с concurrency=1. Четыре новых результата,
+включая native API, прошли проверку исходных ответов, модели, схемы, промпта,
+контракта, аудиохеша и сохранённого текста. Восстановлены прежние
+concurrency=10/min_interval=1 без изменения текущего next_request_at.
+Протокол: `speech-datasets/diagnostics/auth-recovery-20261016/agy06-late-auth-canary-8f50d2ad8be8713695cb867e34774fe91c4b17eafe0573602231570639827b37.json`.
