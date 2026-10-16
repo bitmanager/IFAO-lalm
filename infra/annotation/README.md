@@ -1834,6 +1834,32 @@ hashes; 82.812 declared hours). HashTesh has 1,917 such conversation IDs but onl
 These are candidate inventory statistics, not measured durations or human-gold
 quality estimates. Test/holdout checks remain mandatory during staging.
 
+Additional native inventory, 16 October at approximately 17:48 UTC:
+
+- All 1,708 Meteor calls of 60–1,800 declared seconds have already been selected
+  across the pilot and active feeds; selection is not annotation completion.
+  Another 450 unselected calls are shorter than 60 seconds. One unselected call
+  declares 7,429 seconds and needs a bounded preparation check before feeding.
+- Meteor has 1,374 additional native dialogue rows whose current audio key is
+  absent from this archive's verified audio inventory. Recovering those original
+  recordings is a useful next acquisition task; they are not runnable input yet.
+- HashTesh has 1,919 native rows, 1,917 distinct conversation IDs, and 1,477
+  unique encoded audio hashes (134,498 declared seconds, about 37.36 hours).
+  Of these hashes, 1,471 have not been selected in saved pilots/feed selections:
+  758 calls of 60–1,800 seconds and 713 shorter calls. Choose one native row per
+  audio hash rather than submitting all dialogue rows.
+- No encoded audio hash overlaps between Meteor and HashTesh, and no native
+  conversation ID points to multiple encoded hashes in this inventory. This
+  does not establish decoded-PCM uniqueness or holdout isolation; both remain
+  staging/release checks. No extra model requests were made for this inventory.
+- MTEDx is present in the source registry as both an archive and HF Parquet
+  shards, including validation/test shards. It remains unstarted. Do not feed
+  both representations or validation/test as training input. Native production
+  conversations take priority for the dialogue-history work.
+
+Inventory evidence:
+`speech-datasets/diagnostics/organization-calls-20261016/additional-native-inventory-73322ad14b2ba566210c3a9ac09763b10232aacfb579eee6075979b66cc783ac.json`.
+
 `python -m lalm.annotation.organization_feed --metadata <native-csv-directory>
 --selection <selection.json> --audio-directory <audio-directory>` feeds explicit
 native selections in batches of at most 12 calls through the same adapter.
