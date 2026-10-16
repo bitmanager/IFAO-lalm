@@ -346,7 +346,24 @@ class WorkerErrorTests(unittest.TestCase):
              patch.object(worker, 'NATIVE_API_GOOD_COUNT', 100):
             self.assertTrue(worker.native_api_selected(sixty_five, 4, 1000, 'verbatim', None, 'gemini-3.8-flash-low'))
 
-    def test_stable_restart_floor_falls_back_after_bad_api_response(self):
+    def test_cold_start_probes_native_within_account_ceiling(self):
+        import importlib.util
+        from unittest.mock import patch
+        import lalm.annotation.worker as worker
+        spec = importlib.util.spec_from_file_location(
+            'lalm.annotation._cold_worker_test', worker.__file__)
+        fresh = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(fresh)
+        jobs = [{'id': f'{i:08x}'+'0'*56, 'sample': {'review_only': True}}
+                for i in range(100)]
+        for ceiling, expected in ((100, 20), (10, 10)):
+            with patch.dict('os.environ', {'ACCOUNT_ID': 'agy-11',
+                    'NATIVE_API_PERCENT': '100', 'NATIVE_API_MAX_PERCENT': str(ceiling)}):
+                selected = sum(fresh.native_api_selected(
+                    job, 4, 1000, 'verbatim', None, 'gemini-3.8-flash-low') for job in jobs)
+            self.assertEqual(selected, expected)
+
+    def test_verified_route_floor_falls_back_after_bad_api_response(self):
         from unittest.mock import patch
         import lalm.annotation.worker as worker
         job = {'id': '0000002d'+'0'*56, 'sample': {'review_only': True}}
@@ -394,6 +411,7 @@ class WorkerErrorTests(unittest.TestCase):
         import json
         for message in (
             'API error (attempt 3): INTERNAL (code 500): Internal error encountered.',
+            'API error (attempt 1): UNAVAILABLE (code 503): The service is currently unavailable.',
             'API error (attempt 7): UNAVAILABLE (code 503): No capacity available for model gemini-3.8-flash-low on the server',
             'Our servers are experiencing high traffic right now, please try again in a minute. (UNAVAILABLE (code 503): No capacity available for model gemini-3.8-flash-low on the server)',
             'The stream was interrupted. Please continue the task you were working on.',

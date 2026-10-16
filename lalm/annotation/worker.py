@@ -29,7 +29,8 @@ NATIVE_API_DISABLED_UNTIL = 0.0
 NATIVE_API_FAILURE_LOCK = threading.Lock()
 NATIVE_API_CONSECUTIVE_FAILURES = 0
 NATIVE_API_GOOD_COUNT = 0
-NATIVE_API_DEGRADED = False
+# A cold process probes gently; 25 valid native results release the startup cap.
+NATIVE_API_DEGRADED = True
 NATIVE_NETWORK_BACKOFF_STEP = 0
 NATIVE_NETWORK_LAST_FAILURE = 0.0
 
@@ -102,8 +103,9 @@ def classify(text, timed_out=False):
                      or re.fullmatch(
                          r'API error \(attempt [1-9][0-9]*\): (?:'
                          r'INTERNAL \(code 500\): Internal error encountered\.|'
-                         r'UNAVAILABLE \(code 503\): No capacity available for model '
-                         r'(?:gemini-3\.8-flash-low|gemini-4-argon-low) on the server)', error) is not None
+                         r'UNAVAILABLE \(code 503\): (?:The service is currently unavailable\.|'
+                         r'No capacity available for model '
+                         r'(?:gemini-3\.8-flash-low|gemini-4-argon-low) on the server))', error) is not None
                      or re.fullmatch(
                          r'Our servers are experiencing high traffic right now, '
                          r'please try again in a minute\. \(UNAVAILABLE \(code 503\): '
