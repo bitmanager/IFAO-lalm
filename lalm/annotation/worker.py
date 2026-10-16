@@ -103,7 +103,12 @@ def classify(text, timed_out=False):
                          r'API error \(attempt [1-9][0-9]*\): (?:'
                          r'INTERNAL \(code 500\): Internal error encountered\.|'
                          r'UNAVAILABLE \(code 503\): No capacity available for model '
-                         r'(?:gemini-3\.8-flash-low|gemini-4-argon-low) on the server)', error) is not None))
+                         r'(?:gemini-3\.8-flash-low|gemini-4-argon-low) on the server)', error) is not None
+                     or re.fullmatch(
+                         r'Our servers are experiencing high traffic right now, '
+                         r'please try again in a minute\. \(UNAVAILABLE \(code 503\): '
+                         r'No capacity available for model '
+                         r'(?:gemini-3\.8-flash-low|gemini-4-argon-low) on the server\)', error) is not None))
             error_lower = error.lower() if isinstance(error, str) else ''
             inference_transport_failure |= (event.get('event') == 'result'
                 and envelope.get('status') == 'ERROR'

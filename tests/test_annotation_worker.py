@@ -395,6 +395,7 @@ class WorkerErrorTests(unittest.TestCase):
         for message in (
             'API error (attempt 3): INTERNAL (code 500): Internal error encountered.',
             'API error (attempt 7): UNAVAILABLE (code 503): No capacity available for model gemini-3.8-flash-low on the server',
+            'Our servers are experiencing high traffic right now, please try again in a minute. (UNAVAILABLE (code 503): No capacity available for model gemini-3.8-flash-low on the server)',
             'The stream was interrupted. Please continue the task you were working on.',
         ):
             event = {'event': 'result', 'result': {'status': 'ERROR', 'num_turns': 1, 'error': message}}
