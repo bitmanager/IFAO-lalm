@@ -1,4 +1,4 @@
-"""Prefer verified-reference SOVA, then resume sources and alternate corpora."""
+"""Prefer SOVA and Golos with CTC references, then resume other sources."""
 
 
 def select_source(conn):
@@ -22,6 +22,7 @@ def select_source(conn):
           AND (split_part(a.object_key,'/',2) <> 'mtedx-ru-hf'
                OR a.object_key ~ '/train-[0-9]+-of-[0-9]+[.]parquet$')
         ORDER BY (c.corpus='sova-rudevices') DESC,
+                 (c.corpus='golos' AND a.object_key LIKE '%/crowd/train/%') DESC,
                  (a.state='PREPARING') DESC,
                  COALESCE(c.last_served,'epoch'::timestamptz), a.created_at, a.id
         FOR UPDATE OF a SKIP LOCKED LIMIT 1

@@ -51,5 +51,14 @@ with connect() as conn:
     assert select_source(conn)['id'] == 'gn', 'Must preserve train inputs while excluding named held-out paths'
     conn.execute("UPDATE source_assets SET state='PREPARED' WHERE id='gn'")
     assert select_source(conn) is None
+    for ident, key, state in [
+        ('gc', 'staging/golos/revision/crowd/train/train-00000.tar', 'QUEUED'),
+        ('bi', 'staging/balalaika/revision/train/shard_000.tar', 'PREPARING'),
+    ]:
+        conn.execute('INSERT INTO source_assets(id,bucket,object_key,etag,bytes,codec,state) '
+                     "VALUES (%s,'test',%s,'test',1,'tar',%s)", (ident, key, state))
+    assert select_source(conn)['id'] == 'gc', 'Prefer Golos with CTC references before other generic sources'
+    conn.execute("UPDATE source_assets SET state='PREPARED' WHERE id='gc'")
+    assert select_source(conn)['id'] == 'bi', 'Keep the earlier generic cursor available for later resume'
     conn.rollback()
 print('Source scheduling verified on PostgreSQL; fixtures rolled back')

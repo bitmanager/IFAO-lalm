@@ -18,6 +18,52 @@ def wav(values, rate=16000):
 
 
 class SourcePreparationTests(unittest.TestCase):
+    def test_failed_reference_checksum_does_not_skip_source_rows(self):
+        asset = {'id': 'source', 'codec': 'audio',
+                 'object_key': 'staging/golos/rev/crowd/train/train-00000.tar'}
+        with patch('lalm.annotation.prepare.s3') as client, \
+                patch('lalm.annotation.prepare.audio_rows') as audio, \
+                patch('lalm.annotation.prepare.load_reference_index', side_effect=ValueError('checksum')):
+            client.return_value.get_object.return_value = {'Body': io.BytesIO(
+                json.dumps({'audio_sha256': [], 'conversation_ids': []}).encode())}
+            with self.assertRaisesRegex(ValueError, 'checksum'):
+                prepare_asset(asset)
+            audio.assert_not_called()
+
+    def test_golos_reference_only_skips_unmapped_and_partial_inputs_with_durable_cursor(self):
+        from types import SimpleNamespace
+        asset = {'id': 'source', 'bucket': 'speech-corpora', 'codec': 'audio',
+                 'object_key': 'staging/golos/rev/crowd/train/train-00000.tar',
+                 'bytes': 10, 'etag': 'fixed', 'cursor_json': {}}
+        for kind, reference, end, expected in [('missing', None, 2, 0),
+                ('partial', {'text': 'GigaAM', 'source_duration': 2}, 1, 0),
+                ('wrong-scope', {'text': 'GigaAM', 'source_duration': 1}, 2, 0),
+                ('full', {'text': 'GigaAM', 'source_duration': 2}, 2, 1)]:
+            with self.subTest(kind=kind), patch('lalm.annotation.prepare.s3') as client, \
+                    patch('lalm.annotation.prepare.load_reference_index'), \
+                    patch('lalm.annotation.prepare.connect') as db, \
+                    patch('lalm.annotation.prepare.audio_rows', return_value=iter([('0', b'raw', 'source text')])), \
+                    patch('lalm.annotation.prepare.gigaam_reference', return_value=reference), \
+                    patch('lalm.annotation.prepare.sf.info', return_value=SimpleNamespace(channels=1, duration=2)), \
+                    patch('lalm.annotation.prepare.segments', return_value=iter([(0, 0, end, b'prepared')])):
+                client.return_value.get_object.return_value = {'Body': io.BytesIO(
+                    json.dumps({'audio_sha256': [], 'conversation_ids': []}).encode())}
+                db.return_value.__enter__.return_value.execute.return_value.fetchone.return_value = {'n': 0}
+                prepare_asset(asset)
+                manifests = [c.kwargs['Body'] for c in client.return_value.put_object.call_args_list
+                             if c.kwargs['Key'].startswith('incoming/')]
+                self.assertEqual(len(manifests), expected)
+                if manifests:
+                    self.assertEqual(json.loads(manifests[0])['annotation_policy'], 'gigaam-single-pass-v1')
+                writes = db.return_value.__enter__.return_value.execute.call_args_list
+                cursor = next(c.args[1][0].obj for c in writes if 'SET cursor_json=' in c.args[0])
+                self.assertEqual(cursor['rows'], 1)
+                self.assertEqual(cursor['errors'], 0)
+                self.assertEqual(cursor['selection_policy'], 'gigaam-reference-only-v1')
+                self.assertEqual(cursor['selection_policy_start_row'], 0)
+                self.assertEqual(cursor['unreferenced_rows'], int(kind == 'missing'))
+                self.assertEqual(cursor['unaligned_windows'], int(kind in ('partial', 'wrong-scope')))
+
     def test_gigaam_whole_file_label_is_not_attached_to_partial_or_multichannel_audio(self):
         from types import SimpleNamespace
         asset = {'id': 'source', 'bucket': 'speech-corpora', 'codec': 'audio', 'bytes': 10, 'etag': 'fixed',
@@ -25,6 +71,7 @@ class SourcePreparationTests(unittest.TestCase):
         for channels, start, end, expected in [(1, 0, 2, True), (1, 0, 1, False),
                                                (1, 1, 2, False), (2, 0, 2, False)]:
             with self.subTest(channels=channels, start=start, end=end), \
+                    patch('lalm.annotation.prepare.load_reference_index'), \
                     patch('lalm.annotation.prepare.s3') as client, \
                     patch('lalm.annotation.prepare.connect') as db, \
                     patch('lalm.annotation.prepare.audio_rows', return_value=iter([('0', b'raw', 'source text')])), \

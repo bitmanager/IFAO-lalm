@@ -160,6 +160,13 @@ class PrecisionTriadTests(unittest.TestCase):
         first = {'verbatim_text': 'я не согласен.', 'language': 'ru', 'uncertain_spans': []}
         self.assertEqual(decide(sample, {}), 'waiting_first')
         self.assertEqual(decide(sample, {'verbatim': first}), 'candidate_gigaam_agreement')
+        from lalm.annotation.gigaam_reference import GOLOS_REFERENCE_KEY, GOLOS_REFERENCE_SHA
+        golos = dict(sample, source_provenance={'start_seconds': 0, 'end_seconds': 2,
+                     'gigaam_reference': dict(ref, source_duration=2,
+                     reference_key=GOLOS_REFERENCE_KEY, reference_sha256=GOLOS_REFERENCE_SHA)})
+        self.assertEqual(decide(golos, {'verbatim': first}), 'candidate_gigaam_agreement')
+        golos['source_provenance']['end_seconds'] = 3
+        self.assertEqual(decide(golos, {'verbatim': first}), 'rejected_gigaam_reference')
         self.assertEqual(decide(sample, {'verbatim': dict(first, verbatim_text='я согласен')}),
                          'rejected_gigaam_disagreement')
         for bad in (dict(first, language='uk'), dict(first, uncertain_spans=['сомнение']),

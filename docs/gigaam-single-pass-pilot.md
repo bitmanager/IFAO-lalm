@@ -1,4 +1,4 @@
-# GigaAM + one Gemini pass: phone1 pilot
+# GigaAM + one Gemini pass: evidence and deployment
 
 ## Current deployment: SOVA CTC, 2026-10-16 19:44 UTC
 
@@ -62,6 +62,81 @@ and metadata were preserved. Deployed source digest:
 `fd3e36f42c14756d1ea5ddf929c0b21224b49a6c9459866280d66ce85e6886d0`.
 The appended pass-view fields become visible in the next scheduled snapshot:
 `speech-datasets/diagnostics/gigaam-single-pass-20261016/inspection-view-634191569bf54decf9ab993eb7106e61e317b532dcf2ba4a4d64fef1e1b6108b.json`.
+
+The first new SOVA outputs arrived on both transports at 20:07 UTC. Two native
+API and two CLI outputs passed exact raw-text, prompt/model contract and audio
+hash checks. This verifies protocol/storage fidelity, not listening-verified
+transcription accuracy:
+`speech-datasets/diagnostics/storage-integrity-20261016/fresh-native-cli-548706a5a5e1440723092c3a9b2ffa25ce9e84792ce03479b9c69ea8df351db8.json`.
+
+The scheduled 20:10 reviewer completed in 44.84 seconds. For the first 128
+examples it reported 67 `candidate_gigaam_agreement`, 53 disagreements, seven
+language/uncertainty rejections and one failed response. All 128 decisions were
+recomputed from the report's saved results and checked against the actual queue:
+128 verbatim jobs, zero follow-up jobs, zero automatic publication. These are
+candidate/rejection counts, not precision estimates:
+`speech-datasets/diagnostics/gigaam-single-pass-20261016/scheduled-review-1c9f96770a2029ec55b1a172fe8d30ad3b264eca7837819ddcf85e68cdd4924b.json`.
+
+## Golos crowd/train reserve, 2026-10-16
+
+The existing QA exports retain independent GigaAM-v3-CTC metadata. The reference
+builder reads metadata columns from all 304 `golos-train` QA shards, without
+reading their embedded audio or using the generated Qwen answers. It recovered
+303,912 distinct source locators / original encoded-audio hashes, covering
+339.1959 indexed CTC-input hours in 16 original Golos crowd/train archives.
+Another 79 rows had unsupported/incomplete scope and were excluded; there were
+no conflicting locators. This is existing audio with recovered labels, not new
+Gemini annotation. The full reference file was read back and checked by SHA256;
+none of its original-audio hashes matched the current holdout registry.
+
+Reference:
+`speech-datasets/diagnostics/gigaam-single-pass-20261016/golos-reference/de7ca32b04d873cdd18e17b1a0aa2b7dc0d740a2c184e6d10fb494dd4a8dee06.parquet`.
+Build receipt:
+`speech-datasets/diagnostics/gigaam-single-pass-20261016/golos-reference-build-73d38c7dd087a95dbf3beeacb160a8f4942eff51cefff168b800d14f8833a5b8.json`.
+Full reference audit:
+`speech-datasets/diagnostics/gigaam-single-pass-20261016/golos-reference-audit-448edf4d4eeb701470adc48a98edb0a8ee215fc1bcc3f152f12f62bbf56ccb8a.json`.
+
+Three linked members were independently read from the original Golos archive:
+each matched the CTC input SHA256 and duration, was mono, and began at zero.
+Source-join receipt:
+`speech-datasets/diagnostics/gigaam-single-pass-20261016/golos-source-join-379fe511bc568d8a6f9389ab6f3cbb3b6c1d3ec95335e6f9036f8060cf712cf6.json`.
+
+The existing preparer now prioritizes SOVA, then Golos crowd/train, then the
+other generic sources. New Golos crowd work requires a pinned CTC reference
+matching the original encoded-audio hash. Its CTC input duration must also match
+the decoded full source and the complete prepared mono window. This prevents
+a cropped QA input's label from supervising a longer recording. Unreferenced
+records and unaligned windows produce no Gemini work under this selection.
+Original audio and labels remain available in S3.
+
+The existing Golos cursor (7,040 input rows / 7,038 previously prepared samples)
+is retained. Its old jobs/reports are historical evidence; new selection applies
+when that cursor resumes after SOVA. Checkpoint fields `selection_policy`,
+`selection_policy_start_row`, `unreferenced_rows` and `unaligned_windows` keep
+this filtering separate from audio errors and model-quality rejection. Index
+checksum failures stop at the asset boundary before reading/skipping its audio.
+The first new Golos manifest under this policy remains to be observed.
+
+Both reference fingerprints are pinned in the shared annotation contract.
+Contract/preparation/builder tests and PostgreSQL/notebook fixtures cover
+reference identity, complete scope, cropped inputs, durable skipped-row counters,
+source priority, one-pass follow-up suppression and older snapshots. The
+preparer was restarted gracefully with its cursor retained. Build the index
+through the existing image and credentials, without creating a service:
+
+```bash
+ssh-gpu dev-1 'docker exec -i -w /opt/speech speech-data-source-preparer-1 python -' < scripts/build_golos_gigaam_reference.py
+```
+
+Deployment receipt, including runtime file hashes and three actual source joins:
+`speech-datasets/diagnostics/gigaam-single-pass-20261016/golos-policy-deployment-4997944e51200a67a8c439b3c419601bcb7522a2f7e9ebdfa206de1f0b6fc2e1.json`.
+The user's read-only Jupyter identity also loaded the actual 20:30 snapshot and
+ran its notebook decision logic on the first 128 SOVA examples in a separate
+process. It reproduced all 67/53/7/1 decisions, with 0.05716 known candidate
+audio hours and one failed response with unknown duration. Only one pass
+row group was read in full (8.65 MB of S3 ranges); the user's kernel was not run.
+Read-only notebook receipt:
+`speech-datasets/diagnostics/gigaam-single-pass-20261016/readonly-notebook-cf04ffce5ddc32882c3e65b45f79f9b70cee3b0f5916a048d0f362b2256a8ce6.json`.
 
 Checked 2026-10-15 (MSK) against the immutable inspection snapshot from
 2026-10-14 22:02:53 UTC. This is an analysis of saved outputs; it made no new

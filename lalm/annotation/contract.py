@@ -3,11 +3,18 @@ import hashlib
 import json
 import os
 import re
+import math
 
 from lalm.benchmark_langfuse_asr import MODEL, SCHEMA
 
 PROMPT_VERSION = 'precision-ru-triad-v1'
 PREPROCESSING = 'mono-pcm16-16000-v1'
+SOVA_CTC_SHA = 'cc693e4862f452a2d7a56f586b28acec3e38e578a5ad89302a958d84d2f5aedd'
+GOLOS_CTC_SHA = 'de7ca32b04d873cdd18e17b1a0aa2b7dc0d740a2c184e6d10fb494dd4a8dee06'
+GIGAAM_REFERENCES = {
+    'sova': ('diagnostics/gigaam-ctc-sova-20261015/' + SOVA_CTC_SHA + '.parquet', SOVA_CTC_SHA),
+    'golos': ('diagnostics/gigaam-single-pass-20261016/golos-reference/' + GOLOS_CTC_SHA + '.parquet', GOLOS_CTC_SHA),
+}
 
 
 VARIANTS = ("verbatim", "coverage", "literal_audit", "source_correction")
@@ -189,10 +196,16 @@ def triad_decision(passes, previous_texts=()):
 def gigaam_single_pass_decision(sample, passes, previous_texts=()):
     """One blind answer plus an exact-source CTC label, always review-only."""
     from .inspection import normalized_words
-    from .gigaam_reference import REFERENCE_SHA, REFERENCE_KEY
     ref = (sample.get('source_provenance') or {}).get('gigaam_reference') or {}
-    if (ref.get('reference_sha256') != REFERENCE_SHA
-            or ref.get('reference_key') != REFERENCE_KEY
+    if ref.get('reference_key') == GIGAAM_REFERENCES['golos'][0]:
+        provenance = sample.get('source_provenance') or {}
+        duration, end = ref.get('source_duration'), provenance.get('end_seconds')
+        if (type(duration) not in (int, float) or not math.isfinite(duration) or duration <= 0
+                or type(end) not in (int, float) or not math.isfinite(end)
+                or provenance.get('start_seconds') != 0
+                or abs(end - duration) > 1 / 16000):
+            return 'rejected_gigaam_reference'
+    if ((ref.get('reference_key'), ref.get('reference_sha256')) not in GIGAAM_REFERENCES.values()
             or ref.get('full_source_coverage') is not True
             or ref.get('prepared_audio_sha256') != sample.get('audio_sha256')
             or ref.get('source_audio_sha256') != sample.get('source_audio_sha256')

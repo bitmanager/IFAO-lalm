@@ -30,6 +30,7 @@ from .source_labels import original_label
 from .source_identity import production_conversation
 from .source_scheduling import select_source
 from .gigaam_reference import reference as gigaam_reference, POLICY as GIGAAM_POLICY
+from .gigaam_reference import requires_reference, load_reference_index
 
 STOP = False
 
@@ -175,9 +176,17 @@ def prepare_asset(asset):
                          (Jsonb({'exclusion_reason': 'protected_conversation',
                                  'conversation_id': conversation}), asset['id']))
         return
+    load_reference_index(asset)
     cursor = asset['cursor_json'].get('rows', 0)
     made = asset['cursor_json'].get('samples', 0)
     errors = asset['cursor_json'].get('errors', 0)
+    reference_only = requires_reference(asset)
+    selection = {}
+    if reference_only:
+        selection = {'selection_policy': 'gigaam-reference-only-v1',
+            'selection_policy_start_row': asset['cursor_json'].get('selection_policy_start_row', cursor),
+            'unreferenced_rows': asset['cursor_json'].get('unreferenced_rows', 0),
+            'unaligned_windows': asset['cursor_json'].get('unaligned_windows', 0)}
     buffered = []
     last_index = cursor - 1
 
@@ -194,7 +203,7 @@ def prepare_asset(asset):
                 conn.execute('INSERT INTO prepared_manifests(object_key,row_count) VALUES (%s,%s) '
                              'ON CONFLICT DO NOTHING', (key, len(buffered)))
             conn.execute('UPDATE source_assets SET cursor_json=%s,updated_at=now() WHERE id=%s',
-                (Jsonb({'rows': last_index+1, 'samples': made, 'errors': errors}), asset['id']))
+                (Jsonb({'rows': last_index+1, 'samples': made, 'errors': errors, **selection}), asset['id']))
         buffered.clear()
         return True
 
@@ -211,10 +220,21 @@ def prepare_asset(asset):
         try:
             if not raw: raise ValueError('missing_or_oversized_audio')
             raw_sha = hashlib.sha256(raw).hexdigest()
-            if raw_sha not in protected:
-                reference = gigaam_reference(asset, member, raw_sha)
+            reference = gigaam_reference(asset, member, raw_sha)
+            if reference_only and reference is None:
+                selection['unreferenced_rows'] += 1
+            if raw_sha not in protected and (not reference_only or reference):
                 info = sf.info(io.BytesIO(raw)) if reference else None
                 for channel, start, end, data in segments(raw):
+                    reference_duration = reference.get('source_duration') if reference else None
+                    duration_matches = (not reference_only or
+                        isinstance(reference_duration, (int, float))
+                        and abs(info.duration - reference_duration) <= 1 / 16000)
+                    aligned = (reference and info.channels == 1 and start == 0
+                               and abs(end - info.duration) <= 1 / 16000 and duration_matches)
+                    if reference_only and not aligned:
+                        selection['unaligned_windows'] += 1
+                        continue
                     sha = hashlib.sha256(data).hexdigest()
                     if sha in protected: continue
                     key = f'prepared/annotation-v1/{sha}.wav'
@@ -238,8 +258,7 @@ def prepare_asset(asset):
                             'group_identity_source': 'production_session_path' if conversation else 'unresolved'}}
                     # A whole-file ASR label must never supervise a short window
                     # or one channel of a multichannel recording.
-                    if (reference and info.channels == 1 and start == 0
-                            and abs(end - info.duration) <= 1 / 16000):
+                    if aligned:
                         sample['annotation_policy'] = GIGAAM_POLICY
                         sample['source_provenance']['gigaam_reference'] = dict(
                             reference, prepared_audio_sha256=sha,

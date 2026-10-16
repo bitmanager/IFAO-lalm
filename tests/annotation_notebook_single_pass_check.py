@@ -6,6 +6,7 @@ import pandas as pd
 
 from lalm.annotation.contract import TRIAD_VERSION, triad_decision, gigaam_single_pass_decision
 from lalm.annotation.gigaam_reference import POLICY as GIGAAM_POLICY, REFERENCE_KEY, REFERENCE_SHA
+from lalm.annotation.gigaam_reference import GOLOS_REFERENCE_KEY, GOLOS_REFERENCE_SHA
 
 
 notebook = json.loads(Path('notebooks/speech_data_progress.ipynb').read_text())
@@ -33,6 +34,14 @@ def row(sample, variant='verbatim', text='да', language='ru', policy=GIGAAM_PO
 rows = [row('single-match'), row('single-mismatch', text='нет'),
         row('single-foreign', language='uk'), row('single-wrong-hash')]
 rows[-1]['source_audio_sha256'] = 'c' * 64
+for name, end in [('single-golos-match', 2), ('single-golos-wrong-scope', 3)]:
+    record = row(name)
+    provenance = json.loads(record['source_provenance'])
+    provenance.update(start_seconds=0, end_seconds=end)
+    provenance['gigaam_reference'].update(reference_key=GOLOS_REFERENCE_KEY,
+        reference_sha256=GOLOS_REFERENCE_SHA, source_duration=2)
+    record['source_provenance'] = json.dumps(provenance)
+    rows.append(record)
 rows += [row('triad', variant=v, policy=None) for v in ('verbatim', 'coverage', 'source_correction')]
 current = pd.DataFrame(rows)
 examples = current[['batch_id', 'sample_id']].drop_duplicates()
@@ -43,7 +52,9 @@ assert actual.decision.to_dict() == {
     'single-match': 'candidate_gigaam_agreement',
     'single-mismatch': 'rejected_gigaam_disagreement',
     'single-foreign': 'rejected_gigaam_quality',
-    'single-wrong-hash': 'rejected_gigaam_reference', 'triad': 'candidate_3of3'}
+    'single-wrong-hash': 'rejected_gigaam_reference', 'triad': 'candidate_3of3',
+    'single-golos-match': 'candidate_gigaam_agreement',
+    'single-golos-wrong-scope': 'rejected_gigaam_reference'}
 assert actual.loc['single-match', 'gigaam_text'] == 'да'
 assert actual.loc['triad', 'annotation_policy'] == TRIAD_VERSION
 

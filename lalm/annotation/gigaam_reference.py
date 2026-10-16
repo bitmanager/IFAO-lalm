@@ -1,4 +1,4 @@
-"""Pinned SOVA CTC references; source text never enters the blind Gemini prompt."""
+"""Pinned CTC references; source text never enters the blind Gemini prompt."""
 from functools import lru_cache
 import hashlib
 import io
@@ -6,21 +6,25 @@ import io
 import pyarrow.parquet as pq
 
 from .store import s3, dataset_bucket
+from .contract import GIGAAM_REFERENCES
 
 
-REFERENCE_SHA = 'cc693e4862f452a2d7a56f586b28acec3e38e578a5ad89302a958d84d2f5aedd'
-REFERENCE_KEY = 'diagnostics/gigaam-ctc-sova-20261015/' + REFERENCE_SHA + '.parquet'
+REFERENCE_KEY, REFERENCE_SHA = GIGAAM_REFERENCES['sova']
+GOLOS_REFERENCE_KEY, GOLOS_REFERENCE_SHA = GIGAAM_REFERENCES['golos']
+APPROVED_REFERENCES = set(GIGAAM_REFERENCES.values())
 POLICY = 'gigaam-single-pass-v1'
 
 
-@lru_cache(maxsize=1)
-def references():
-    response = s3().get_object(Bucket=dataset_bucket(), Key=REFERENCE_KEY)
+@lru_cache(maxsize=2)
+def references(key=REFERENCE_KEY, sha=REFERENCE_SHA):
+    if (key, sha) not in APPROVED_REFERENCES:
+        raise ValueError('unapproved_gigaam_reference')
+    response = s3().get_object(Bucket=dataset_bucket(), Key=key)
     try:
         raw = response['Body'].read()
     finally:
         response['Body'].close()
-    if hashlib.sha256(raw).hexdigest() != REFERENCE_SHA:
+    if hashlib.sha256(raw).hexdigest() != sha:
         raise ValueError('gigaam_reference_checksum_mismatch')
     labels = {}
     for row in pq.read_table(io.BytesIO(raw)).to_pylist():
@@ -31,15 +35,36 @@ def references():
     return labels
 
 
+def requires_reference(asset):
+    key = asset['object_key']
+    return key.startswith('staging/golos/') and '/crowd/train/' in key
+
+
+def load_reference_index(asset):
+    # Fail once at the asset boundary; a corrupt index must not be treated as
+    # thousands of bad audio rows by the per-record exception handler.
+    if asset['object_key'].startswith('staging/sova-rudevices/'):
+        references()
+    elif requires_reference(asset):
+        references(GOLOS_REFERENCE_KEY, GOLOS_REFERENCE_SHA)
+
+
 def reference(asset, member, source_sha):
-    if not asset['object_key'].startswith('staging/sova-rudevices/'):
+    if asset['object_key'].startswith('staging/sova-rudevices/'):
+        key, sha = REFERENCE_KEY, REFERENCE_SHA
+    elif requires_reference(asset):
+        key, sha = GOLOS_REFERENCE_KEY, GOLOS_REFERENCE_SHA
+    else:
         return None
-    row = references().get((asset['object_key'], str(member)))
+    row = references(key, sha).get((asset['object_key'], str(member)))
     if not row or row['audio_sha256'] != source_sha:
         return None
     if not isinstance(row['gigaam_transcription'], str) or not row['gigaam_transcription'].strip():
         return None
-    return {'text': row['gigaam_transcription'], 'model': row['gigaam_model'],
+    result = {'text': row['gigaam_transcription'], 'model': row['gigaam_model'],
             'weights_sha256': row['gigaam_weights_sha256'],
-            'source_audio_sha256': source_sha, 'reference_key': REFERENCE_KEY,
-            'reference_sha256': REFERENCE_SHA}
+            'source_audio_sha256': source_sha, 'reference_key': key,
+            'reference_sha256': sha}
+    if 'source_duration' in row:
+        result['source_duration'] = row['source_duration']
+    return result
