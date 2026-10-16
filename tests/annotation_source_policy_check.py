@@ -26,5 +26,18 @@ with connect() as conn:
     row = conn.execute("UPDATE jobs SET state='PENDING' WHERE id='openstt-phone1' "
                        'RETURNING state').fetchone()
     assert row['state'] == 'NEEDS_REVIEW'
+    for key, member, blocked in [
+        ('staging/golos-balalaika/rev/test/shard.tar', 'audio.wav', True),
+        ('staging/balalaika-longform/rev/data/validation/shard.tar', 'audio.wav', True),
+        ('staging/source/mixed.tar', 'DEV/0001.wav', True),
+        ('staging/source/mixed.tar', 'test-0001.wav', True),
+        ('staging/source/train/shard.tar', 'train/0001.wav', False),
+        ('staging/source/train/shard.tar', 'train/testament.wav', False),
+    ]:
+        sample = json.dumps({'source_provenance': {'key': key, 'member': member}})
+        row = conn.execute("INSERT INTO jobs(id,sample,state) VALUES ('split-check',%s::jsonb,'PENDING') "
+                           'RETURNING state,error_code', (sample,)).fetchone()
+        assert row['state'] == ('NEEDS_REVIEW' if blocked else 'PENDING')
+        assert row['error_code'] == ('held_out_source_requires_split_adapter' if blocked else None)
     conn.rollback()
 print('OpenSTT insert/retry policy checked; temporary objects rolled back')

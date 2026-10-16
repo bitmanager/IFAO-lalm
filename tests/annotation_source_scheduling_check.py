@@ -37,5 +37,16 @@ with connect() as conn:
     assert select_source(conn)['id'] == 'mn', 'Only explicit MTEDx train shards may use generic preparation'
     conn.execute("UPDATE source_assets SET state='PREPARED' WHERE id='mn'")
     assert select_source(conn) is None, 'Must not fall through to MTEDx held-out or mixed inputs'
+    for ident, key in [
+        ('gt', 'staging/golos-balalaika/revision/test/shard_000.tar'),
+        ('lv', 'staging/balalaika-longform/revision/data/validation/validation-00000.tar'),
+        ('gd', 'staging/golos/revision/DEV/audio.tar'),
+        ('gn', 'staging/golos/revision/train/train-00000.tar'),
+    ]:
+        conn.execute('INSERT INTO source_assets(id,bucket,object_key,etag,bytes,codec,state) '
+                     "VALUES (%s,'test',%s,'test',1,'tar','QUEUED')", (ident, key))
+    assert select_source(conn)['id'] == 'gn', 'Must preserve train inputs while excluding named held-out paths'
+    conn.execute("UPDATE source_assets SET state='PREPARED' WHERE id='gn'")
+    assert select_source(conn) is None
     conn.rollback()
 print('Source scheduling verified on PostgreSQL; fixtures rolled back')

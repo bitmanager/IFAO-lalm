@@ -15,6 +15,7 @@ def select_source(conn):
         JOIN activity c ON c.corpus=split_part(a.object_key,'/',2)
         WHERE a.state IN ('QUEUED','PREPARING')
           AND split_part(a.object_key,'/',2) NOT LIKE 'openstt-%'
+          AND a.object_key !~* '(^|/)(test|valid|validation|dev|eval|evaluation)(/|[-_.]|$)'
           -- The generic preparer assigns train to every row. MTEDx's archive
           -- mixes official splits; only explicitly named HF train shards fit.
           AND split_part(a.object_key,'/',2) <> 'mtedx-ru'

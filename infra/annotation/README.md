@@ -2010,6 +2010,42 @@ outputs, not transcription accuracy or completed-cohort acceptance.
 Evidence:
 `speech-datasets/diagnostics/storage-integrity-20261016/fresh-native-cli-a075c66c47c22a238682febccb83f6721c8d8769ca98ee82969ab1e2cd1fa628.json`.
 
+Before resuming the existing generic source preparer after HashTesh, a live
+selection check found Golos crowd/train as the next source, but also queued
+test/validation archives in other corpora. The selector now excludes named
+`test`, `valid`, `validation`, `dev`, `eval`, and `evaluation` path components
+or shard-name prefixes, case-insensitively. The existing database policy also
+blocks pending/retried jobs whose source key or archive member names such a
+split, because generic preparation currently assigns train. OpenSTT retains
+its separate corpus-wide exclusion.
+
+At 18:40 UTC, 42 additional sources were moved from QUEUED to NEEDS_REVIEW:
+31 `golos-balalaika`, four `balalaika-longform`, and seven
+`qwen-answer-nohistory-v1-20261015` tables. No corresponding jobs were pending
+or running, no inference was submitted, and all source objects/results remain
+intact. PostgreSQL fixtures verify source selection and insertion/retry guards,
+including a held-out member inside a mixed archive and a nonmatching
+`testament.wav` name; fixtures were rolled back.
+Receipt:
+`speech-datasets/diagnostics/source-policy-20261016/named-heldout-05d1e8f2e7012e2d85259830e37d292e07419bfb72149113a0865023f68b0b7a.json`.
+
+A one-off operator wait is attached to the running HashTesh feeder's Docker
+exit. Only exit code zero resumes the existing `source-preparer` service; its
+current pending-work threshold is 6,000. The source selector's deployed hash is
+checked before resume. No new service or separate preparation code is added.
+The generic preparer remains stopped while this wait is pending.
+
+At 18:42 UTC the read-only Jupyter process verified all current cohort Parquet
+hashes and one audio preview per organization: Meteor 143 cohorts / 1,709
+conversations / 28,809 windows / 22,813 with history; HashTesh 11 cohorts / 125
+conversations / 1,630 windows / 1,186 with history. The first new 12-call
+HashTesh cohort now has its canonical context receipt: 182 Russian nonempty
+windows, 139 with history, from 189 saved outputs across 193 source jobs.
+No future or overlapping windows entered history. The user's notebook kernel
+was not executed or changed, and all records remain review-only.
+Evidence:
+`speech-datasets/diagnostics/contextual-review/notebook-new-hashtesh-908d47606ebad3a0a633155c83bc7456c99b5ed81cc2a11f150919f36f64417a.json`.
+
 `python -m lalm.annotation.organization_feed --metadata <native-csv-directory>
 --selection <selection.json> --audio-directory <audio-directory>` feeds explicit
 native selections in batches of at most 12 calls through the same adapter.

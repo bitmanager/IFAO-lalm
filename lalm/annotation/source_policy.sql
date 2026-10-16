@@ -8,6 +8,15 @@ BEGIN
            LIKE 'openstt-%' THEN
         NEW.state := 'NEEDS_REVIEW';
         NEW.error_code := 'corpus_excluded_by_user';
+    ELSIF NEW.state IN ('PENDING', 'RETRYABLE_FAILED') AND (
+        COALESCE(NEW.sample->'source_provenance'->>'key', '')
+            ~* '(^|/)(test|valid|validation|dev|eval|evaluation)(/|[-_.]|$)'
+        OR COALESCE(NEW.sample->'source_provenance'->>'member', '')
+            ~* '(^|/)(test|valid|validation|dev|eval|evaluation)(/|[-_.]|$)'
+    ) THEN
+        -- Generic preparation currently assigns train to every sample.
+        NEW.state := 'NEEDS_REVIEW';
+        NEW.error_code := 'held_out_source_requires_split_adapter';
     END IF;
     RETURN NEW;
 END;
