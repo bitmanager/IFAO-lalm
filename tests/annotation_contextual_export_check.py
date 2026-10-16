@@ -42,6 +42,11 @@ with connect() as conn:
         assert {r['manifest_key'] for r in result['published']} == {
             'incoming/' + letter * 64 + '.jsonl' for letter in ('a', 'e')}
         assert publish.call_count == 2
+        publish.reset_mock()
+        result = export_completed('HashTesh')
+        assert {r['manifest_key'] for r in result['published']} == {
+            'incoming/' + 'c' * 64 + '.jsonl'}
+        publish.assert_called_once_with('incoming/' + 'c' * 64 + '.jsonl', 'HashTesh')
         client.put_object.assert_not_called()
     conn.rollback()
 print('Context exporter selection verified on PostgreSQL; normalized IDs included, fixtures rolled back')

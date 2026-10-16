@@ -1876,6 +1876,27 @@ again during normal staging; decoded-PCM overlap is still unproven.
 Reserve preparation/holdout evidence:
 `speech-datasets/diagnostics/organization-calls-20261016/hashtesh-reserve-b8ff2139228e2c2ba08b559a21cc176ba719ec0161aad8fa769fa4a5838441fb.json`.
 
+The inspection DAG now chains `publish_hashtesh_contexts` after
+`publish_meteor_contexts`, reusing the same exporter and canonical receipt
+checks. It issues no inference requests. The updated DAG parsed successfully
+in the deployed Airflow runtime. The PostgreSQL fixture check also verifies
+that HashTesh cohort selection excludes Meteor, with all fixtures rolled back.
+The first scheduled HashTesh task is still awaiting observation at deployment.
+
+An explicit first export of the already finished mixed native pilot published
+only its six HashTesh conversations: 61 Russian windows, 41 with prior history.
+The shared notebook's last section now selects `Meteor` or `HashTesh` through
+`context_organization`, keeping the other 30 cells intact. A Hub checkpoint was
+created before updating it. Both choices were executed in a separate read-only
+verification process (not the user's notebook kernel): all cohort Parquet
+hashes, row counts, duplicate IDs, chronological history and one audio preview
+hash per organization passed. Meteor then had 74 cohorts / 881 conversations /
+14,901 windows / 11,815 history-bearing windows; these remain predicted,
+review-only records and are not human-gold accuracy measurements.
+
+Notebook verification evidence:
+`speech-datasets/diagnostics/contextual-review/notebook-both-organizations-a92617c1b9d7ce3cb75d7338550e382c8f6d02989eb2bb654780d27a50068fd0.json`.
+
 `python -m lalm.annotation.organization_feed --metadata <native-csv-directory>
 --selection <selection.json> --audio-directory <audio-directory>` feeds explicit
 native selections in batches of at most 12 calls through the same adapter.

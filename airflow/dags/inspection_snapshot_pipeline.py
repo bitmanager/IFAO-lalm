@@ -23,7 +23,12 @@ def inspection_snapshot_pipeline():
         from lalm.annotation.contextual_calls import export_completed
         return export_completed('Meteor')
 
-    publish_inspection_parquet() >> publish_meteor_contexts()
+    @task(retries=2)
+    def publish_hashtesh_contexts():
+        from lalm.annotation.contextual_calls import export_completed
+        return export_completed('HashTesh')
+
+    publish_inspection_parquet() >> publish_meteor_contexts() >> publish_hashtesh_contexts()
 
 
 inspection_snapshot_pipeline()
