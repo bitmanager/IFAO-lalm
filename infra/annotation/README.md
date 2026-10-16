@@ -1764,7 +1764,20 @@ during the local setting, and 4 MB after rollback.
 
 The source was atomically deployed at 2026-10-16 01:24:51 UTC, with the previous
 file saved under `infra/annotation/runtime/backups/inspection-work-mem-20261016-0125/`.
-Already-running exports retain their existing transaction settings. Check the
-first export that starts after deployment before claiming a full-run benefit.
+Already-running exports retain their existing transaction settings.
 Evidence: `speech-datasets/diagnostics/snapshot-io-20261016/work-mem-probe-8eb07008ed4b6f9c6165fba1389f320cf7c3a26476cbd0e33e1b799d90cf92db.json`
 and `speech-datasets/diagnostics/snapshot-io-20261016/work-mem-reverse-115d4271645510bd50ea446724de6989b284578fb66fb0b288b7d724c3edc197.json`.
+
+The first completed export starting after deployment ran from 01:30:18 to
+01:34:36 UTC on 16 October: 258.77 seconds, with 1,600,938 passes and 607,801
+examples. The preceding export took 595.18 seconds. This is an observed pair
+under changing load, not a controlled whole-export speed benchmark. A bounded
+12-sample trace during the new export observed no `BuffileWrite`, and database
+temporary-file counters did not increase during that sample.
+
+All five published Parquet schemas and footer counts matched their live views
+and manifest. Example/progress request and text counters agreed; every pass
+and example retained `human_verified=false`. The progress object was fully
+checksum-verified; larger objects used ETag-pinned range reads, not full-object
+SHA256 readback. Evidence:
+`speech-datasets/diagnostics/snapshot-io-20261016/first-live-full-f10921272f992f8f64b8bbb19674f17da3d861c73ba537a070425e49ca185f2b.json`.
