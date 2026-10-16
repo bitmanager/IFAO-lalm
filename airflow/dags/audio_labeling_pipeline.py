@@ -24,7 +24,7 @@ def audio_labeling_pipeline():
     @task(retries=2)
     def compare_independent_passes():
         from lalm.annotation.review import reconcile
-        return reconcile()
+        return reconcile(max_pilots=300)
 
     compared = compare_independent_passes()
     # Prepared manifests already exist independently of this inventory scan.

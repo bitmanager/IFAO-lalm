@@ -1984,6 +1984,19 @@ until subsequent observations.
 Concurrency receipt:
 `speech-datasets/diagnostics/provider-errors-20261016/agy18-concurrency-d99b5b9273a79252d087828fd5f3e3a4e0774bbe6563c49cb6808b39bcc023b3.json`.
 
+The 18:20 UTC review cycle completed 200 groups in 59.70 seconds, leaving 350
+changed groups awaiting review (oldest update about 535 seconds). Before that
+cycle, the observed queue was 418 groups / 750 seconds. To give this five-minute
+task more room to catch up with native call groups, its Airflow invocation now
+passes `reconcile(max_pilots=300)` explicitly; the library default remains 200.
+No acceptance rules, prompts, cursors or inference settings changed. The deployed
+DAG parsed, and its callable passed 300 to a mocked reconciler without running
+extra reviews or restarting services. The first real 300-group cycle awaits
+observation at 18:25 UTC; a throughput improvement is not yet established.
+
+Baseline review receipt:
+`speech-datasets/diagnostics/review-performance-20261016/native-batch200-2b0ce017967f6ee0517487926854a65ad91ded58b0c4efad1f92237f071f0a2d.json`.
+
 `python -m lalm.annotation.organization_feed --metadata <native-csv-directory>
 --selection <selection.json> --audio-directory <audio-directory>` feeds explicit
 native selections in batches of at most 12 calls through the same adapter.
