@@ -1834,6 +1834,41 @@ hashes; 82.812 declared hours). HashTesh has 1,917 such conversation IDs but onl
 These are candidate inventory statistics, not measured durations or human-gold
 quality estimates. Test/holdout checks remain mandatory during staging.
 
+`python -m lalm.annotation.organization_feed --metadata <native-csv-directory>
+--selection <selection.json> --audio-directory <audio-directory>` feeds explicit
+native selections in batches of at most 12 calls through the same adapter.
+It checks the existing pending-work counter (including staged manifests) before
+each batch; the default threshold is 6,000, with at most one batch of overshoot.
+A PostgreSQL session advisory lock prevents concurrent feeders. S3 checkpoints
+bind the selection and native CSV hashes; resume verifies each referenced
+manifest SHA256 and registry row count before skipping it. No model request is
+made by this process. Existing holdout, native join and hash checks still apply.
+
+The first feed selected 120 previously unseen Meteor conversations, 19,180
+declared seconds (5.328 hours), and staged 2,115 windows in ten manifests.
+These are prepared inputs, not completed annotations or measured unique hours.
+The live resume check skipped all ten saved batches and staged zero new manifests.
+Receipt: `speech-datasets/diagnostics/organization-calls-20261016/feed120-7888cbaf582693d1848042e63c5f58c11aa1875b80ea64cb122cd45bfbf4319b.json`.
+
+`inspection_snapshot_pipeline.publish_meteor_contexts` follows the existing
+inspection export every ten minutes. Only terminal native-call cohorts are
+exported; already indexed cohorts are skipped. Verified per-cohort receipts are
+stored below `datasets/contextual-review/meteor/conversation-window-history-v1/manifests/`.
+The shared notebook discovers these receipts and checks the referenced Parquet
+hashes instead of requiring manual links. It retains review-only/human flags.
+Initial read-only notebook validation found 137 conversations, 2,473 windows,
+1,992 with history across 12 completed cohorts; target and history are model
+predictions, not human-gold. Repeating the exporter skipped all 12 cohorts:
+`speech-datasets/diagnostics/contextual-review/repeated-export-b40b1e7682b56b36a0d4bff159a9fe4c44f2f5d7159133df7551d9de4f293dea.json`.
+
+The exporter selects by verified native provenance: ingress normalizes the pilot
+IDs. PostgreSQL fixture checks cover normalized IDs, waiting work, another
+organization and unverified joins. The candidate DAG imported with the expected
+two-task dependency; feeder tests cover backpressure, resume and corrupt saved
+manifests. Live dedup audit counted 2,879 native-source jobs, all covered by the
+existing precision unique index, with zero audio/pass/model duplicate groups:
+`speech-datasets/diagnostics/input-conservation-20261016/native-dedup-6722522bd08747c67c4ec285e58f8227d7c8709a7f0391d191a62b2e257b1042.json`.
+
 `lalm.annotation.organization_calls` stages a bounded pilot (at most 12 calls)
 through the existing `incoming/` manifests, prepared-manifest registry and
 Airflow ingest DAG. It reuses the production audio segmentation and queue

@@ -10,6 +10,15 @@ import math
 VERSION = 'conversation-window-history-v1'
 
 
+def index_key(manifest_key, organization='Meteor'):
+    from pathlib import PurePosixPath
+    import re
+    stem = PurePosixPath(manifest_key).stem
+    if not re.fullmatch('[0-9a-f]{64}', stem):
+        raise ValueError('invalid_source_manifest_key')
+    return f'datasets/contextual-review/{organization.lower()}/{VERSION}/manifests/{stem}.json'
+
+
 def digest(value):
     return hashlib.sha256(json.dumps(value, ensure_ascii=False, sort_keys=True,
                                     allow_nan=False).encode()).hexdigest()
@@ -147,7 +156,49 @@ def export_pilot(manifest_key, organization='Meteor', max_history=5):
     body = json.dumps(receipt, sort_keys=True).encode()
     receipt_key = f'diagnostics/contextual-review/{digest(receipt)}.json'
     client.put_object(Bucket=bucket, Key=receipt_key, Body=body, ContentType='application/json')
+    # One canonical receipt per immutable input cohort; the notebook discovers
+    # these small objects instead of listing historical Parquet versions.
+    client.put_object(Bucket=bucket, Key=index_key(manifest_key, organization),
+                      Body=body, ContentType='application/json')
     return dict(receipt, evidence=receipt_key)
+
+
+def export_completed(organization='Meteor'):
+    from botocore.exceptions import ClientError
+    from .store import connect, s3, dataset_bucket
+    with connect() as conn:
+        conn.execute("SET LOCAL statement_timeout='30s'")
+        rows = conn.execute("SELECT sample->>'source_manifest_key' manifest FROM jobs "
+                            "WHERE sample->'source_provenance'->>'key' LIKE %s "
+                            "AND sample->'source_provenance'->>'group_identity_source' "
+                            "='native_current_relation_join' "
+                            "AND sample->>'source_manifest_key' IS NOT NULL GROUP BY 1 "
+                            "HAVING count(*) FILTER (WHERE state IN "
+                            "('PENDING','RUNNING','RETRYABLE_FAILED'))=0 ORDER BY 1",
+                            (f'staging/organization-calls-{organization.lower()}/%',)).fetchall()
+    client, bucket = s3(), dataset_bucket()
+    published, indexed, waiting = [], 0, 0
+    for row in rows:
+        manifest = row['manifest']
+        try:
+            client.head_object(Bucket=bucket, Key=index_key(manifest, organization))
+        except ClientError as error:
+            if error.response['ResponseMetadata']['HTTPStatusCode'] != 404:
+                raise
+        else:
+            indexed += 1
+            continue
+        try:
+            result = export_pilot(manifest, organization)
+        except ValueError as error:
+            if str(error) != 'source_manifest_not_terminal':
+                raise
+            waiting += 1
+            continue
+        published.append({k: result[k] for k in
+                          ('manifest_key', 'dataset_key', 'rows', 'conversations', 'evidence')})
+    return {'published': published, 'already_indexed': indexed,
+            'waiting_full_manifest': waiting, 'inference_requests': 0}
 
 
 if __name__ == '__main__':

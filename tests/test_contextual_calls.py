@@ -1,6 +1,6 @@
 import unittest
 
-from lalm.annotation.contextual_calls import build_records
+from lalm.annotation.contextual_calls import build_records, index_key
 
 
 def row(ident, start, end, channel=0, conversation='call', uncertain=False):
@@ -16,6 +16,12 @@ def row(ident, start, end, channel=0, conversation='call', uncertain=False):
 
 
 class ContextualCallsTests(unittest.TestCase):
+    def test_canonical_index_is_per_immutable_source_manifest(self):
+        key = 'incoming/' + 'a' * 64 + '.jsonl'
+        self.assertTrue(index_key(key).endswith('/manifests/' + 'a' * 64 + '.json'))
+        with self.assertRaises(ValueError):
+            index_key('incoming/not-an-immutable-manifest.jsonl')
+
     def test_history_excludes_future_overlap_other_calls_and_uncertainty(self):
         records = build_records([
             row('past', 0, 2, channel=1), row('overlap', 1, 4),

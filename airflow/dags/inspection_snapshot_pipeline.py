@@ -18,7 +18,12 @@ def inspection_snapshot_pipeline():
         }
         return result
 
-    publish_inspection_parquet()
+    @task(retries=2)
+    def publish_meteor_contexts():
+        from lalm.annotation.contextual_calls import export_completed
+        return export_completed('Meteor')
+
+    publish_inspection_parquet() >> publish_meteor_contexts()
 
 
 inspection_snapshot_pipeline()
