@@ -1991,11 +1991,24 @@ task more room to catch up with native call groups, its Airflow invocation now
 passes `reconcile(max_pilots=300)` explicitly; the library default remains 200.
 No acceptance rules, prompts, cursors or inference settings changed. The deployed
 DAG parsed, and its callable passed 300 to a mocked reconciler without running
-extra reviews or restarting services. The first real 300-group cycle awaits
-observation at 18:25 UTC; a throughput improvement is not yet established.
+extra reviews or restarting services. The first real 300-group cycle at 18:25 UTC
+completed in 68.47 seconds, requested no third passes, and left 254 changed
+groups / 343 seconds oldest age. It fits the five-minute interval; sustained
+backlog clearance remains under observation.
 
 Baseline review receipt:
 `speech-datasets/diagnostics/review-performance-20261016/native-batch200-2b0ce017967f6ee0517487926854a65ad91ded58b0c4efad1f92237f071f0a2d.json`.
+
+First 300-group live receipt:
+`speech-datasets/diagnostics/review-performance-20261016/native-batch300-9f9a5799025c53899b089bca192f8adf9e47d5c3110999d26b9e7441a70b3338.json`.
+
+At 18:28 UTC the first new HashTesh cohort had saved 113 of its 193 windows,
+with remaining work still queued/running/retrying. Four fresh HashTesh-only
+results (two native API, two CLI) passed exact raw-text, model/prompt-contract
+and audio-hash checks. This proves storage/protocol integrity for the sampled
+outputs, not transcription accuracy or completed-cohort acceptance.
+Evidence:
+`speech-datasets/diagnostics/storage-integrity-20261016/fresh-native-cli-a075c66c47c22a238682febccb83f6721c8d8769ca98ee82969ab1e2cd1fa628.json`.
 
 `python -m lalm.annotation.organization_feed --metadata <native-csv-directory>
 --selection <selection.json> --audio-directory <audio-directory>` feeds explicit
