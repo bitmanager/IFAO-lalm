@@ -1953,6 +1953,30 @@ sudo -n infra/annotation/dc run --rm --no-deps --user 0:0 \
 Do not launch this again while its container is running. The PostgreSQL feeder
 lock and verified S3 checkpoints retain the existing exclusion/resume behavior.
 
+At 18:10:54 UTC Airflow imported the first HashTesh manifest as 193 pending
+jobs. It did not bypass the earlier Meteor jobs in FIFO order. Native source
+selection and input preparation continue independently with pending-work
+backpressure.
+
+The 17:59 UTC usage collection succeeded for all 13 measured profiles, including
+paid-tier discovery and interactive-PTY cleanup. Its canonical receipt is
+`speech-datasets/analytics/usage/28a0f79fb9372852737feb8ec92e66eaabccf24b17b64bb4067a4f1b5077d414.json`.
+Subsequent provider denials paused 01 until 20:49 UTC and 02 until 20:51 UTC
+on 16 October (five-hour quota), and 10/16 until approximately 11:49 UTC on
+20 October (weekly quota). These cooldowns were not cleared.
+
+At 18:11 UTC the effective database cap for 18 was reduced from 10 concurrent
+jobs / 1-second minimum interval to 3 / 2 seconds. In the preceding 15-minute
+sample it completed 30 attempts with 13 saved outputs, median 66.72 seconds
+and p95 307.17 seconds, alongside provider-capacity and transport failures.
+The other slots in the same identity family were already capped at three.
+Existing requests were allowed to finish, and `next_request_at` was unchanged.
+This bounds outstanding work; no recovery or throughput improvement is claimed
+until subsequent observations.
+
+Concurrency receipt:
+`speech-datasets/diagnostics/provider-errors-20261016/agy18-concurrency-d99b5b9273a79252d087828fd5f3e3a4e0774bbe6563c49cb6808b39bcc023b3.json`.
+
 `python -m lalm.annotation.organization_feed --metadata <native-csv-directory>
 --selection <selection.json> --audio-directory <audio-directory>` feeds explicit
 native selections in batches of at most 12 calls through the same adapter.
