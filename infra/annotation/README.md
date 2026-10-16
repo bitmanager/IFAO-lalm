@@ -1743,3 +1743,28 @@ progress table retained four empty results and zero human approvals. Pass
 and example checks used ETag-pinned range reads, not full-object SHA256
 readbacks; the smaller progress object was fully checksum-verified. Evidence:
 `speech-datasets/diagnostics/organization-calls-20261015/pilot-parquet-dbfbbc66886c91ab4cc9753b852057f77d010eef27fdf2a697868b9a1f8e6dfe.json`.
+
+### PostgreSQL memory for inspection exports
+
+Inspection transactions use `SET LOCAL work_mem = '64MB'` before fetching
+10,000-row batches. This changes only the export transaction; the cluster and
+other sessions retain their defaults. There is no database or Airflow restart.
+The default 4 MB caused a temporary file of about 16.4 MB per measured batch.
+Two paired, read-only 10,000-row probes, including reversed execution order,
+produced identical row hashes within each transaction. PostgreSQL logged a
+temporary file for each 4 MB fetch and none for either 64 MB fetch.
+
+Fetch timings varied under concurrent load: 4/64 MB took 12.12/4.55 seconds in
+the first pair; reversed 64/4 MB took 8.06/5.92 seconds. These observations prove
+spill removal for the measured batches, not a whole-export speedup or absence
+of spills for arbitrarily wide rows. All four snapshot checks passed with the
+candidate in the deployed scheduler environment, including typed labels and
+publication-pointer ordering. A real transaction verified 4 MB before, 64 MB
+during the local setting, and 4 MB after rollback.
+
+The source was atomically deployed at 2026-10-16 01:24:51 UTC, with the previous
+file saved under `infra/annotation/runtime/backups/inspection-work-mem-20261016-0125/`.
+Already-running exports retain their existing transaction settings. Check the
+first export that starts after deployment before claiming a full-run benefit.
+Evidence: `speech-datasets/diagnostics/snapshot-io-20261016/work-mem-probe-8eb07008ed4b6f9c6165fba1389f320cf7c3a26476cbd0e33e1b799d90cf92db.json`
+and `speech-datasets/diagnostics/snapshot-io-20261016/work-mem-reverse-115d4271645510bd50ea446724de6989b284578fb66fb0b288b7d724c3edc197.json`.

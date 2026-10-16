@@ -27,6 +27,8 @@ def publish_snapshots():
     tables = {}
     with connect() as conn, tempfile.TemporaryDirectory(prefix='speech-snapshot-') as temp:
         conn.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY')
+        # Keep FETCH batches in memory without changing cluster-wide defaults.
+        conn.execute("SET LOCAL work_mem = '64MB'")
         stamp = conn.execute('SELECT transaction_timestamp() AS stamp').fetchone()['stamp'].isoformat()
         derived = {}
         for name, view in TABLES.items():
