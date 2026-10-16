@@ -1680,6 +1680,13 @@ scheduler environment before deployment. This does not establish a speedup
 for the complete export. Benchmark evidence:
 `speech-datasets/diagnostics/inspection-serialization-20261015/benchmark-c09aac9a75d77833dbcf5907e973210d26cd2be4f5758c563ea73046f16b2b69.json`.
 
+The first completed export starting after this source update took 609.73
+seconds and published 1,560,907 passes and 591,504 examples. All five schemas
+and footer counts matched the live views; example/progress request and text
+counts agreed, and human-approval flags remained false. This is one observed
+runtime, not a measured whole-export speedup. Verification:
+`speech-datasets/diagnostics/inspection-serialization-20261015/first-live-498bd45124c021e4f2c033bc20a04a7cbf4db81c959fda73037da567fcabdffb.json`.
+
 ### Native organization-call pilot
 
 `lalm.annotation.organization_calls` stages a bounded pilot (at most 12 calls)
