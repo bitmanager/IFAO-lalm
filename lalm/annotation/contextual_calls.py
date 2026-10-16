@@ -90,12 +90,18 @@ def export_pilot(manifest_key, organization='Meteor', max_history=5):
     import pyarrow.parquet as pq
     from .store import connect, s3, dataset_bucket
 
-    client, bucket = s3(), dataset_bucket()
     with connect() as conn:
         conn.execute("SET LOCAL statement_timeout='20s'")
+        source = conn.execute("SELECT count(*) total, count(*) FILTER (WHERE state IN "
+                              "('PENDING','RUNNING','RETRYABLE_FAILED')) unfinished "
+                              "FROM jobs WHERE sample->>'source_manifest_key'=%s",
+                              (manifest_key,)).fetchone()
+        if not source['total'] or source['unfinished']:
+            raise ValueError('source_manifest_not_terminal')
         rows = conn.execute("SELECT id AS job_id,sample,result FROM jobs "
                             "WHERE sample->>'source_manifest_key'=%s AND result IS NOT NULL "
                             "ORDER BY id", (manifest_key,)).fetchall()
+    client, bucket = s3(), dataset_bucket()
     indices, selected = {}, []
     for row in rows:
         p = row['sample']['source_provenance']
@@ -132,6 +138,8 @@ def export_pilot(manifest_key, organization='Meteor', max_history=5):
     receipt = {'at': datetime.now(timezone.utc).isoformat(), 'organization': organization,
                'manifest_key': manifest_key, 'dataset_key': key, 'dataset_sha256': sha,
                'rows': len(records), 'conversations': len({r['conversation_id'] for r in records}),
+               'source_jobs_total': source['total'], 'source_unfinished_jobs': 0,
+               'source_saved_jobs': len(rows),
                'rows_with_history': sum(bool(r['history']) for r in records),
                'full_parquet_sha256_verified': True, 'inference_requests': 0,
                'training_release': False, 'human_verified': False,
