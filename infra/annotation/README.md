@@ -707,6 +707,15 @@ the producer still submits Flash jobs. The upgrade does not establish that
 Google authentication timeouts are resolved; verify actual saved results after
 each recovery.
 
+For raw CLI audits, extract `agy_result` from the deployed worker parser,
+including its `expected_model` parameter. The scheduler image can contain an
+older helper with a different signature; it is not the inference validator.
+Do not classify that diagnostic mismatch as a failed annotation. A read-only
+audit on 2026-10-16 at 08:40 UTC confirmed fourteen current rejections against
+the worker parser: multi-turn successes or an error result, all retained for
+review without replay or acceptance changes. Evidence:
+`speech-datasets/diagnostics/provider-errors-20261016/cli-format-rejections-ee2398580e27c545725fc42a8cb4b92928b4b5f017df88fb80e51e61a4dddecf.json`.
+
 Worker memory defaults to 16 GiB for concurrency above 10, otherwise 8 GiB.
 Twenty native CLI processes can exceed 8 GiB. Check cgroup `memory.events`
 for increases in `oom_kill` when investigating signal-9 exits, including streams
