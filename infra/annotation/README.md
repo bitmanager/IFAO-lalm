@@ -1860,6 +1860,22 @@ Additional native inventory, 16 October at approximately 17:48 UTC:
 Inventory evidence:
 `speech-datasets/diagnostics/organization-calls-20261016/additional-native-inventory-73322ad14b2ba566210c3a9ac09763b10232aacfb579eee6075979b66cc783ac.json`.
 
+At 17:50 UTC a HashTesh reserve was prepared on dev-1 in
+`/mnt/local/drive2/speech-native-calls-dedup-20261013/hashtesh-context-batch-20261016-1750-reserve`:
+758 calls, 103,681 declared seconds (28.80 hours), 416,445,696 encoded bytes.
+Each selected audio hash and conversation ID is unique and excludes saved prior
+selections. Resolving 95 archive hardlinks was necessary; actual audio bytes were
+read from the regular target members and verified against the original inventory
+SHA256. An initial extraction stopped at the regular-file check, without a
+selection manifest or inference requests; the resumed preparation verified any
+previously written file before keeping it. S3 and database holdout checks both
+found zero matches. This is an extracted reserve, not yet submitted, and the
+existing native feeder must finish before another starts. Holdout checks run
+again during normal staging; decoded-PCM overlap is still unproven.
+
+Reserve preparation/holdout evidence:
+`speech-datasets/diagnostics/organization-calls-20261016/hashtesh-reserve-b8ff2139228e2c2ba08b559a21cc176ba719ec0161aad8fa769fa4a5838441fb.json`.
+
 `python -m lalm.annotation.organization_feed --metadata <native-csv-directory>
 --selection <selection.json> --audio-directory <audio-directory>` feeds explicit
 native selections in batches of at most 12 calls through the same adapter.
