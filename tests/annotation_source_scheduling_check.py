@@ -22,5 +22,18 @@ with connect() as conn:
     assert select_source(conn)['id'] == 'g1', 'Must not prioritize all SOVA objects'
     conn.execute("UPDATE source_assets SET state='PREPARED',updated_at=now() WHERE id='g1'")
     assert select_source(conn)['id'] == 'b1', 'Must rotate rather than exhaust Golos'
+    conn.execute("UPDATE source_assets SET state='PREPARED'")
+    for ident, key in [
+        ('mt', 'staging/mtedx-ru-hf/revision/ru/test-00000-of-00001.parquet'),
+        ('mv', 'staging/mtedx-ru-hf/revision/ru/valid-00000-of-00001.parquet'),
+        ('ma', 'staging/mtedx-ru/revision/mtedx_ru.tgz'),
+        ('mu', 'staging/mtedx-ru-hf/revision/ru/unknown.parquet'),
+        ('mn', 'staging/mtedx-ru-hf/revision/ru/train-00000-of-00018.parquet'),
+    ]:
+        conn.execute('INSERT INTO source_assets(id,bucket,object_key,etag,bytes,codec,state) '
+                     "VALUES (%s,'test',%s,'test',1,'parquet','QUEUED')", (ident, key))
+    assert select_source(conn)['id'] == 'mn', 'Only explicit MTEDx train shards may use generic preparation'
+    conn.execute("UPDATE source_assets SET state='PREPARED' WHERE id='mn'")
+    assert select_source(conn) is None, 'Must not fall through to MTEDx held-out or mixed inputs'
     conn.rollback()
 print('Source scheduling verified on PostgreSQL; fixtures rolled back')

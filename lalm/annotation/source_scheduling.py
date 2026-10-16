@@ -15,6 +15,11 @@ def select_source(conn):
         JOIN activity c ON c.corpus=split_part(a.object_key,'/',2)
         WHERE a.state IN ('QUEUED','PREPARING')
           AND split_part(a.object_key,'/',2) NOT IN ('openstt-phone2','openstt-balalaika')
+          -- The generic preparer assigns train to every row. MTEDx's archive
+          -- mixes official splits; only explicitly named HF train shards fit.
+          AND split_part(a.object_key,'/',2) <> 'mtedx-ru'
+          AND (split_part(a.object_key,'/',2) <> 'mtedx-ru-hf'
+               OR a.object_key ~ '/train-[0-9]+-of-[0-9]+[.]parquet$')
         ORDER BY (a.state='PREPARING') DESC,
                  COALESCE(c.last_served,'epoch'::timestamptz), a.created_at, a.id
         FOR UPDATE OF a SKIP LOCKED LIMIT 1

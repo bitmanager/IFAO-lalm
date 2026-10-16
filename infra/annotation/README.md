@@ -1881,7 +1881,9 @@ The inspection DAG now chains `publish_hashtesh_contexts` after
 checks. It issues no inference requests. The updated DAG parsed successfully
 in the deployed Airflow runtime. The PostgreSQL fixture check also verifies
 that HashTesh cohort selection excludes Meteor, with all fixtures rolled back.
-The first scheduled HashTesh task is still awaiting observation at deployment.
+The first scheduled HashTesh task succeeded in the 17:50 UTC run, executing
+17:55:03–17:55:10 UTC (7.32 seconds). Meteor's preceding context task also
+succeeded in 14.44 seconds.
 
 An explicit first export of the already finished mixed native pilot published
 only its six HashTesh conversations: 61 Russian windows, 41 with prior history.
@@ -1896,6 +1898,19 @@ review-only records and are not human-gold accuracy measurements.
 
 Notebook verification evidence:
 `speech-datasets/diagnostics/contextual-review/notebook-both-organizations-a92617c1b9d7ce3cb75d7338550e382c8f6d02989eb2bb654780d27a50068fd0.json`.
+
+MTEDx split protection was applied before enabling any generic preparation:
+the source selector now allows only explicitly named `mtedx-ru-hf` train shards.
+Its validation/test shards, unknown shard names and the mixed-split `mtedx-ru`
+archive are excluded from this generic path, which assigns `split=train`.
+The three existing non-train/mixed sources were moved from QUEUED to NEEDS_REVIEW
+with `policy_reason=mtedx_official_split_requires_adapter`; all 18 train shards
+remain queued. Source bytes were preserved and no inference was performed.
+PostgreSQL fixtures verified exclusion of held-out/mixed/unknown inputs while
+retaining train selection and existing source rotation, then rolled back.
+
+Policy receipt:
+`speech-datasets/diagnostics/source-policy-20261016/mtedx-split-guard-5e56dd9d5c0d18b185b21a0be02879e3d0afd7302609b4969aa6acc337118068.json`.
 
 `python -m lalm.annotation.organization_feed --metadata <native-csv-directory>
 --selection <selection.json> --audio-directory <audio-directory>` feeds explicit
