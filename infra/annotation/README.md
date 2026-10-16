@@ -1782,6 +1782,20 @@ runtime, not a measured whole-export speedup. Verification:
 
 ### Native organization-call pilot
 
+16 October: user excluded OpenSTT from Gemini annotation. Source preparation
+was stopped gracefully, 4,890 queued jobs were quarantined with
+`corpus_excluded_by_user`, and 31 source assets were marked `EXCLUDED_POLICY`.
+Existing results and in-flight requests were preserved. `source_policy.sql`
+guards new inserts and retry transitions in PostgreSQL, including older live
+workers; source selection excludes both `openstt-phone2` and
+`openstt-balalaika`. Fresh initialization installs the same guard. Temporary
+PostgreSQL fixtures verified insert/retry exclusion and source scheduling,
+including preservation of allowed MTEDx work. The first combined DDL/backfill
+transaction deadlocked and rolled back; guard installation and bounded
+`SKIP LOCKED` backfill then committed separately.
+Receipt: `speech-datasets/diagnostics/source-policy-20261016/exclude-openstt-62aab0d6039cbe2245f6d755532b2bb7432d15eb23c84a2d6711a2d9c6d82fd6.json`.
+Meteor dialogue context is the next priority; MTEDx has not been started.
+
 `lalm.annotation.organization_calls` stages a bounded pilot (at most 12 calls)
 through the existing `incoming/` manifests, prepared-manifest registry and
 Airflow ingest DAG. It reuses the production audio segmentation and queue

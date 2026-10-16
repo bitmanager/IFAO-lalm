@@ -6,6 +6,8 @@ from lalm.annotation.source_scheduling import select_source
 with connect() as conn:
     conn.execute('CREATE TEMP TABLE source_assets (LIKE public.source_assets INCLUDING ALL) ON COMMIT DROP')
     for ident, corpus, state, stamp in [
+        ('o1', 'openstt-phone2', 'PREPARING', '2025-01-01'),
+        ('o2', 'openstt-balalaika', 'QUEUED', '2025-01-01'),
         ('s1', 'sova-rudevices', 'PREPARING', '2026-01-01'),
         ('s2', 'sova-rudevices', 'QUEUED', '2026-01-01'),
         ('g1', 'golos', 'QUEUED', '2026-01-02'),

@@ -14,6 +14,7 @@ def select_source(conn):
         SELECT a.* FROM source_assets a
         JOIN activity c ON c.corpus=split_part(a.object_key,'/',2)
         WHERE a.state IN ('QUEUED','PREPARING')
+          AND split_part(a.object_key,'/',2) NOT IN ('openstt-phone2','openstt-balalaika')
         ORDER BY (a.state='PREPARING') DESC,
                  COALESCE(c.last_served,'epoch'::timestamptz), a.created_at, a.id
         FOR UPDATE OF a SKIP LOCKED LIMIT 1
