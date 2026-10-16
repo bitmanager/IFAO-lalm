@@ -1317,6 +1317,15 @@ RUNNING и отсутствия дочерних AGY, затем перезап�
 Прежние concurrency=3, interval=2 и next_request_at сохранены. Проверен SHA
 и классификация в свежем контейнере; остальные активные процессы не трогали.
 Это исправление нашей паузы при перегрузке, а не восстановление доступной
-мощности Google. Проверка первого свежего результата ещё ожидается.
+мощности Google. Два первых свежих отказа получили корректный
+inference_service_unavailable и остались на попытке 1 в NEEDS_REVIEW.
+После первого проверена пауза 81,03 с без новых отправок до момента
+наблюдения; её дата не сбрасывалась. Эти два ответа используют прежнюю
+форму ошибки. К 06:17:47 UTC завершился и свежий ответ с новой high-traffic
+оболочкой: он также получил inference_service_unavailable и остался на
+попытке 1 в NEEDS_REVIEW. Сохранены исходный поток и его SHA256:
+`diagnostics/provider-errors-20261016/capacity-wrapper-results-ac28f34e6e6567b2b6237295c555543815ee82beedfc16471b56845ac60c6a19.json`.
+Доказательство живой паузы:
+`diagnostics/provider-errors-20261016/capacity-wrapper-live-1f12985f32650ea8417fe2057c0dbc9df9c2b1fd90df540a32b2c7e278cb9bb1.json`.
 Доказательство перезапуска:
 `diagnostics/provider-errors-20261016/capacity-wrapper-deployed-056ae162460963139c52a9d29e9eb55f5cb706ebd9825f36be5d5bce9a478630.json`.
