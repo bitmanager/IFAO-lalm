@@ -189,6 +189,7 @@ def prepare_asset(asset):
             'unaligned_windows': asset['cursor_json'].get('unaligned_windows', 0)}
     buffered = []
     last_index = cursor - 1
+    max_pending = int(os.environ.get('PREPARE_MAX_PENDING', '1500'))
 
     def flush():
         key = None
@@ -210,12 +211,6 @@ def prepare_asset(asset):
     for index, (member, raw, label) in enumerate(audio_rows(client, asset)):
         if index < cursor: continue
         if STOP: return
-        while True:
-            with connect() as conn:
-                pending = pending_work(conn)
-            if pending < int(os.environ.get('PREPARE_MAX_PENDING', '1500')): break
-            if STOP: return
-            time.sleep(10)
         rows = []
         try:
             if not raw: raise ValueError('missing_or_oversized_audio')
@@ -224,6 +219,14 @@ def prepare_asset(asset):
             if reference_only and reference is None:
                 selection['unreferenced_rows'] += 1
             if raw_sha not in protected and (not reference_only or reference):
+                # Filtered inputs create no work. Only wait for capacity before
+                # decoding/uploading audio that can actually enter the queue.
+                while True:
+                    with connect() as conn:
+                        pending = pending_work(conn)
+                    if pending < max_pending: break
+                    if STOP: return
+                    time.sleep(10)
                 info = sf.info(io.BytesIO(raw)) if reference else None
                 for channel, start, end, data in segments(raw):
                     reference_duration = reference.get('source_duration') if reference else None

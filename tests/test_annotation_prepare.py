@@ -1,3 +1,4 @@
+import hashlib
 import io
 import json
 import tarfile
@@ -18,6 +19,64 @@ def wav(values, rate=16000):
 
 
 class SourcePreparationTests(unittest.TestCase):
+    def test_filtered_golos_rows_advance_without_waiting_for_queue_capacity(self):
+        asset = {'id': 'source', 'codec': 'audio', 'cursor_json': {},
+                 'object_key': 'staging/golos/rev/crowd/train/train-00000.tar'}
+        for protected in (False, True):
+            with self.subTest(protected=protected), \
+                    patch('lalm.annotation.prepare.s3') as client, \
+                    patch('lalm.annotation.prepare.connect') as db, \
+                    patch('lalm.annotation.prepare.load_reference_index'), \
+                    patch('lalm.annotation.prepare.audio_rows', return_value=iter([
+                        ('a', b'audio-a', None), ('b', b'audio-b', None)])), \
+                    patch('lalm.annotation.prepare.gigaam_reference',
+                          return_value={'text': 'reference'} if protected else None), \
+                    patch('lalm.annotation.prepare.pending_work',
+                          side_effect=AssertionError('filtered input must not wait')) as pending, \
+                    patch('lalm.annotation.prepare.segments') as decode:
+                hashes = [hashlib.sha256(raw).hexdigest() for raw in
+                          (b'audio-a', b'audio-b')] if protected else []
+                client.return_value.get_object.return_value = {'Body': io.BytesIO(
+                    json.dumps({'audio_sha256': hashes, 'conversation_ids': []}).encode())}
+                prepare_asset(asset)
+                pending.assert_not_called()
+                decode.assert_not_called()
+                client.return_value.put_object.assert_not_called()
+                writes = db.return_value.__enter__.return_value.execute.call_args_list
+                cursor = next(c.args[1][0].obj for c in writes if 'SET cursor_json=' in c.args[0])
+                self.assertEqual((cursor['rows'], cursor['samples'], cursor['errors']), (2, 0, 0))
+                self.assertEqual(cursor['unreferenced_rows'], 0 if protected else 2)
+
+    def test_eligible_audio_still_waits_before_decode_or_upload(self):
+        from types import SimpleNamespace
+        asset = {'id': 'source', 'bucket': 'speech-corpora', 'codec': 'audio',
+                 'object_key': 'staging/golos/rev/crowd/train/train-00000.tar',
+                 'bytes': 10, 'etag': 'fixed', 'cursor_json': {}}
+        with patch('lalm.annotation.prepare.s3') as client, \
+                patch('lalm.annotation.prepare.connect'), \
+                patch('lalm.annotation.prepare.load_reference_index'), \
+                patch('lalm.annotation.prepare.audio_rows', return_value=iter([('0', b'raw', None)])), \
+                patch('lalm.annotation.prepare.gigaam_reference',
+                      return_value={'text': 'reference', 'source_duration': 2}), \
+                patch('lalm.annotation.prepare.sf.info', return_value=SimpleNamespace(channels=1, duration=2)), \
+                patch('lalm.annotation.prepare.segments', return_value=iter([(0, 0, 2, b'prepared')])) as decode, \
+                patch('lalm.annotation.prepare.pending_work', side_effect=[6000, 0]) as pending, \
+                patch('lalm.annotation.prepare.time.sleep') as sleep, \
+                patch.dict('os.environ', {'PREPARE_MAX_PENDING': '6000'}):
+            client.return_value.get_object.return_value = {'Body': io.BytesIO(
+                json.dumps({'audio_sha256': [], 'conversation_ids': []}).encode())}
+            def waiting(_):
+                decode.assert_not_called()
+                client.return_value.put_object.assert_not_called()
+            sleep.side_effect = waiting
+            prepare_asset(asset)
+            self.assertEqual(pending.call_count, 2)
+            sleep.assert_called_once_with(10)
+            manifests = [c.kwargs['Body'] for c in client.return_value.put_object.call_args_list
+                         if c.kwargs['Key'].startswith('incoming/')]
+            self.assertEqual(len(manifests), 1)
+            self.assertEqual(json.loads(manifests[0])['annotation_policy'], 'gigaam-single-pass-v1')
+
     def test_failed_reference_checksum_does_not_skip_source_rows(self):
         asset = {'id': 'source', 'codec': 'audio',
                  'object_key': 'staging/golos/rev/crowd/train/train-00000.tar'}
