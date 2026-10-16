@@ -35,11 +35,19 @@ def reconcile():
             "WHERE j.sample->>'pilot_id' LIKE 'precision-ru-triad-v1-%' AND j.updated_at>COALESCE(r.checked_at,'epoch'::timestamptz) "
             "GROUP BY j.sample->>'pilot_id' ORDER BY min(j.updated_at) LIMIT 25").fetchall()
         pilots = [r['pilot_id'] for r in changed]
+        if not pilots:
+            return {'reports': [], 'third_passes_requested': 0}
         jobs = c.execute("SELECT id,sample,state,result,error_code FROM jobs "
                          "WHERE sample->>'pilot_id'=ANY(%s) ORDER BY id", (pilots,)).fetchall()
     with connect() as c:
+        # A pilot's own answers are excluded from previous_texts below. Avoid
+        # fetching them in the common single-pilot run, but preserve all history
+        # across changed pilots and preserve legacy rows with a NULL pilot ID.
+        excluded_pilot = pilots[0] if len(pilots) == 1 else None
         historical = c.execute("SELECT sample->>'sample_id' AS sample_id, sample->>'pilot_id' AS pilot_id, "
-            "result->>'verbatim_text' AS text FROM jobs WHERE result IS NOT NULL").fetchall()
+            "result->>'verbatim_text' AS text FROM jobs WHERE result IS NOT NULL "
+            "AND (%s::text IS NULL OR sample->>'pilot_id' IS DISTINCT FROM %s::text)",
+            (excluded_pilot, excluded_pilot)).fetchall()
     previous_by_sample = {}
     for old in historical:
         previous_by_sample.setdefault(old['sample_id'], []).append(old)
@@ -73,8 +81,12 @@ def reconcile():
                for v in passes.values()):
             row['decision'] = 'rejected_failed_pass'
         if all(results.get(v) for v in ('verbatim', 'coverage', 'source_correction')):
-            row['normalized_agreement'] = all(compare(results['verbatim']['verbatim_text'],
-                results[v]['verbatim_text'])['normalized_agreement'] for v in ('coverage', 'source_correction'))
+            # The report only needs equality. Keep detailed alignment in compare()
+            # for callers that actually consume the word-level differences.
+            words = normalized_words(results['verbatim']['verbatim_text'])
+            row['normalized_agreement'] = all(
+                words == normalized_words(results[v]['verbatim_text'])
+                for v in ('coverage', 'source_correction'))
         reports.setdefault(pilot, []).append(row)
     # Do not publish reports or advance cursors if an enqueue guard fails.
     _enqueue_followups(followups)

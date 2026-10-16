@@ -1,6 +1,7 @@
 """Exercise batched follow-ups and failed-report recovery; no inference or S3 writes."""
 from contextlib import contextmanager
 import hashlib
+import json
 from pathlib import Path
 from unittest.mock import patch
 from uuid import uuid4
@@ -29,10 +30,14 @@ class Reports:
     fail = True
     writes = 0
 
+    def __init__(self):
+        self.payloads = []
+
     def put_object(self, **kwargs):
         if self.fail:
             raise RuntimeError('simulated_report_failure')
         self.writes += 1
+        self.payloads.append(json.loads(kwargs['Body']))
 
 
 with connect() as conn:
@@ -86,5 +91,71 @@ with connect() as conn:
             raise AssertionError('Raw-audio holdout guard must remain active')
         assert conn.execute('SELECT 1 FROM jobs WHERE id=%s', (job_id(allowed),)).fetchone() is None
         assert conn.execute('SELECT count(*) n FROM publications').fetchone()['n'] == 0
+
+        # Agreement is only a report flag: negations, numbers, empty speech and
+        # conflicting historical labels must retain their rejection decisions.
+        cases = {
+            'equal': (('Ёж, да!', 'еж да', 'ЕЖ: ДА.'), True, 'candidate_3of3'),
+            'negation': (('Я не согласен', 'Я согласен', 'Я не согласен'),
+                         False, 'rejected_disagreement'),
+            'number': (('Оплачу 15 рублей', 'Оплачу 50 рублей', 'Оплачу 15 рублей'),
+                       False, 'rejected_disagreement'),
+            'empty': (('', '', ''), True, 'rejected_first'),
+            'history': (('да', 'да', 'да'), True, 'rejected_prior_conflict'),
+            'history-null': (('да', 'да', 'да'), True, 'rejected_prior_conflict'),
+        }
+        for label, (texts, _, _) in cases.items():
+            for variant, text in zip(('verbatim', 'coverage', 'source_correction'), texts):
+                row = dict(sample('agreement-' + label), prompt_variant=variant)
+                ident = enqueue(conn, row)
+                result = {'verbatim_text': text, 'language': 'ru', 'uncertain_spans': []}
+                # The disposable outer transaction freezes now(); the review
+                # cursor uses clock_timestamp(), so new fixtures need that clock.
+                conn.execute("UPDATE jobs SET state='NEEDS_REVIEW',result=%s,updated_at=clock_timestamp() WHERE id=%s",
+                             (Jsonb(result), ident))
+        prior = dict(sample('agreement-history'), pilot_id='legacy-history',
+                     conversation_id='legacy-history')
+        ident = enqueue(conn, prior)
+        conn.execute("UPDATE jobs SET state='NEEDS_REVIEW',result=%s,updated_at=clock_timestamp() WHERE id=%s",
+                     (Jsonb({'verbatim_text': 'нет', 'language': 'ru', 'uncertain_spans': []}), ident))
+        prior = dict(sample('agreement-history-null'), pilot_id=None,
+                     conversation_id='legacy-null-history')
+        ident = enqueue(conn, prior)
+        conn.execute("UPDATE jobs SET state='NEEDS_REVIEW',result=%s,updated_at=clock_timestamp() WHERE id=%s",
+                     (Jsonb({'verbatim_text': 'нет', 'language': 'ru', 'uncertain_spans': []}), ident))
+        assert reconcile()['third_passes_requested'] == 0
+        actual = {row['sample_id']: row for payload in reports.payloads[-1:]
+                  for row in payload['rows']}
+        for label, (_, agreement, decision) in cases.items():
+            row = actual['agreement-' + label]
+            assert row['normalized_agreement'] is agreement, label
+            assert row['decision'] == decision, label
+            assert row['human_review_required'] is True
+            assert row['automatic_publication'] is False
+        assert conn.execute('SELECT count(*) n FROM publications').fetchone()['n'] == 0
+        writes = reports.writes
+        assert reconcile() == {'reports': [], 'third_passes_requested': 0}
+        assert reports.writes == writes
+
+        # Changed pilots remain historical evidence for each other. Filtering
+        # all changed pilots at once would incorrectly approve these conflicts.
+        current = sample('agreement-multi')
+        other = dict(sample('other-current-audio'), sample_id='agreement-multi',
+                     conversation_id='other-current', pilot_id=TRIAD_VERSION + '-other')
+        for source, text in ((current, 'да'), (other, 'нет')):
+            for variant in ('verbatim', 'coverage', 'source_correction'):
+                ident = enqueue(conn, dict(source, prompt_variant=variant))
+                conn.execute("UPDATE jobs SET state='NEEDS_REVIEW',result=%s,updated_at=clock_timestamp() WHERE id=%s",
+                             (Jsonb({'verbatim_text': text, 'language': 'ru', 'uncertain_spans': []}), ident))
+        start = len(reports.payloads)
+        assert reconcile()['third_passes_requested'] == 0
+        actual = {(payload['summary']['pilot_id'], row['sample_id']): row
+                  for payload in reports.payloads[start:] for row in payload['rows']}
+        for source in (current, other):
+            row = actual[(source['pilot_id'], source['sample_id'])]
+            assert row['normalized_agreement'] is True
+            assert row['decision'] == 'rejected_prior_conflict'
+            assert row['human_review_required'] is True
+            assert row['automatic_publication'] is False
     conn.rollback()
 print('Batch guards and failed-report recovery passed; transaction rolled back')
