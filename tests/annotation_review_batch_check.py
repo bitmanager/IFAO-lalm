@@ -157,5 +157,27 @@ with connect() as conn:
             assert row['decision'] == 'rejected_prior_conflict'
             assert row['human_review_required'] is True
             assert row['automatic_publication'] is False
+
+        # Native-call pilots are small and numerous. Batch selection must get
+        # beyond the former 25-pilot ceiling without losing unselected work.
+        for index in range(60):
+            row = dict(sample('native-batch-' + str(index)),
+                       pilot_id=TRIAD_VERSION + '-native-limit-' + str(index))
+            row['source_provenance'] = {}
+            ident = enqueue(conn, row)
+            conn.execute("UPDATE jobs SET state='NEEDS_REVIEW',result=%s,updated_at=clock_timestamp() WHERE id=%s",
+                         (Jsonb({'verbatim_text': 'тест', 'language': 'ru', 'uncertain_spans': []}), ident))
+        before = reports.writes
+        assert len(reconcile(max_pilots=40)['reports']) == 40
+        assert reports.writes == before + 40
+        assert len(reconcile()['reports']) == 20
+        assert reconcile() == {'reports': [], 'third_passes_requested': 0}
+        for invalid in (0, 1001, True):
+            try:
+                reconcile(max_pilots=invalid)
+            except ValueError as error:
+                assert str(error) == 'invalid_review_batch_limit'
+            else:
+                raise AssertionError('Invalid review batch limit accepted')
     conn.rollback()
 print('Batch guards and failed-report recovery passed; transaction rolled back')

@@ -27,13 +27,18 @@ def _enqueue_followups(samples):
                 enqueue(conn, sample)
 
 
-def reconcile():
+def reconcile(max_pilots=200):
+    # Native calls have one pilot per conversation; 25 per five-minute cycle
+    # falls behind their input rate. Keep the batch bounded and caller-tunable.
+    if type(max_pilots) is not int or not 1 <= max_pilots <= 1000:
+        raise ValueError('invalid_review_batch_limit')
     with connect() as c:
         started = c.execute('SELECT clock_timestamp() AS stamp').fetchone()['stamp']
         changed = c.execute("SELECT j.sample->>'pilot_id' AS pilot_id FROM jobs j "
             "LEFT JOIN annotation_review_cursors r ON r.pilot_id=j.sample->>'pilot_id' "
-            "WHERE j.sample->>'pilot_id' LIKE 'precision-ru-triad-v1-%' AND j.updated_at>COALESCE(r.checked_at,'epoch'::timestamptz) "
-            "GROUP BY j.sample->>'pilot_id' ORDER BY min(j.updated_at) LIMIT 25").fetchall()
+            "WHERE j.sample->>'pilot_id' LIKE %s AND j.updated_at>COALESCE(r.checked_at,'epoch'::timestamptz) "
+            "GROUP BY j.sample->>'pilot_id' ORDER BY min(j.updated_at),j.sample->>'pilot_id' LIMIT %s",
+            (TRIAD_VERSION + '-%', max_pilots)).fetchall()
         pilots = [r['pilot_id'] for r in changed]
         if not pilots:
             return {'reports': [], 'third_passes_requested': 0}
