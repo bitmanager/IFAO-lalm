@@ -1879,6 +1879,33 @@ were extracted with encoded-byte hashes verified. Their existing-adapter feeder
 started around 17:01 UTC and waits when pending work reaches 6,000. Source
 preparation for unrelated corpora remains stopped; OpenSTT stays excluded.
 
+### Native throughput checks and review batching, 16.10.2026, 17:21 UTC
+
+Four newly imported Meteor calls were decoded and segmented again in the
+existing preparer image: all 36 windows matched the stored S3 bytes, audio
+hashes, channels, time ranges and native conversation IDs. This verifies audio
+provenance, not transcription accuracy. Receipt:
+`speech-datasets/diagnostics/organization-calls-20261016/window-reproduction-932fe050f6a76b301d76b790ceccfaa0af8d7a6475298d278240bb637db4b21a.json`.
+
+Native calls create one pilot per conversation. The old 25-pilot review cap
+could process only 75 groups per 15 minutes while 288 new groups arrived;
+285 groups were waiting at 17:14, oldest update about nine minutes old.
+`reconcile(max_pilots=200)` now uses a bounded, validated, caller-tunable limit.
+PostgreSQL fixtures verified a 40/20 split of 60 groups, invalid-limit rejection,
+failed-report recovery, follow-up deduplication, holdout guards, negations,
+numbers and historical conflicts. No model prompts or acceptance rules changed.
+The runtime file was replaced atomically with a private backup; no services
+were restarted. The scheduled 17:20 cycle produced 200 reports in 65.374 seconds,
+within its five-minute interval. At 17:21 the backlog was 429 groups while new
+work continued, but the oldest waiting update was about six minutes old.
+This is one cycle's evidence, not proof that the backlog has cleared:
+`speech-datasets/diagnostics/review-performance-20261016/native-batch200-6f318515dbdc016bd9182c819f008f526e5a9e211bc2b5eb0a7bda1e95115b2a.json`.
+
+Live feeder logs also verified automatic backpressure: pending work reached
+6,115 at offset 708, then staging resumed and paused again at 6,045 for the next
+batch. The threshold is soft, checked between batches:
+`speech-datasets/diagnostics/input-conservation-20261016/native-backpressure-316e8970e5c00f2d84125619efb276efb6525251c2b2d9da29b2ab5ce28b5141.json`.
+
 `lalm.annotation.organization_calls` stages a bounded pilot (at most 12 calls)
 through the existing `incoming/` manifests, prepared-manifest registry and
 Airflow ingest DAG. It reuses the production audio segmentation and queue
