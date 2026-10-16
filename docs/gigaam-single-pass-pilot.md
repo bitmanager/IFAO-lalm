@@ -38,6 +38,31 @@ The saved-output audits below still apply: model agreement is not a measured
 precision guarantee. Keep these candidates separate from three-Gemini agreement
 and audit them by listening before any training publication.
 
+At 19:55:53 UTC Airflow imported the first new SOVA manifest as 128 distinct
+pending, one-pass `verbatim` jobs. The complete manifest audit checked its hash,
+all 128 exact CTC source joins and two stored audio hashes. A prior read-only
+reproduction of the first 32 source recordings yielded one full mono window per
+recording, with all original hashes matching the CTC layer. The imported jobs
+had no follow-ups at the 19:57 check; inference and the subsequent scheduled
+review still need observation. Receipts:
+
+- `speech-datasets/diagnostics/gigaam-single-pass-20261016/source32-b3eccf308c60306dc231c08466d37b0255d24067ae29182a4d4abe5bc7a8f1ed.json`
+- `speech-datasets/diagnostics/gigaam-single-pass-20261016/first-manifest-c508b337e6942249c7fd676e2099b83d79bab8c1547ce3e80f07e3c866642680.json`
+- `speech-datasets/diagnostics/gigaam-single-pass-20261016/import128-80ba0bd59aa8b310b65ef5bb57a1306799fb1f318c5ffd122e566d0ed8026aa4.json`
+
+The shared progress notebook now recognizes the one-pass policy separately,
+shows its GigaAM text and candidate hours, and keeps it outside the three-pass
+yield denominator. Select `decision_filter='candidate_gigaam_agreement'` to
+inspect these matches once saved outputs enter an inspection snapshot. Existing
+snapshots without the new pass columns remain supported. PostgreSQL view and
+small notebook fixtures checked matches, disagreement, foreign language,
+incorrect source identity and legacy triad snapshots without executing a user
+kernel. Six notebook cells changed after a Jupyter checkpoint; the other cells
+and metadata were preserved. Deployed source digest:
+`fd3e36f42c14756d1ea5ddf929c0b21224b49a6c9459866280d66ce85e6886d0`.
+The appended pass-view fields become visible in the next scheduled snapshot:
+`speech-datasets/diagnostics/gigaam-single-pass-20261016/inspection-view-634191569bf54decf9ab993eb7106e61e317b532dcf2ba4a4d64fef1e1b6108b.json`.
+
 Checked 2026-10-15 (MSK) against the immutable inspection snapshot from
 2026-10-14 22:02:53 UTC. This is an analysis of saved outputs; it made no new
 Gemini requests and did not publish training labels.

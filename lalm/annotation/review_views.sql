@@ -36,7 +36,9 @@ SELECT id AS job_id, sample->>'pilot_id' AS batch_id,
        false AS human_verified,
        sample->'source_provenance' AS source_provenance,
        created_at, updated_at,
-       result->'uncertain_spans' AS uncertain_spans
+       result->'uncertain_spans' AS uncertain_spans,
+       sample->>'annotation_policy' AS annotation_policy,
+       sample->>'source_audio_sha256' AS source_audio_sha256
 FROM jobs;
 
 CREATE OR REPLACE VIEW review_examples AS
