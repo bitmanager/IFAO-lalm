@@ -1138,3 +1138,19 @@ native ответов. Дождались окончания действующ�
 контракта, аудиохеша и сохранённого текста, включая native API. Возвращены
 concurrency=20/min_interval=0.2 без изменения текущего next_request_at.
 Протокол: `speech-datasets/diagnostics/auth-recovery-20261016/agy13-prompt-block-canary-a6b5d2a9ed118d0deada925c6027cc2339ea71e32ffbd76bbdc4efe110c080bb.json`.
+
+### Обновление agy-07 — 16.10.2026, 00:57–00:59 UTC
+
+Перед обслуживанием за шесть минут получены 84 успешных ответа и один нерусский
+ответ без транспортных ошибок. Слот продолжает работать только через CLI:
+NATIVE_API_PERCENT и NATIVE_API_MAX_PERCENT равны нулю.
+
+Собственный hold установлен в 00:57:24 UTC. После RUNNING=0, AGY=0 и отсутствия
+новых ошибок проверены SHA исходников и перезапущен только контейнер 07.
+Загружена версия worker `c437af5c94e1b0c455f22dab612fdc12f0e92baed5fd9920a7fbf5e1610086f5`.
+Выдача возобновлена в 00:58:04 UTC с concurrency=1. Четыре новых CLI результата
+проверены по raw stream: один успешный ход, только разрешённое чтение нужного
+аудио, правильные модель, схема, промпт, контракт, аудиохеш и сохранённый текст.
+Восстановлены прежние concurrency=3/min_interval=2 без изменения текущего
+next_request_at. Native canary для этого CLI-слота не запускался.
+Протокол: `speech-datasets/diagnostics/auth-recovery-20261016/agy07-late-auth-canary-9776bae99b3684214608c0568c2c61ede68a4c65d68f83345fb7c1b7af504f66.json`.
