@@ -14,7 +14,7 @@ def select_source(conn):
         SELECT a.* FROM source_assets a
         JOIN activity c ON c.corpus=split_part(a.object_key,'/',2)
         WHERE a.state IN ('QUEUED','PREPARING')
-          AND split_part(a.object_key,'/',2) NOT IN ('openstt-phone2','openstt-balalaika')
+          AND split_part(a.object_key,'/',2) NOT LIKE 'openstt-%'
           -- The generic preparer assigns train to every row. MTEDx's archive
           -- mixes official splits; only explicitly named HF train shards fit.
           AND split_part(a.object_key,'/',2) <> 'mtedx-ru'

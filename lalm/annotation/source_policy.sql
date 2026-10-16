@@ -5,7 +5,7 @@ RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
     IF NEW.state IN ('PENDING', 'RETRYABLE_FAILED')
        AND split_part(NEW.sample->'source_provenance'->>'key', '/', 2)
-           IN ('openstt-phone2', 'openstt-balalaika') THEN
+           LIKE 'openstt-%' THEN
         NEW.state := 'NEEDS_REVIEW';
         NEW.error_code := 'corpus_excluded_by_user';
     END IF;

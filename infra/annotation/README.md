@@ -1912,6 +1912,20 @@ retaining train selection and existing source rotation, then rolled back.
 Policy receipt:
 `speech-datasets/diagnostics/source-policy-20261016/mtedx-split-guard-5e56dd9d5c0d18b185b21a0be02879e3d0afd7302609b4969aa6acc337118068.json`.
 
+At 18:01 UTC the user's OpenSTT exclusion was extended from the two initially
+observed corpus names to every `openstt-*` prefix, including `openstt-phone1`.
+Both the source selector and the existing database insert/retry trigger now
+apply that rule. The live function was replaced without dropping its trigger;
+temporary PostgreSQL fixtures verified phone1/phone2/balalaika/future OpenSTT
+names and preservation of unrelated Balalaika and MTEDx inputs. A bounded
+backfill found no additional queued jobs or queued/preparing source assets,
+and the final pending OpenSTT count was zero. Previous outputs remain intact.
+This does not exclude the separately catalogued proprietary/Youtube Balalaika
+corpus whose name has no OpenSTT prefix.
+
+Policy receipt:
+`speech-datasets/diagnostics/source-policy-20261016/all-openstt-27bdfe21ce96aeb83e05e17a7896d2851caa862346f81ea2ca955ab3f106c2d4.json`.
+
 `python -m lalm.annotation.organization_feed --metadata <native-csv-directory>
 --selection <selection.json> --audio-directory <audio-directory>` feeds explicit
 native selections in batches of at most 12 calls through the same adapter.

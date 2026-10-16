@@ -8,6 +8,8 @@ with connect() as conn:
     for ident, corpus, state, stamp in [
         ('o1', 'openstt-phone2', 'PREPARING', '2025-01-01'),
         ('o2', 'openstt-balalaika', 'QUEUED', '2025-01-01'),
+        ('o3', 'openstt-phone1', 'QUEUED', '2025-01-01'),
+        ('o4', 'openstt-future', 'QUEUED', '2025-01-01'),
         ('s1', 'sova-rudevices', 'PREPARING', '2026-01-01'),
         ('s2', 'sova-rudevices', 'QUEUED', '2026-01-01'),
         ('g1', 'golos', 'QUEUED', '2026-01-02'),
