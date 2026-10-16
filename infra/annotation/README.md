@@ -1796,6 +1796,24 @@ transaction deadlocked and rolled back; guard installation and bounded
 Receipt: `speech-datasets/diagnostics/source-policy-20261016/exclude-openstt-62aab0d6039cbe2245f6d755532b2bb7432d15eb23c84a2d6711a2d9c6d82fd6.json`.
 Meteor dialogue context is the next priority; MTEDx has not been started.
 
+`python -m lalm.annotation.contextual_calls --manifest <incoming-key>` builds
+a separate review-only Parquet from completed, conversation-timed pilot windows.
+It makes no inference requests. Up to five nonempty Russian predictions from
+the same conversation are attached only when their audio ends before the current
+window starts. Uncertain predictions are excluded from history. Channel IDs
+remain unverified speaker IDs; these windows are not aligned conversational turns.
+The full native transcript stays in the source index, separate from targets.
+Records include the source job IDs, result hashes, audio hashes and contract.
+This does not mean the annotation requests themselves used dialogue history.
+
+The first Meteor-only context export contains 99 windows from six calls,
+77 with history. Full Parquet readback SHA256 and an audio readback through the
+Jupyter read-only identity passed. The shared notebook now has a Meteor section
+with the history, target and audio player; its prior cells/outputs were preserved
+and a checkpoint created. All rows remain human-unverified and not released
+for training. Receipt:
+`speech-datasets/diagnostics/contextual-review/0f47e99776a5a1dde46da6e7de50821ca40c472aea12493029759edf9774f3eb.json`.
+
 `lalm.annotation.organization_calls` stages a bounded pilot (at most 12 calls)
 through the existing `incoming/` manifests, prepared-manifest registry and
 Airflow ingest DAG. It reuses the production audio segmentation and queue
