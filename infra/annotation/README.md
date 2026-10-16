@@ -1907,6 +1907,24 @@ Live feeder logs also verified automatic backpressure: pending work reached
 batch. The threshold is soft, checked between batches:
 `speech-datasets/diagnostics/input-conservation-20261016/native-backpressure-316e8970e5c00f2d84125619efb276efb6525251c2b2d9da29b2ab5ce28b5141.json`.
 
+### Manifest lookup index for context exports
+
+The exporter loads each completed source cohort by `sample->>'source_manifest_key'`.
+Without an index, one 265-result cohort took 3,341 ms and scanned the full jobs
+table. `jobs_source_manifest_key` was created CONCURRENTLY on the live database
+in about 12 seconds, with normal writes continuing and no service restart.
+The valid/ready/live B-tree occupies 15,958,016 bytes. Fresh databases create
+the same index from `schema.sql`; existing live databases should use
+`CREATE INDEX CONCURRENTLY jobs_source_manifest_key ON public.jobs ((sample->>'source_manifest_key'))`
+outside a transaction rather than rerunning schema initialization.
+
+The identical query then used a bitmap index scan and took 4.714 ms. The full
+ordered `(id,sample,result)` digest of all 265 rows matched before and after;
+this measures one cohort lookup, not the speedup of the entire DAG.
+Plan before: `speech-datasets/diagnostics/contextual-review/cohort-query-plan-322764c05f1649ff61d09cd8db5b5f5f1c009793720eed84f9206d8b0950eb8d.json`.
+Creation: `speech-datasets/diagnostics/contextual-review/manifest-index-created-450ea8035fa608318cba634253c97f3b2c50e81b37f1568e9a49d07f4e445a71.json`.
+Content and plan after: `speech-datasets/diagnostics/contextual-review/cohort-index-after-9e067e409b0b5061a6fba63cec7847f605cde6a46b5cab26895c50615de503f5.json`.
+
 `lalm.annotation.organization_calls` stages a bounded pilot (at most 12 calls)
 through the existing `incoming/` manifests, prepared-manifest registry and
 Airflow ingest DAG. It reuses the production audio segmentation and queue

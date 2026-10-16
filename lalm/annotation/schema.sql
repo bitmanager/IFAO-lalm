@@ -32,6 +32,10 @@ CREATE INDEX IF NOT EXISTS jobs_conversation_identity
   ON jobs ((sample->>'conversation_id'));
 CREATE INDEX IF NOT EXISTS jobs_audio_identity
   ON jobs ((sample->>'audio_sha256'));
+-- Context exports load completed cohorts by their immutable input manifest.
+-- On a live database, create this index CONCURRENTLY outside a transaction.
+CREATE INDEX IF NOT EXISTS jobs_source_manifest_key
+  ON jobs ((sample->>'source_manifest_key'));
 CREATE UNIQUE INDEX IF NOT EXISTS precision_v1_audio_pass_model_uq
   ON jobs ((sample->>'audio_sha256'), (sample->>'prompt_variant'),
            COALESCE(sample->>'annotation_model', 'gemini-3.8-flash-low'))
