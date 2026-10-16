@@ -2075,6 +2075,14 @@ environment. Its default is an endless stream; waiting for EOF under a short
 timeout does not establish a server failure. Parse the complete JSON object,
 not individual lines of its pretty-printed output.
 
+At 19:22 UTC the first Golos manifest reached inference after the older
+HashTesh queue: 35 saved results, 41 running jobs and 52 pending. Four fresh
+Golos-only outputs (two native API and two CLI, from 03/19/25/11) subsequently
+passed exact raw-text, contract/model and audio-hash checks. This verifies the
+stock-preparer handoff through result storage without changing acceptance
+criteria or claiming listening-verified accuracy. Receipt:
+`speech-datasets/diagnostics/storage-integrity-20261016/fresh-native-cli-523504c62d015eff38e09eb0d773719150b6837ffd95c1d2380c6e644fa31999.json`.
+
 At 18:42 UTC the read-only Jupyter process verified all current cohort Parquet
 hashes and one audio preview per organization: Meteor 143 cohorts / 1,709
 conversations / 28,809 windows / 22,813 with history; HashTesh 11 cohorts / 125
