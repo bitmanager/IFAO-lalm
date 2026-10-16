@@ -3,11 +3,62 @@
 
 Requires pexpect on the operator host and initialized, running account containers.
 Run: python3 infra/annotation/check_usage.py --output /tmp/agy-usage.json
+Add --publish to update the remote S3 usage snapshot with these observations.
 """
-import pexpect,concurrent.futures,re,json,time,argparse,subprocess
+import pexpect,concurrent.futures,re,json,time,argparse,subprocess,base64,inspect,sys
 from datetime import datetime, timezone
 from pathlib import Path
 import shlex
+
+def merge_results(existing, measurements):
+ """Replace one complete observation; never freshen an older raw capture."""
+ fields=('usage','weekly_pct','weekly_reset','five_hour_pct','five_hour_reset',
+         'cleanup_confirmed','cleanup_method','paid_tier_checked_at','paid_tier_id',
+         'paid_tier_name','paid_tier_http_status','paid_tier_error','error','stage')
+ rows=[dict(row) for row in existing]
+ by_id={row['id']:row for row in rows}
+ if len(by_id)!=len(rows):raise ValueError('duplicate_usage_account')
+ for observation in measurements:
+  account=observation['account'];stamp=observation['checked_at']
+  measured=datetime.fromisoformat(stamp)
+  if measured.tzinfo is None:raise ValueError('usage_timestamp_requires_timezone')
+  row=by_id.get(account)
+  if row is not None and row.get('at') and datetime.fromisoformat(row['at'])>measured:continue
+  if row is None:
+   row={'id':account};rows.append(row);by_id[account]=row
+  for field in fields:row.pop(field,None)
+  row.update({field:observation[field] for field in fields if field in observation})
+  row.update(at=stamp,quota_observation_kind='stock_cli_usage_readonly',
+             quota_observed_via='agy /usage; loadCodeAssist paidTier')
+ return rows
+
+def publish_results(results):
+ # Execute only the merge and S3 publication in the existing scheduler container.
+ # Shell quoting and base64 keep captured text out of executable shell syntax.
+ payload=base64.b64encode(json.dumps(results,ensure_ascii=False).encode()).decode()
+ code=('import base64,json,hashlib\nfrom datetime import datetime\n'
+       +inspect.getsource(merge_results)+'''
+from lalm.annotation.store import s3,dataset_bucket
+client=s3();bucket=dataset_bucket()
+response=client.get_object(Bucket=bucket,Key='analytics/usage/latest.json')
+try:existing=json.loads(response['Body'].read())
+finally:response['Body'].close()
+fresh=json.loads(base64.b64decode('''+repr(payload)+'''))
+merged=merge_results(existing,fresh)
+body=json.dumps(merged,ensure_ascii=False,sort_keys=True).encode()
+key='analytics/usage/'+hashlib.sha256(body).hexdigest()+'.json'
+client.put_object(Bucket=bucket,Key=key,Body=body)
+client.put_object(Bucket=bucket,Key='analytics/usage/latest.json',Body=body,IfMatch=response['ETag'])
+print(json.dumps({'immutable_key':key,'measured_rows':len(fresh),'total_rows':len(merged)}))
+''')
+ command=(f'cd {shlex.quote(ARGS.remote_dir)} && sudo -n infra/annotation/dc exec -T '
+          f'airflow-scheduler python -c {shlex.quote(code)}')
+ try:
+  result=subprocess.run([ARGS.ssh,ARGS.host,command],capture_output=True,text=True,timeout=60)
+  if result.returncode:raise RuntimeError('usage_publish_failed')
+  return json.loads(result.stdout)
+ except (subprocess.TimeoutExpired,OSError,ValueError):
+  raise RuntimeError('usage_publish_unavailable') from None
 
 def clean(s):
  s=re.sub(r'\x1b\][^\x07]*(?:\x07)', '', s)
@@ -107,10 +158,17 @@ if __name__ == '__main__':
  parser.add_argument('--remote-dir',default='/mnt/local/drive2/speech-annotation-20261012/code')
  parser.add_argument('--accounts',nargs='+',type=int,choices=range(1,26),default=list(range(1,13)))
  parser.add_argument('--output',type=Path)
+ parser.add_argument('--publish',action='store_true',
+                     help='Publish measurements to the existing remote S3 usage snapshot')
  ARGS=parser.parse_args()
  with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
   results=list(pool.map(check,ARGS.accounts))
  payload=json.dumps(results,ensure_ascii=False,indent=2)+'\n'
  if ARGS.output:ARGS.output.write_text(payload)
  print(payload,end='')
+ if ARGS.publish:
+  try:print(json.dumps({'publication':publish_results(results)}),file=sys.stderr)
+  except RuntimeError as error:
+   print(json.dumps({'publication_error':str(error)}),file=sys.stderr)
+   raise SystemExit(1)
  raise SystemExit(1 if any('error' in r for r in results) else 0)

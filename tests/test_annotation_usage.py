@@ -7,6 +7,65 @@ from infra.annotation import check_usage
 
 
 class UsageTests(unittest.TestCase):
+    def test_merge_replaces_raw_capture_and_clears_unobserved_fields(self):
+        existing = [
+            {'id': 'agy-01', 'at': '2026-10-16T06:00:00+00:00',
+             'usage': 'older screen', 'weekly_pct': 90, 'five_hour_pct': 70,
+             'paid_tier_id': 'g1-ultra-tier', 'cleanup_method': 'old'},
+            {'id': 'agy-02', 'at': '2026-10-16T05:00:00+00:00', 'usage': 'unchanged'},
+        ]
+        before = json.loads(json.dumps(existing))
+        fresh = {'account': 'agy-01', 'checked_at': '2026-10-16T07:00:00+00:00',
+                 'usage': 'fresh screen', 'weekly_pct': 80, 'cleanup_confirmed': True}
+        rows = check_usage.merge_results(existing, [fresh])
+        self.assertEqual(rows[0]['usage'], fresh['usage'])
+        self.assertEqual(rows[0]['at'], fresh['checked_at'])
+        self.assertEqual(rows[0]['weekly_pct'], 80)
+        for field in ('five_hour_pct', 'paid_tier_id', 'cleanup_method'):
+            self.assertNotIn(field, rows[0])
+        self.assertEqual(rows[1], before[1])
+        self.assertEqual(existing, before)
+
+    def test_failed_usage_read_cannot_freshen_old_quota_or_screen(self):
+        old = [{'id': 'agy-01', 'at': '2026-10-16T06:00:00+00:00',
+                'usage': 'old screen', 'weekly_pct': 90, 'paid_tier_id': 'g1-ultra-tier'}]
+        fresh = {'account': 'agy-01', 'checked_at': '2026-10-16T07:00:00+00:00',
+                 'error': 'TIMEOUT', 'stage': 'usage'}
+        row = check_usage.merge_results(old, [fresh])[0]
+        self.assertEqual(row['error'], 'TIMEOUT')
+        for field in ('usage', 'weekly_pct', 'paid_tier_id'):
+            self.assertNotIn(field, row)
+
+    def test_failed_tier_probe_does_not_keep_old_plan_with_new_timestamp(self):
+        old = [{'id': 'agy-01', 'at': '2026-10-16T06:00:00+00:00',
+                'paid_tier_id': 'g1-ultra-tier', 'paid_tier_http_status': 200}]
+        fresh = {'account': 'agy-01', 'checked_at': '2026-10-16T07:00:00+00:00',
+                 'usage': 'new screen', 'weekly_pct': 20, 'paid_tier_error': 'probe_unavailable'}
+        row = check_usage.merge_results(old, [fresh])[0]
+        self.assertEqual(row['paid_tier_error'], 'probe_unavailable')
+        self.assertNotIn('paid_tier_id', row)
+        self.assertNotIn('paid_tier_http_status', row)
+
+    def test_older_observation_cannot_replace_a_newer_snapshot(self):
+        old = [{'id': 'agy-01', 'at': '2026-10-16T07:01:00+00:00', 'usage': 'newer'}]
+        fresh = {'account': 'agy-01', 'checked_at': '2026-10-16T07:00:00Z', 'usage': 'older'}
+        self.assertEqual(check_usage.merge_results(old, [fresh]), old)
+
+    def test_merge_new_account_excludes_unexpected_sensitive_fields(self):
+        fresh = {'account': 'agy-01', 'checked_at': '2026-10-16T07:00:00+00:00',
+                 'weekly_pct': 20, 'access_token': 'SECRET'}
+        rows = check_usage.merge_results([], [fresh])
+        self.assertEqual(rows[0]['id'], 'agy-01')
+        self.assertNotIn('SECRET', json.dumps(rows))
+
+    def test_failed_publication_does_not_expose_remote_diagnostics(self):
+        args = SimpleNamespace(remote_dir='/code', ssh='/ssh', host='dev-1')
+        response = SimpleNamespace(returncode=1, stdout='SECRET', stderr='SECRET')
+        with patch.object(check_usage, 'ARGS', args, create=True), \
+             patch.object(check_usage.subprocess, 'run', return_value=response):
+            with self.assertRaisesRegex(RuntimeError, '^usage_publish_failed$'):
+                check_usage.publish_results([])
+
     def test_gemini_zero_is_not_replaced_by_other_models_quota(self):
         text = ('GEMINI MODELS\nWeekly Limit Remaining\n[░░] 0.00%\n'
                 'Refreshes in 143h 48m\nCLAUDE AND GPT MODELS\n'

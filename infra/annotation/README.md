@@ -900,6 +900,19 @@ The unified `notebooks/speech_data_progress.ipynb` reads the latest snapshot,
 shows account-level speeds and recent failures, and plots the recent throughput
 trend. `/usage` quota reads remain a separate read-only check via
 `infra/annotation/check_usage.py`.
+Add `--publish` to publish those same observations through the existing remote
+Airflow scheduler, without another usage read or inference request:
+
+```bash
+umask 077
+python3 infra/annotation/check_usage.py --accounts 1 2 3 4 5 6 7 8 9 10 11 12 23 --output /tmp/agy-usage.json --publish
+```
+
+Publication writes an immutable JSON snapshot and updates `latest.json` with
+an ETag precondition. It replaces the raw screen and measured fields together,
+clears absent quota/tier observations, rejects older observations, and leaves
+unmeasured accounts unchanged. A publication failure preserves the local output
+and reports a separate error; it does not alter account or queue state.
 The helper also returns structured Gemini quota fields (`weekly_pct`,
 `weekly_reset`, and the five-hour fields when present). It parses only the
 Gemini section, so another model group's quota cannot replace an exhausted
@@ -920,6 +933,12 @@ AGY-03's TUI did not confirm EOF within the helper's ten-second exit wait;
 an authoritative process check afterward found no remaining plain AGY TUI.
 
 ## Bounded native API canary
+
+A fresh worker starts with a native routing share capped at 20%, respecting a
+lower configured account ceiling. After 25 valid native results it releases
+that startup cap and uses the existing routing policy. Controlled rolling
+updates also drain current requests and wait for old in-memory guards to
+expire; the startup cap itself does not persist those guards across restarts.
 
 Before native inference, the worker checks that OAuth remains valid for the
 request budget. On the explicit predispatch expiry error, it uses the existing
