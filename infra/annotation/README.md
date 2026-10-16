@@ -112,6 +112,26 @@ worker-процессы и их API cooldown не перезапускались
 Общий отчёт с ledger, backup-путями и ссылками на 15 проверенных результатов:
 `speech-datasets/diagnostics/cli-history-20261016/three-profile-maintenance-c0e003298800c07f0f356185b1414c3503cc932dccca5b8b7f600f0ffa74e262.json`.
 
+Вечером 16 октября тем же способом обслужены ещё два слота:
+
+| Слот | Hold UTC | Архив UTC | Возобновление UTC | Элементов |
+|---|---|---|---|---:|
+| 25 | 21:01:31 | 21:03:17 | 21:03:17 | 46 |
+| 03 | 21:48:27 | 21:49:44 | 21:49:44 | 12 |
+
+На каждом подтверждены полный drain, неизменность профиля и пять свежих
+результатов на разных аудио: три CLI и два API. Worker и API backoff сохранены.
+У 03 запись cgroup в двух отдельных 20-секундных окнах составила
+178,79 и 24,31 MiB/s. В последнем окне сохранены 23 CLI и 6 API ответов.
+Это наблюдение разной текущей нагрузки, а не контролируемый тест скорости.
+Отчёты находятся в `speech-datasets`:
+
+- `diagnostics/cli-history-20261016/archive25-965006cdb269b63d840aee9f2aa66e93df09e960fbc61388f2bf5a66234d8c45.json`
+- `diagnostics/cli-history-20261016/archive03-97e0ad332d9a9f684a042a5b15dcdc7b543376b1d9ba42ba08c33be35e10363f.json`
+- `diagnostics/storage-integrity-20261016/fresh-native-cli-098ba550fdd7fd2116e5d8fe85060cd0417b27d97a6e46ceb33a78498e8246a4.json`
+- `diagnostics/storage-integrity-20261016/fresh-native-cli-92c68510296f162e741b67b5d0522b61a74980e873f89371006a3129698ecc02.json`
+- `diagnostics/cli-history-20261016/io-after03-922748fee506dd4e4268c955367080e655a3339246668e99aeea2beda80f16e6.json`
+
 ## Снимки и просмотр данных
 
 Отдельный DAG `inspection_snapshot_pipeline` каждые 10 минут публикует
