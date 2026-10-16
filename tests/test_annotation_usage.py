@@ -1,12 +1,53 @@
 import json
 from types import SimpleNamespace
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, call, patch
 
 from infra.annotation import check_usage
 
 
 class UsageTests(unittest.TestCase):
+    def failed_tui_probe(self, startup, alive, cleanup_timeout=False):
+        process = Mock()
+        process.expect.side_effect = [startup]
+        if startup == 3:
+            process.expect.side_effect = [3, check_usage.pexpect.TIMEOUT('PRIVATE'),
+                                         check_usage.pexpect.TIMEOUT('PRIVATE') if cleanup_timeout else 0]
+        else:
+            process.expect.side_effect = [startup, 0]
+        process.isalive.side_effect = alive
+        args = SimpleNamespace(remote_dir='/code', ssh='/ssh', host='dev-1')
+        with patch.object(check_usage, 'ARGS', args, create=True), \
+             patch.object(check_usage.pexpect, 'spawn', return_value=process) as spawn, \
+             patch.object(check_usage.time, 'sleep'), \
+             patch.object(check_usage, 'check_plan') as plan:
+            result = check_usage.check(10)
+        process.close.assert_called_once_with(force=True)
+        plan.assert_not_called()
+        self.assertIn('timeout --foreground --kill-after=5s 180s agy', spawn.call_args.args[1][-1])
+        self.assertNotIn('PRIVATE', json.dumps(result))
+        return result, process
+
+    def test_usage_timeout_closes_its_tui_and_retains_error(self):
+        result, process = self.failed_tui_probe(3, [True, True, False])
+        self.assertEqual(result['error'], 'TIMEOUT')
+        self.assertEqual(result['stage'], 'usage')
+        self.assertEqual(result['cleanup_method'], 'error_double_interrupt')
+        self.assertTrue(result['cleanup_confirmed'])
+        process.send.assert_called_once_with('/usage\r')
+        self.assertEqual(process.sendcontrol.call_args_list, [call('c'), call('c')])
+
+    def test_setup_failure_interrupts_without_accepting_or_sending_prompt(self):
+        result, process = self.failed_tui_probe(1, [True, True, False])
+        self.assertEqual(result['stage'], 'interactive_setup')
+        self.assertTrue(result['cleanup_confirmed'])
+        process.send.assert_not_called()
+
+    def test_failed_interrupt_does_not_claim_cleanup(self):
+        result, process = self.failed_tui_probe(3, [True, True, True], cleanup_timeout=True)
+        self.assertFalse(result['cleanup_confirmed'])
+        self.assertEqual(result['error'], 'TIMEOUT')
+
     def test_merge_replaces_raw_capture_and_clears_unobserved_fields(self):
         existing = [
             {'id': 'agy-01', 'at': '2026-10-16T06:00:00+00:00',

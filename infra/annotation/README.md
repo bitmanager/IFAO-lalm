@@ -622,6 +622,9 @@ CLI setup must already be complete; failures produce an error and nonzero exit
 status rather than guessing quota. This is an on-demand check, not a scheduled
 collector. The output path is for operational data, not a Git artifact.
 The collector waits for EOF after `/exit` and records `cleanup_confirmed`.
+Timeouts and setup failures also interrupt only the probe’s own PTY and record
+whether it exited. If shutdown cannot be confirmed, `cleanup_confirmed` stays
+false; an unsuccessful read never receives old quota values under a new date.
 An in-container 180-second timeout with a five-second kill grace also bounds
 the TUI if SSH disconnects. This prevents accumulating idle AGY processes.
 

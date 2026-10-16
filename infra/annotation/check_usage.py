@@ -109,12 +109,23 @@ except Exception as error:
  except (subprocess.TimeoutExpired,OSError,ValueError,TypeError,AttributeError):
   return {'paid_tier_error':'probe_unavailable'}
 
+def interrupt_usage_tui(p):
+ """Close this probe's interactive PTY without touching inference processes."""
+ try:
+  if not p.isalive():return True
+  p.sendcontrol('c');time.sleep(.3)
+  if p.isalive():p.sendcontrol('c')
+  p.expect(pexpect.EOF,timeout=5)
+ except (pexpect.TIMEOUT,pexpect.EOF,OSError):
+  pass
+ return not p.isalive()
+
 def check(n):
  account=f'agy-{n:02d}'
  # Bound the process inside Docker too: closing SSH alone can leave its TUI alive.
  cmd=f'cd {shlex.quote(ARGS.remote_dir)} && sudo -n infra/annotation/dc exec {account} sh -c "stty rows 60 cols 150; exec timeout --foreground --kill-after=5s 180s agy"'
  p=pexpect.spawn(ARGS.ssh,['-tt',ARGS.host,cmd],encoding='utf-8',timeout=70,dimensions=(60,150))
- stage='startup'
+ stage='startup';result=None
  try:
   k=p.expect(['Choose your color scheme','Terms of Service & Data Use','Do you trust','for shortcuts','is not running',pexpect.EOF])
   if k != 3:
@@ -137,16 +148,13 @@ def check(n):
    # This PTY runs only the interactive /usage reader, never a print-mode job.
    # A modal can swallow /exit; the CLI's double interrupt exits that TUI.
    result['cleanup_method']='double_interrupt'
-   try:
-    p.sendcontrol('c');time.sleep(.3)
-    if p.isalive():p.sendcontrol('c')
-    p.expect(pexpect.EOF,timeout=5)
-    result['cleanup_confirmed']=True
-   except (pexpect.TIMEOUT,pexpect.EOF,OSError):
-    result['cleanup_confirmed']=not p.isalive()
+   result['cleanup_confirmed']=interrupt_usage_tui(p)
  except Exception as e:
   result={'account':account,'checked_at':datetime.now(timezone.utc).isoformat(),'error':type(e).__name__,'stage':stage}
  finally:
+  if result is not None and 'error' in result:
+   result['cleanup_method']='error_double_interrupt'
+   result['cleanup_confirmed']=interrupt_usage_tui(p)
   p.close(force=True)
  if 'usage' in result:
   result.update(check_plan(account))
