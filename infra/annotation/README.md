@@ -2035,6 +2035,23 @@ current pending-work threshold is 6,000. The source selector's deployed hash is
 checked before resume. No new service or separate preparation code is added.
 The generic preparer remains stopped while this wait is pending.
 
+The HashTesh feeder subsequently exited with code zero and the existing generic
+preparer resumed automatically at approximately 18:52 UTC. The final HashTesh
+audit verified all 64 checkpoint/manifests and registry row counts: 758 selected
+calls, 757 represented calls, 11,152 windows and 11,152 distinct prepared-audio
+hashes. One selected call produced no VAD windows. All input rows match their
+selected original-audio hashes; this is completed preparation, not completed
+annotation or a training release. Receipt:
+`speech-datasets/diagnostics/organization-calls-20261016/hashtesh-feed-complete-dd98fd5f2332f9029f0d6810d2aac643e7f45bad80678284a8012e1850188bcc.json`.
+
+The generic worker selected the expected Golos crowd/train archive and had
+prepared 768 examples with zero errors at the 18:57 UTC check. Its first
+128-row manifest was verified in full and imported as 128 pending jobs. Every
+row names the train source, has no held-out member path, remains review-only,
+and preserves unverified conversation identity rather than inventing dialogue
+history. Receipt:
+`speech-datasets/diagnostics/source-handoff-20261016/golos-start-2e26b80f6c5a8d0d4fe72eeba09522f15326b6bdee815c9f2c8ae231876cd16b.json`.
+
 At 18:42 UTC the read-only Jupyter process verified all current cohort Parquet
 hashes and one audio preview per organization: Meteor 143 cohorts / 1,709
 conversations / 28,809 windows / 22,813 with history; HashTesh 11 cohorts / 125
