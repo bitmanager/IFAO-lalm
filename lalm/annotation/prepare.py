@@ -302,6 +302,12 @@ def main():
                 prepare_asset(asset)
                 print(json.dumps({'source_id': asset['id'], 'event': 'source_pass_finished'}), flush=True)
             except Exception as error:
+                if getattr(error, 'response', {}).get('Error', {}).get('Code') == 'XMinioStorageFull':
+                    # Keep PREPARING and its durable cursor: lack of storage is
+                    # infrastructure backpressure, not evidence of bad input.
+                    print(json.dumps({'source_id': asset['id'], 'event': 'storage_backpressure'}), flush=True)
+                    time.sleep(60)
+                    continue
                 with connect() as conn:
                     conn.execute("UPDATE source_assets SET state='NEEDS_REVIEW',cursor_json=cursor_json || %s,updated_at=now() WHERE id=%s",
                         (Jsonb({'error_type': type(error).__name__}), asset['id']))

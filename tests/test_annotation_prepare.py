@@ -19,6 +19,35 @@ def wav(values, rate=16000):
 
 
 class SourcePreparationTests(unittest.TestCase):
+    def test_storage_full_retries_same_source_without_quarantining_or_losing_cursor(self):
+        from botocore.exceptions import ClientError
+        from lalm.annotation import prepare
+        asset = {'id': 'source', 'cursor_json': {'rows': 128, 'samples': 100}}
+        failure = ClientError({'Error': {'Code': 'XMinioStorageFull'}}, 'PutObject')
+        calls = []
+
+        def preparing(row):
+            calls.append(row)
+            if len(calls) == 1:
+                raise failure
+            prepare.STOP = True
+
+        with patch.object(prepare, 'STOP', False), \
+                patch.object(prepare.signal, 'signal'), \
+                patch.object(prepare, 'connect') as db, \
+                patch.object(prepare, 'select_source', return_value=asset), \
+                patch.object(prepare, 'prepare_asset', side_effect=preparing), \
+                patch.object(prepare.time, 'sleep') as sleep, \
+                patch('builtins.print'):
+            db.return_value.__enter__.return_value.execute.return_value.fetchone.return_value = {'ok': True}
+            prepare.main()
+            self.assertEqual(calls, [asset, asset])
+            self.assertEqual(asset['cursor_json'], {'rows': 128, 'samples': 100})
+            sleep.assert_called_once_with(60)
+            writes = db.return_value.__enter__.return_value.execute.call_args_list
+            self.assertFalse(any('NEEDS_REVIEW' in call.args[0] for call in writes))
+            self.assertFalse(any('cursor_json=' in call.args[0] for call in writes))
+
     def test_filtered_golos_rows_advance_without_waiting_for_queue_capacity(self):
         asset = {'id': 'source', 'codec': 'audio', 'cursor_json': {},
                  'object_key': 'staging/golos/rev/crowd/train/train-00000.tar'}
