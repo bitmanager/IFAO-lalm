@@ -1,0 +1,9 @@
+# This immutable upstream image includes boto3 1.43.56, psycopg 3.3.4,
+# pyarrow 25.0.0 and numpy 2.5.1. Keep its tested dependency set intact.
+FROM apache/airflow:3.3.1@sha256:0c4bcc0370e526de1b7892a3bf4343d260c6c82359c66f77155b53cd773d6339
+RUN pip install --no-cache-dir --no-deps duckdb==1.4.1
+RUN python -c 'import boto3, psycopg, pyarrow; from airflow.sdk import dag, task'
+COPY --chown=airflow:root lalm/benchmark_langfuse_asr.py /opt/speech/lalm/benchmark_langfuse_asr.py
+COPY --chown=airflow:root lalm/annotation /opt/speech/lalm/annotation
+COPY --chown=airflow:root airflow/dags /opt/airflow/dags
+ENV PYTHONPATH=/opt/speech

@@ -1,0 +1,43 @@
+{
+  "Rules": [
+    {
+      "ID": "source-tier-deepspeech-20261016",
+      "Status": "Enabled",
+      "Filter": {
+        "Prefix": "staging/deepspeech-balalaika/hf-59d213e4115db4ec3752f72e28cc4c695515d45c/deepspeech_balalaika_prepared.tar.gz"
+      },
+      "Transitions": [
+        {
+          "Days": 0,
+          "StorageClass": "ANNOTATION-OVERFLOW"
+        }
+      ]
+    },
+    {
+      "ID": "source-tier-espeech-20261016",
+      "Status": "Enabled",
+      "Filter": {
+        "Prefix": "staging/espeech-balalaika/hf-41f6e4407845c6a5dad60d9b7c877cad5930ed72/igm.tar.gz"
+      },
+      "Transitions": [
+        {
+          "Days": 0,
+          "StorageClass": "ANNOTATION-OVERFLOW"
+        }
+      ]
+    },
+    {
+      "ID": "source-tier-lemas-20261016",
+      "Status": "Enabled",
+      "Filter": {
+        "Prefix": "staging/lemas-dataset-train/hf-91f0c1b9a29f8d1c5bad18182a43975255512cce/train/ru/ru001.tar.gz"
+      },
+      "Transitions": [
+        {
+          "Days": 0,
+          "StorageClass": "ANNOTATION-OVERFLOW"
+        }
+      ]
+    }
+  ]
+}

@@ -318,6 +318,14 @@ class BenchmarkContracts(unittest.TestCase):
         result = agy_result(self.events([self.tool()]), Path("/audio.wav"))
         self.assertEqual(result["structured_output"]["transcript"], "я учусь")
 
+    def test_requested_argon_rejects_fallback_to_flash(self):
+        raw = self.events([self.tool()])
+        with self.assertRaises(ValueError):
+            agy_result(raw, Path('/audio.wav'), expected_model='gemini-4-argon-low')
+        argon = raw.replace(MODEL, 'gemini-4-argon-low')
+        result = agy_result(argon, Path('/audio.wav'), expected_model='gemini-4-argon-low')
+        self.assertTrue(result['structured_output']['audio_heard'])
+
     def test_soft_denial_is_not_asr_success(self):
         for steps in ([], [self.tool(state="ERROR")]):
             with self.subTest(steps=steps), self.assertRaises(ValueError):

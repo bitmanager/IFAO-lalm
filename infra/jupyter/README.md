@@ -1,0 +1,57 @@
+# Speech data notebook (dev-1 only)
+
+This is part of **bitmanager/IFAO-lalm**, alongside `airflow/dags` and
+`lalm/annotation`. Airflow and JupyterHub import the same read-only bind-mounted
+`lalm.annotation` package. Notebooks contain queries and presentation, not a
+second implementation of the processing pipeline.
+
+Data stays in existing MinIO. The notebook reads immutable, checksum-verified
+Parquet snapshots through `lalm.annotation.inspection.open_snapshot` and existing
+read-only training credentials. It has no annotation database or AGY credentials.
+The operational PostgreSQL is not the analytical store.
+
+On dev-1, from `/mnt/local/drive2/speech-annotation-20261012/code`:
+
+```sh
+docker build --network host -t speech-jupyter:local -f infra/jupyter/Dockerfile .
+sudo python3 infra/jupyter/deploy.py
+sudo infra/annotation/dc up -d --no-deps jupyterhub
+```
+
+Run `deploy.py` again after regenerating the annotation Compose file. It adds
+JupyterHub, shared source mounts and tailnet-only Airflow access. Existing
+worker definitions and pinned annotation source mounts are preserved. Worker
+capacity is managed by the annotation stack. Apply an Airflow service change
+with a graceful restart, allowing its running tasks to finish.
+
+JupyterHub: `http://exp-srv-rtx6000x4-02.tail8f0274.ts.net:18888`
+Airflow: `http://exp-srv-rtx6000x4-02.tail8f0274.ts.net:18080`
+These addresses require the corporate tailnet. Host ports bind only loopback
+and the dev-1 Tailscale address, not the public interface.
+
+Login is `analyst`; the generated password is in
+`infra/annotation/runtime/jupyter/password` on dev-1 (mode 0600).
+PAM authentication and LocalProcessSpawner run notebooks as unprivileged
+`analyst`. Hub state and analyst notebooks persist in separate Docker volumes.
+A source notebook is copied on first boot only; subsequent user edits survive.
+To refresh it, copy the repository version explicitly after preserving edits.
+The Hub and analyst server share a 12 GiB memory limit. On 15 October the
+previous 6 GiB limit had a recorded 5.84 GiB peak with no OOM kills. The limit
+was increased live for growing inspection snapshots; the server stayed running.
+
+Never commit credentials, notebook outputs, or production examples.
+Snapshots and Gemini responses remain inspection/review data, not human gold.
+
+Existing MinIO console is exposed through Tailscale Serve (no new MinIO):
+
+```sh
+sudo tailscale serve --bg --http=19001 https+insecure://127.0.0.1:19001
+```
+
+Console: `http://exp-srv-rtx6000x4-02.tail8f0274.ts.net:19001/`.
+The HTTPS upstream is loopback with the existing private certificate.
+
+Validated on dev-1 (2026-10-13): tailnet HTTP access, PAM login, analyst server
+spawn and all eight code cells executed in a real Python kernel using read-only
+S3 credentials. MinIO console read-only login returned HTTP 204; Airflow DAG
+imports were clean and shared-code snapshot publication succeeded.

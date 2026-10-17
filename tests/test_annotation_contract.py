@@ -1,0 +1,210 @@
+import copy
+import importlib.util
+from pathlib import Path
+import unittest
+from unittest.mock import patch
+
+from lalm.annotation.contract import MODEL, PREPROCESSING, job_id, validate_sample, normalize_language, triad_seed, sample_model
+
+
+def load_script(name):
+    path = Path(__file__).resolve().parents[1] / 'infra/annotation' / (name + '.py')
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+class AnnotationContractTests(unittest.TestCase):
+    def test_language_aliases_do_not_infer_ambiguous_or_foreign_speech(self):
+        for value in ('ru', 'Russian', ' русский ', 'ru_RU'):
+            self.assertEqual(normalize_language(value), 'ru')
+        self.assertEqual(normalize_language('ar'), 'ar')
+        self.assertEqual(normalize_language('Russian/Ukrainian'), 'russian/ukrainian')
+        self.assertEqual(normalize_language(''), '')
+
+    def sample(self):
+        return {'sample_id': 'one', 'conversation_id': 'call', 'audio_key': 'audio/one.wav',
+                'audio_sha256': 'a' * 64, 'split': 'train', 'preprocessing_version': PREPROCESSING,
+                'speech_qc': {'audio_sha256': 'a' * 64, 'speech_detected': True,
+                              'backend': 'silero', 'version': 'pinned'}}
+
+    def test_rejects_holdout_and_stale_qc(self):
+        sample = self.sample()
+        for split in ('benchmark', 'test', 'human_gold'):
+            with self.assertRaises(ValueError):
+                validate_sample(dict(sample, split=split))
+        sample['speech_qc']['audio_sha256'] = 'b' * 64
+        with self.assertRaises(ValueError):
+            validate_sample(sample)
+
+    def test_identity_ignores_relocated_audio_but_not_content(self):
+        sample = self.sample()
+        self.assertEqual(job_id(sample), job_id(dict(sample, audio_key='moved/file.wav')))
+        other = copy.deepcopy(sample)
+        other['audio_sha256'] = other['speech_qc']['audio_sha256'] = 'b' * 64
+        self.assertNotEqual(job_id(sample), job_id(other))
+
+    def test_model_switch_preserves_legacy_identity_and_separates_new_passes(self):
+        sample = self.sample()
+        self.assertEqual(job_id(sample), job_id(dict(sample, annotation_model=MODEL)))
+        with patch.dict('os.environ', {'ANNOTATION_MODEL': 'gemini-4-argon-low'}):
+            seed = triad_seed(sample)
+            self.assertEqual(sample_model(seed), 'gemini-4-argon-low')
+            self.assertNotEqual(job_id(sample), job_id(seed))
+            self.assertTrue(seed['pilot_id'].endswith('-gemini-4-argon-low'))
+            self.assertEqual(triad_seed(seed), seed)
+            self.assertEqual(sample_model(triad_seed(dict(sample, annotation_model=MODEL))), MODEL)
+        with self.assertRaisesRegex(ValueError, 'unsupported_annotation_model'):
+            job_id(dict(sample, annotation_model='unknown-model'))
+
+    def test_accounts_have_separate_internal_networks_and_homes(self):
+        compose = load_script('render').build([{'id': 'agy-01', 'concurrency': 20},
+                                               {'id': 'agy-02', 'concurrency': 2}], '/bin/agy')
+        for aid in ('agy-01', 'agy-02'):
+            worker = compose['services'][aid]
+            self.assertEqual(worker['networks'], [aid + '-private'])
+            self.assertTrue(compose['networks'][aid + '-private']['internal'])
+            self.assertIn(aid + '-home:/home/worker', worker['volumes'])
+            self.assertNotIn('egress', worker['networks'])
+            self.assertNotIn('ports', compose['services'][aid + '-proxy'])
+
+    def test_grpc_reality_preserves_transport_and_rejects_vision(self):
+        convert = load_script('configure_vless').convert
+        link = ('vless://5783a3e7-e373-51cd-8642-c83782b807c5@example.com:443'
+                '?security=reality&type=grpc&sni=example.com&pbk=test&sid=1234'
+                '&fp=firefox&alpn=h2&serviceName=audio')
+        stream = convert(link)['outbounds'][0]['streamSettings']
+        self.assertEqual(stream['grpcSettings']['serviceName'], 'audio')
+        self.assertEqual(stream['realitySettings']['fingerprint'], 'firefox')
+        self.assertEqual(stream['realitySettings']['shortId'], '1234')
+        for invalid in (link + '&flow=xtls-rprx-vision', link.replace('type=grpc', 'type=ws')):
+            with self.assertRaises(ValueError):
+                convert(invalid)
+
+    def test_server_uses_existing_s3_and_no_minio(self):
+        mod = load_script('render')
+        accounts = [{'id': 'agy-01', 'concurrency': 5}]
+        compose = mod.use_external_storage(mod.build(accounts, '/bin/agy'), accounts)
+        self.assertNotIn('minio', compose['services'])
+        self.assertNotIn('s3-data', compose['volumes'])
+        for name in ('airflow-api', 'airflow-scheduler', 'airflow-dag-processor', 'agy-01'):
+            svc = compose['services'][name]
+            self.assertEqual(svc['environment']['S3_BUCKET'], 'speech-annotations')
+            self.assertEqual(len(svc['volumes']), len(set(svc['volumes'])))
+        self.assertTrue(compose['networks']['agy-01-private']['internal'])
+
+    def test_vless_never_adds_direct_fallback(self):
+        convert = load_script('configure_vless').convert
+        link = 'vless://5783a3e7-e373-51cd-8642-c83782b807c5@example.com:443?security=tls&type=ws&path=%2Fws'
+        config = convert(link)
+        self.assertEqual([x['protocol'] for x in config['outbounds']], ['vless'])
+        self.assertFalse(config['outbounds'][0]['streamSettings']['tlsSettings']['allowInsecure'])
+        for suffix in ('&allowInsecure=1', '&type=grpc', '&unknown=x'):
+            with self.assertRaises(ValueError):
+                convert(link + suffix)
+
+
+class MultiPassContractTests(unittest.TestCase):
+    def test_source_conditioned_identity_tracks_original_label(self):
+        from lalm.annotation.contract import prompt, source_text
+        sample = dict(AnnotationContractTests().sample(), prompt_variant='source_correction',
+                      source_provenance={'original_label': 'нет, пятнадцать'})
+        changed = dict(sample, source_provenance={'original_label': 'да, пятьдесят'})
+        self.assertNotEqual(job_id(sample), job_id(changed))
+        self.assertEqual(job_id(dict(sample, prompt_variant='verbatim')),
+                         job_id(dict(changed, prompt_variant='verbatim')))
+        self.assertIn('нет, пятнадцать', prompt('/work/audio.wav', 'source_correction', source_text(sample)))
+        self.assertNotIn('нет, пятнадцать', prompt('/work/audio.wav', 'verbatim'))
+        for label in (None, {}, '', 'x' * 12001):
+            with self.assertRaisesRegex(ValueError, 'missing_source_annotation'):
+                job_id(dict(sample, source_provenance={'original_label': label}))
+
+    def test_archive_reference_is_explicit_and_conflicts_are_not_guessed(self):
+        from lalm.annotation.contract import source_text
+        def sample(values):
+            return {'source_provenance': {'original_label': {'archive_sidecars':
+                    [{'member': 'clip.json', 'value': v} for v in values]}}}
+        value = sample([{'rover': 'исходный ASR', 'asr': {'gigaam': 'другой вариант'}}])
+        before = copy.deepcopy(value)
+        self.assertEqual(source_text(value), 'исходный ASR')
+        self.assertEqual(value, before)
+        self.assertEqual(source_text(sample(['plain transcript'])), 'plain transcript')
+        self.assertEqual(source_text(sample([{'text': 'legacy transcript'}])), 'legacy transcript')
+        self.assertIsNone(source_text(sample(['one', 'different'])))
+        self.assertIsNone(source_text(sample([{'speaker_id': 'one'}])))
+        self.assertIsNone(source_text(sample(['x'*12001])))
+
+    def test_prompt_variants_have_distinct_job_identity(self):
+        from lalm.annotation.contract import contract_sha, prompt
+        sample = AnnotationContractTests().sample()
+        ids = {job_id(dict(sample, prompt_variant=v)) for v in ('verbatim', 'coverage', 'literal_audit')}
+        self.assertEqual(len(ids), 3)
+        self.assertNotEqual(contract_sha('coverage'), contract_sha('literal_audit'))
+        self.assertIn('независимую', prompt('/work/audio.wav', 'literal_audit'))
+        with self.assertRaises(ValueError):
+            job_id(dict(sample, prompt_variant='typo'))
+
+
+class PrecisionTriadTests(unittest.TestCase):
+    def test_one_pass_gigaam_requires_exact_reference_russian_and_agreement(self):
+        from lalm.annotation.contract import gigaam_single_pass_decision as decide
+        from lalm.annotation.gigaam_reference import REFERENCE_KEY, REFERENCE_SHA
+        sample = dict(AnnotationContractTests().sample(), source_audio_sha256='b' * 64)
+        ref = {'reference_key': REFERENCE_KEY, 'reference_sha256': REFERENCE_SHA,
+               'full_source_coverage': True, 'prepared_audio_sha256': 'a' * 64,
+               'source_audio_sha256': 'b' * 64, 'model': 'v3_ctc',
+               'weights_sha256': 'a20a9b5b8ed929c4a60141753cd3dd1284138879a46fb4a1cef6430ec019a02f',
+               'text': 'Я не согласен'}
+        sample['source_provenance'] = {'gigaam_reference': ref}
+        first = {'verbatim_text': 'я не согласен.', 'language': 'ru', 'uncertain_spans': []}
+        self.assertEqual(decide(sample, {}), 'waiting_first')
+        self.assertEqual(decide(sample, {'verbatim': first}), 'candidate_gigaam_agreement')
+        from lalm.annotation.gigaam_reference import GOLOS_REFERENCE_KEY, GOLOS_REFERENCE_SHA
+        golos = dict(sample, source_provenance={'start_seconds': 0, 'end_seconds': 2,
+                     'gigaam_reference': dict(ref, source_duration=2,
+                     reference_key=GOLOS_REFERENCE_KEY, reference_sha256=GOLOS_REFERENCE_SHA)})
+        self.assertEqual(decide(golos, {'verbatim': first}), 'candidate_gigaam_agreement')
+        golos['source_provenance']['end_seconds'] = 3
+        self.assertEqual(decide(golos, {'verbatim': first}), 'rejected_gigaam_reference')
+        self.assertEqual(decide(sample, {'verbatim': dict(first, verbatim_text='я согласен')}),
+                         'rejected_gigaam_disagreement')
+        for bad in (dict(first, language='uk'), dict(first, uncertain_spans=['сомнение']),
+                    dict(first, verbatim_text='[неразборчиво]')):
+            self.assertEqual(decide(sample, {'verbatim': bad}), 'rejected_gigaam_quality')
+        self.assertEqual(decide(sample, {'verbatim': first}, ['я согласен']), 'rejected_prior_conflict')
+        for field, bad in [('source_audio_sha256', 'c' * 64), ('full_source_coverage', False),
+                           ('prepared_audio_sha256', 'c' * 64), ('reference_sha256', 'c' * 64),
+                           ('model', 'unknown'), ('text', '')]:
+            changed = dict(sample, source_provenance={'gigaam_reference': dict(ref, **{field: bad})})
+            self.assertEqual(decide(changed, {'verbatim': first}), 'rejected_gigaam_reference')
+
+    def test_russian_gate_and_strict_consensus(self):
+        from lalm.annotation.contract import triad_decision
+        def result(text='Я умею', language='ru', uncertain=None):
+            return {'verbatim_text': text, 'language': language, 'uncertain_spans': uncertain or []}
+        self.assertEqual(triad_decision({}), 'waiting_first')
+        for first in (result(language='uk'), result(language='und'),
+                      result('[неразборчиво]'), result(uncertain=['сомнение'])):
+            self.assertEqual(triad_decision({'verbatim': first}), 'rejected_first')
+        self.assertEqual(triad_decision({'verbatim': result()}), 'waiting_remaining')
+        passes = {k: result() for k in ('verbatim','coverage','source_correction')}
+        self.assertEqual(triad_decision(passes), 'candidate_3of3')
+        self.assertEqual(triad_decision(passes, ['Ё-моё']), 'rejected_prior_conflict')
+        passes['coverage'] = result('я гуляю')
+        self.assertEqual(triad_decision(passes), 'rejected_disagreement')
+        passes['coverage'] = result(language='uk')
+        self.assertEqual(triad_decision(passes), 'rejected_quality')
+
+    def test_new_seed_does_not_mix_batches(self):
+        from lalm.annotation.contract import triad_seed
+        old = dict(AnnotationContractTests().sample(), pilot_id='corpus-x', prompt_variant='coverage')
+        seed = triad_seed(old)
+        self.assertTrue(seed['review_only'])
+        self.assertEqual(seed['prompt_variant'], 'verbatim')
+        self.assertEqual(triad_seed(seed), seed)
+        self.assertNotEqual(seed['pilot_id'], old['pilot_id'])
+
+
+if __name__ == '__main__':
+    unittest.main()

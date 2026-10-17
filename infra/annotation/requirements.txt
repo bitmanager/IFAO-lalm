@@ -1,0 +1,7 @@
+boto3==1.42.30
+psycopg[binary]==3.2.9
+pyarrow==21.0.0
+numpy==2.2.6
+soundfile==0.13.1
+webrtcvad-wheels==2.0.14
+imageio-ffmpeg==0.6.0

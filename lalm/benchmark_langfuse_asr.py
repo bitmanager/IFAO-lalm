@@ -338,11 +338,11 @@ def download(args):
                                               "unique_asset_hours": sum(r["duration_seconds"] for r in ready) / 3600})
 
 
-def agy_result(text, path):
+def agy_result(text, path, expected_model=MODEL):
     events = [json.loads(x) for x in text.splitlines() if x.strip()]
     initials = [e["init"] for e in events if e.get("event") == "init"]
     results = [e["result"] for e in events if e.get("event") == "result"]
-    if len(initials) != 1 or initials[0].get("model") != MODEL or len(results) != 1:
+    if len(initials) != 1 or initials[0].get("model") != expected_model or len(results) != 1:
         raise ValueError("Missing/ambiguous native model/result envelope")
     result = results[0]
     if result.get("status") != "SUCCESS" or result.get("num_turns") != 1:
