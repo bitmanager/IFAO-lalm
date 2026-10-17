@@ -1,4 +1,5 @@
 import csv
+import hashlib
 import sys
 from pathlib import Path
 
@@ -52,4 +53,45 @@ def test_exact_duplicate_is_counted_once(tmp_path):
     manifest = fixture_files(tmp_path)
     manifest.write_text(manifest.read_text() * 2)
     stats = convert(manifest, tmp_path, tmp_path / "out.jsonl.gz", Tokenizer(), "Русский.")
-    assert stats["counts"] == {"accepted": 1, "duplicate": 1}
+    assert stats["counts"]["accepted"] == 1
+    assert stats["counts"]["duplicate"] == 1
+
+
+def test_short_common_text_is_retained_and_paths_are_mapped(tmp_path):
+    manifest = fixture_files(tmp_path)
+    (tmp_path / "asr_public_phone_calls_1/a/bc/sample.txt").write_text("Да, спасибо!")
+    output = tmp_path / "out.jsonl.gz"
+    stats = convert(manifest, tmp_path, output, Tokenizer(), "Русский.",
+                    exclusions={"texts": ["да спасибо"]}, manifest_audio_root=Path("/container"))
+    cut = next(iter(CutSet.from_file(output)))
+    assert stats["counts"]["accepted"] == stats["counts"]["common_short_text_match"] == 1
+    assert cut.recording.sources[0].source == "/container/asr_public_phone_calls_1/a/bc/sample.wav"
+    assert cut.conversation[1]["content"][0]["audio"] == cut.recording.sources[0].source
+    assert cut.conversation[-1]["content"] == "Да, спасибо!"
+
+
+@pytest.mark.parametrize("exclusion", ["long_text", "hash"])
+def test_long_text_and_audio_hash_are_excluded(tmp_path, exclusion):
+    manifest = fixture_files(tmp_path)
+    audio = tmp_path / "asr_public_phone_calls_1/a/bc/sample.wav"
+    exclusions = ({"texts": ["алло плохо вас слышно"]} if exclusion == "long_text" else
+                  {"sha256": [hashlib.sha256(audio.read_bytes()).hexdigest()]})
+    with pytest.raises(ValueError, match="No admitted"):
+        convert(manifest, tmp_path, tmp_path / "out.jsonl.gz", Tokenizer(), "Русский.",
+                exclusions=exclusions)
+
+
+@pytest.mark.parametrize("later_heldout", [False, True])
+def test_late_conflict_or_heldout_removes_all_audio_variants(tmp_path, later_heldout):
+    manifest = fixture_files(tmp_path)
+    folder = tmp_path / "asr_public_phone_calls_1/a/bc"
+    (folder / "copy.wav").write_bytes((folder / "sample.wav").read_bytes())
+    (folder / "copy.txt").write_text("Другой текст.")
+    with manifest.open("a") as stream:
+        csv.writer(stream).writerow(["asr_public_phone_calls_1/a/bc/copy.wav",
+                                    "asr_public_phone_calls_1/a/bc/copy.txt", 1])
+    output = tmp_path / "out.jsonl.gz"
+    with pytest.raises(ValueError, match="No admitted"):
+        convert(manifest, tmp_path, output, Tokenizer(), "Русский.",
+                excluded_ids={"copy"} if later_heldout else set())
+    assert list(CutSet.from_file(output) or []) == []
