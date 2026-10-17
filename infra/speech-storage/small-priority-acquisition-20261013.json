@@ -1,0 +1,64 @@
+{
+  "date": "2026-10-13",
+  "scope": "Four user-requested small Russian sources missing from current upstream import receipts",
+  "engine": "Existing batch import job using stock hf download and mc, configured for each pinned repository; no new application importer",
+  "host": "dev-1",
+  "requested_source_bytes": 5978666455,
+  "language_evidence": "All four authenticated Hugging Face dataset cards declare ru",
+  "completion_note": "Scheduled imports are not completion receipts; inspect each runtime status and full SHA256 readback file-map",
+  "sources": [
+    {
+      "repo": "bitmanagerai/arariel-question-intonation-benchmark",
+      "revision": "18db974ba6b2cbb10327a9df8dadd615ce33a25b",
+      "files": 749,
+      "bytes": 172733599,
+      "service": "speech-data-hf-arariel-question-intonation-20261013.service",
+      "bucket": "speech-benchmarks",
+      "prefix": "upstream-arariel-question-intonation/hf-18db974ba6b2cbb10327a9df8dadd615ce33a25b/",
+      "use": "evaluation only"
+    },
+    {
+      "repo": "bitmanagerai/RU-ASR-Intonation-bench",
+      "revision": "04b1339a7046c20d4d5138fa560f537faae540b6",
+      "files": 863,
+      "bytes": 232105629,
+      "service": "speech-data-hf-ru-asr-intonation-20261013.service",
+      "bucket": "speech-benchmarks",
+      "prefix": "upstream-ru-asr-intonation/hf-04b1339a7046c20d4d5138fa560f537faae540b6/",
+      "use": "evaluation only"
+    },
+    {
+      "repo": "bitmanagerai/hard_number_eval_for_tts",
+      "revision": "57b964492ccfcedd6a24d0225ef4b7d3697ffdca",
+      "files": 13,
+      "bytes": 2820564,
+      "service": "speech-data-hf-hard-number-eval-tts-20261013.service",
+      "bucket": "speech-benchmarks",
+      "prefix": "upstream-hard-number-eval-tts/hf-57b964492ccfcedd6a24d0225ef4b7d3697ffdca/",
+      "use": "evaluation only"
+    },
+    {
+      "repo": "langswap/dialogs-ru-emotional-conversations",
+      "revision": "a74ff44d8d27ca3d21098ea3ed4d31a32923fbdd",
+      "files": 10004,
+      "bytes": 5571006663,
+      "service": "speech-data-hf-langswap-dialogs-ru-20261013.service",
+      "bucket": "speech-private-archive",
+      "prefix": "sources/langswap-dialogs-ru/hf-a74ff44d8d27ca3d21098ea3ed4d31a32923fbdd/",
+      "use": "Complete unchanged source archive including original split CSVs; not admitted to training"
+    }
+  ],
+  "physical_disk_inventory": {
+    "dev": "Two 4 TB data SSDs plus two 1 TB SSDs forming one mirrored system volume",
+    "exp": "One 4 TB data SSD plus one 4 TB SSD containing system and home",
+    "additional_space_identified": "Approximately 905 GB available on exp system/home volume; not yet assigned to MinIO",
+    "dev_system_free_bytes": 267283206144,
+    "exp_system_free_bytes": 905413398528,
+    "unmounted_extra_data_disk": false,
+    "network_mounts": "NFS mounts expose the other server's existing disks and do not add capacity",
+    "system_disk_policy": "No formatting, partition changes, reserved-space changes or new MinIO volume were performed"
+  },
+  "source_preservation": "Native metadata, audio bytes and pinned source inventories preserved; no audio transcoding",
+  "deduplication": "Existing SHA256 map reused; references recorded in file-map.tsv",
+  "training_release": false
+}

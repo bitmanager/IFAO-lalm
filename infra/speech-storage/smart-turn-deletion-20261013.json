@@ -1,0 +1,14 @@
+{
+  "status": "DELETED_BY_USER_REQUEST",
+  "repo": "bitmanagerai/smart-turn-data-v3.2",
+  "revision": "7c3f670675fdbec05094a26a3e0bbce0c3f36029",
+  "files": 14440,
+  "source_bytes": 2164836608,
+  "unique_objects_copied": 14440,
+  "files_deduplicated": 0,
+  "readback_entries": 14440,
+  "training_release": false,
+  "completed_at": "2026-10-13T17:05:14.598997+00:00",
+  "deleted_at": "2026-10-13T17:14:17.783412+00:00",
+  "object_prefix_empty_verified": true
+}

@@ -1,0 +1,21 @@
+{
+  "checked_at": "2026-10-14T03:57:15.761559+00:00",
+  "source_object": "speech/speech-corpora/staging/sova-balalaika/hf-be89f9bbc9908afd34b28e05441bbb9f655c0183/train/shard_000_0000.tar",
+  "scope": "Entire first shard, adjacent JSON/WAV occurrences preserved; no listening or transcription correctness assessment",
+  "pairs": 644,
+  "unique_member_stems": 484,
+  "repeated_pair_names": 160,
+  "colliding_names_with_different_audio": 102,
+  "unique_audio_hashes": 644,
+  "pairing_errors": [],
+  "audio_hours": 1.5481069791666666,
+  "metadata_hours": 1.5050805555555555,
+  "duration_mismatches_over_100ms": 503,
+  "timestamps_past_audio_100ms": 0,
+  "empty_rover": 0,
+  "empty_punct": 0,
+  "training_release": false,
+  "admission_note": "Do not extract tar into a flat directory or key samples solely by member name: distinct audio shares names. Preserve shard+occurrence and source IDs. Use decoded audio durations; metadata times need investigation.",
+  "full_report": "speech/speech-datasets/catalog/quality-audit-20261014/sova-first-shard-quality.json",
+  "full_report_sha256_readback_verified": "58803a8710edf12c6afccca746942d20d4798087d1cd369c21f41e4bbdea6e15"
+}

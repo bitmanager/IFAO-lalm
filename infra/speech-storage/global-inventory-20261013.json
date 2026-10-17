@@ -1,0 +1,75 @@
+{
+  "snapshot_completed": "2026-10-13T17:28:53+00:00",
+  "report_at": "2026-10-13T17:32:18.207793+00:00",
+  "scope": "Live current-version object listings across three MinIO stores, collected sequentially while imports continue; SHA256 coverage is limited to matching readback receipts. Not audio-semantic dedup.",
+  "by_storage": [
+    {
+      "storage": "speech",
+      "objects": 864417,
+      "bytes": 476300683431,
+      "sha256_verified_bytes": 78048880632
+    },
+    {
+      "storage": "speech2",
+      "objects": 39220,
+      "bytes": 79370950798,
+      "sha256_verified_bytes": 67161877495
+    },
+    {
+      "storage": "speech3",
+      "objects": 458,
+      "bytes": 246749276160,
+      "sha256_verified_bytes": 246749276160
+    }
+  ],
+  "by_bucket": [
+    {
+      "bucket": "speech-annotations",
+      "objects": 599570,
+      "bytes": 33258482249
+    },
+    {
+      "bucket": "speech-benchmarks",
+      "objects": 29598,
+      "bytes": 10874091274
+    },
+    {
+      "bucket": "speech-corpora",
+      "objects": 272847,
+      "bytes": 538798796305
+    },
+    {
+      "bucket": "speech-datasets",
+      "objects": 2058,
+      "bytes": 12716420500
+    },
+    {
+      "bucket": "speech-evaluation",
+      "objects": 1,
+      "bytes": 52
+    },
+    {
+      "bucket": "speech-private-archive",
+      "objects": 21,
+      "bytes": 206773120009
+    }
+  ],
+  "totals": {
+    "objects": 904095,
+    "bytes": 802420910389,
+    "sha256_verified_objects": 37681
+  },
+  "known_duplicate_groups": {
+    "groups": 12,
+    "redundant_bytes": 2351870557
+  },
+  "training_release": false,
+  "published_catalog": "speech/speech-datasets/catalog/global-inventory/20261013T172853Z/",
+  "artifacts": [
+    "summary.json",
+    "objects.csv.gz",
+    "sha256-duplicate-objects.csv.gz"
+  ],
+  "topology": "Three independent MinIO deployments; unified inspection snapshot, not a merged S3 namespace",
+  "deletion_policy": "Duplicate candidates only; validate references before deletion"
+}

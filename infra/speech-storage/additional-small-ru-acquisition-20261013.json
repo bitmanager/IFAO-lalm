@@ -1,0 +1,155 @@
+{
+  "purpose": "Isolated upstream Russian evaluation datasets; not admitted to training",
+  "datasets": [
+    {
+      "source": {
+        "repo": "bitmanagerai/initials-bench",
+        "revision": "1c613d917c79036834b55bcead0cad928a9e5641",
+        "files": 6,
+        "bytes": 67786705,
+        "language": [
+          "ru"
+        ]
+      },
+      "verification": {
+        "status": "COPIED_AND_FULL_SHA256_READBACK_VERIFIED",
+        "repo": "bitmanagerai/initials-bench",
+        "revision": "1c613d917c79036834b55bcead0cad928a9e5641",
+        "files": 6,
+        "source_bytes": 67786705,
+        "unique_objects_copied": 5,
+        "files_deduplicated": 1,
+        "readback_entries": 6,
+        "training_release": false,
+        "completed_at": "2026-10-13T16:40:59.727599+00:00"
+      },
+      "storage_prefix": "speech/speech-benchmarks/upstream-initials-bench/hf-1c613d917c79036834b55bcead0cad928a9e5641",
+      "receipt": "speech/speech-datasets/catalog/full-download-20261013/initials-bench"
+    },
+    {
+      "source": {
+        "repo": "bitmanagerai/anglicism-bench",
+        "revision": "9078b5bcc06f50734c15bcc31327792f33791c94",
+        "files": 7,
+        "bytes": 141776,
+        "language": [
+          "ru"
+        ]
+      },
+      "verification": {
+        "status": "COPIED_AND_FULL_SHA256_READBACK_VERIFIED",
+        "repo": "bitmanagerai/anglicism-bench",
+        "revision": "9078b5bcc06f50734c15bcc31327792f33791c94",
+        "files": 7,
+        "source_bytes": 141776,
+        "unique_objects_copied": 6,
+        "files_deduplicated": 1,
+        "readback_entries": 7,
+        "training_release": false,
+        "completed_at": "2026-10-13T16:40:15.313271+00:00"
+      },
+      "storage_prefix": "speech/speech-benchmarks/upstream-anglicism-bench/hf-9078b5bcc06f50734c15bcc31327792f33791c94",
+      "receipt": "speech/speech-datasets/catalog/full-download-20261013/anglicism-bench"
+    },
+    {
+      "source": {
+        "repo": "bitmanagerai/abbrev-bench",
+        "revision": "f12067eaa14538a77b174f95be9e324dfdd9bc80",
+        "files": 7,
+        "bytes": 82453,
+        "language": [
+          "ru"
+        ]
+      },
+      "verification": {
+        "status": "COPIED_AND_FULL_SHA256_READBACK_VERIFIED",
+        "repo": "bitmanagerai/abbrev-bench",
+        "revision": "f12067eaa14538a77b174f95be9e324dfdd9bc80",
+        "files": 7,
+        "source_bytes": 82453,
+        "unique_objects_copied": 6,
+        "files_deduplicated": 1,
+        "readback_entries": 7,
+        "training_release": false,
+        "completed_at": "2026-10-13T16:40:13.633735+00:00"
+      },
+      "storage_prefix": "speech/speech-benchmarks/upstream-abbrev-bench/hf-f12067eaa14538a77b174f95be9e324dfdd9bc80",
+      "receipt": "speech/speech-datasets/catalog/full-download-20261013/abbrev-bench"
+    },
+    {
+      "source": {
+        "repo": "bitmanagerai/ru-general-bench",
+        "revision": "6bbba9ecc86e8d108bd1c0df7179e365405a9265",
+        "files": 8,
+        "bytes": 195060,
+        "language": [
+          "ru"
+        ]
+      },
+      "verification": {
+        "status": "COPIED_AND_FULL_SHA256_READBACK_VERIFIED",
+        "repo": "bitmanagerai/ru-general-bench",
+        "revision": "6bbba9ecc86e8d108bd1c0df7179e365405a9265",
+        "files": 8,
+        "source_bytes": 195060,
+        "unique_objects_copied": 7,
+        "files_deduplicated": 1,
+        "readback_entries": 8,
+        "training_release": false,
+        "completed_at": "2026-10-13T16:40:18.121756+00:00"
+      },
+      "storage_prefix": "speech/speech-benchmarks/upstream-ru-general-bench/hf-6bbba9ecc86e8d108bd1c0df7179e365405a9265",
+      "receipt": "speech/speech-datasets/catalog/full-download-20261013/ru-general-bench"
+    },
+    {
+      "source": {
+        "repo": "bitmanagerai/codeswitch-bench",
+        "revision": "fa7405d5ecd14287b1ef8b65e41f999fa7d548de",
+        "files": 9,
+        "bytes": 183646,
+        "language": [
+          "ru"
+        ]
+      },
+      "verification": {
+        "status": "COPIED_AND_FULL_SHA256_READBACK_VERIFIED",
+        "repo": "bitmanagerai/codeswitch-bench",
+        "revision": "fa7405d5ecd14287b1ef8b65e41f999fa7d548de",
+        "files": 9,
+        "source_bytes": 183646,
+        "unique_objects_copied": 8,
+        "files_deduplicated": 1,
+        "readback_entries": 9,
+        "training_release": false,
+        "completed_at": "2026-10-13T16:40:17.624720+00:00"
+      },
+      "storage_prefix": "speech/speech-benchmarks/upstream-codeswitch-bench/hf-fa7405d5ecd14287b1ef8b65e41f999fa7d548de",
+      "receipt": "speech/speech-datasets/catalog/full-download-20261013/codeswitch-bench"
+    },
+    {
+      "source": {
+        "repo": "bitmanagerai/qwen3tts-raw-numeral-errors-20260929",
+        "revision": "716f6146b8412c995daf4f8e496f6f2470e0ce18",
+        "files": 24,
+        "bytes": 6460776,
+        "language": [
+          "ru"
+        ]
+      },
+      "verification": {
+        "status": "COPIED_AND_FULL_SHA256_READBACK_VERIFIED",
+        "repo": "bitmanagerai/qwen3tts-raw-numeral-errors-20260929",
+        "revision": "716f6146b8412c995daf4f8e496f6f2470e0ce18",
+        "files": 24,
+        "source_bytes": 6460776,
+        "unique_objects_copied": 23,
+        "files_deduplicated": 1,
+        "readback_entries": 24,
+        "training_release": false,
+        "completed_at": "2026-10-13T16:40:56.571478+00:00"
+      },
+      "storage_prefix": "speech/speech-benchmarks/upstream-qwen3tts-raw-numeral-errors-20260929/hf-716f6146b8412c995daf4f8e496f6f2470e0ce18",
+      "receipt": "speech/speech-datasets/catalog/full-download-20261013/qwen3tts-raw-numeral-errors-20260929"
+    }
+  ]
+}

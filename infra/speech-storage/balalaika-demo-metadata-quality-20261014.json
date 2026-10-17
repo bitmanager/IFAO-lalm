@@ -1,0 +1,44 @@
+{
+  "at": "2026-10-14T05:39:01.441384+00:00",
+  "datasets": [
+    {
+      "dataset": "balalaika-demo_v1",
+      "rows": 122,
+      "declared_hours": 0.2691943611111111,
+      "empty_text": 0,
+      "rows_with_cyrillic": 122,
+      "sources": [
+        {
+          "source_id": "Kstc0bcV5vU",
+          "segments": 122,
+          "valid_intervals": 122,
+          "source_span_seconds": 1627.8600000000001,
+          "gaps_over_1s": 6
+        }
+      ]
+    },
+    {
+      "dataset": "balalaika-demo_v2",
+      "rows": 380,
+      "declared_hours": 0.7463222222222223,
+      "empty_text": 0,
+      "rows_with_cyrillic": 380,
+      "sources": [
+        {
+          "source_id": "cdXc6MtT-Yw",
+          "segments": 380,
+          "valid_intervals": 380,
+          "source_span_seconds": 8803.300000000001,
+          "gaps_over_1s": 209
+        }
+      ]
+    }
+  ],
+  "cross_version_matching_source_speaker_intervals": 0,
+  "training_release": false,
+  "limitations": [
+    "Metadata only; long source span does not establish continuous audio or dialogue",
+    "No independent speaker identity or acoustic text validation",
+    "Source intervals are candidate overlap, not byte-level audio duplicate proof"
+  ]
+}

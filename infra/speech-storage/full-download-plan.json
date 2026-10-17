@@ -1,0 +1,160 @@
+{
+  "date": "2026-10-12",
+  "scope": "Complete native audio, transcripts and provenance for the seven user-specified families; source staging only",
+  "base_merged_pr": "https://github.com/bitmanager/IFAO-lalm/pull/15",
+  "host": "dev-1",
+  "storage_root": "/mnt/local/drive2/speech-data-storage-20261012",
+  "temporary_download_root": "/mnt/local/drive2/speech-source-downloads-20261012",
+  "copy_engine": "Stock Hugging Face hf download, curl for public RuDevices archives, native MinIO mc; tar only for unchanged local source snapshots",
+  "operational_orchestration": "Shell launches the stock CLIs, checks checksums, routes official test files and records progress; no new Python dataset adapter, uploader or trainer.",
+  "bulk_download_concurrency": "Golos and both original Balalaika jobs resume with stock HF download concurrency defaults after initial limited-concurrency startup; GPU jobs are untouched.",
+  "new_application_code": false,
+  "credentials": "Existing authorized HF token is read privately by the operational jobs; never committed or printed. Existing S3 admin environment is supplied by systemd EnvironmentFile.",
+  "tls": "HF and MinIO both verify TLS with a bundle containing the OS public CAs and the private MinIO CA; no insecure option",
+  "integrity": "Pinned source revision plus upstream LFS SHA256 when available, independent local SHA256, full S3 readback SHA256. Completion receipt is written after all selected files pass.",
+  "cleanup": "Only freshly downloaded large Balalaika temporary files are removed, individually after complete S3 readback. Existing source directories and original labels remain unchanged.",
+  "training_release": false,
+  "final_production_holdout_registry_defined": false,
+  "official_test_routing": "Golos official test shards and SOVA validation/test Parquet are kept in speech-benchmarks, denied to training/ingest credentials.",
+  "initial_attempts": "First units were stopped to correct TSV empty-field parsing before import; subsequent download attempts failed because the private-only SSL_CERT_FILE replaced public trust. Failed receipts remain preserved. New jobs use the combined verified CA bundle.",
+  "corpora": [
+    {
+      "id": "phone1",
+      "status": "ALREADY_COPIED_AND_FULL_SHA256_READBACK_VERIFIED",
+      "source": "Original OpenSTT asr_public_phone_calls_1.tar.gz and CSV",
+      "catalog": "native-corpus-catalog.json"
+    },
+    {
+      "id": "phone2",
+      "status": "ALREADY_COPIED_AND_FULL_SHA256_READBACK_VERIFIED",
+      "source": "Original OpenSTT asr_public_phone_calls_2.tar.gz and CSV",
+      "catalog": "native-corpus-catalog.json"
+    },
+    {
+      "id": "sova-rudevices",
+      "source": "bond005/sova_rudevices",
+      "revision": "d9197eacfb0afff29d90a2d4e7d0d98a5dfb54bc",
+      "upstream_files": 26,
+      "upstream_bytes": 10670585430,
+      "prior_train_parquet": 19,
+      "new_files_verified": 7,
+      "new_bytes_verified": 1323287769,
+      "status": "FULL_PINNED_HF_SOURCE_COPIED_AND_VERIFIED",
+      "service": "speech-data-full-sova-tls-20261012.service",
+      "native_prefix": "s3://speech-corpora/staging/sova-rudevices/hf-d9197eacfb0afff29d90a2d4e7d0d98a5dfb54bc/",
+      "eval_prefix": "s3://speech-benchmarks/upstream-sova-d9197eacfb0afff29d90a2d4e7d0d98a5dfb54bc/",
+      "working_mirror": {
+        "provider": "Kaggle",
+        "dataset": "alexcumder/russian-asr-sova-ai-rudevices",
+        "dataset_version": 1,
+        "download_url": "https://www.kaggle.com/api/v1/datasets/download/alexcumder/russian-asr-sova-ai-rudevices?datasetVersionNumber=1",
+        "bytes": 8824491971,
+        "wav_members": 93244,
+        "manifest_sha256": "367f1b7609ed8c66b565203f4232d85b31c576d2a24d3c7922f406c2457d0106",
+        "empty_manifest_targets": 3,
+        "service": "speech-data-sova-kaggle-20261012.service",
+        "status_at_launch": "RUNNING",
+        "native_prefix": "s3://speech-private-archive/sources/sova-rudevices/kaggle-alexcumder-v1/",
+        "integrity": "Check complete ZIP byte count, native unzip CRC, original manifest SHA256, and complete S3 readback SHA256 before marking copied.",
+        "note": "Working public mirror verified with actual ZIP and WAV bytes. Repacked ZIP is not byte-identical to the author TAR; coverage equivalence to the HF copy remains unproven."
+      },
+      "original_archive": {
+        "source": "https://disk.yandex.ru/d/jz3k7pnzTpnTgw",
+        "path": "/RuDevices.tar",
+        "source_documentation": "https://github.com/sovaai/sova-dataset",
+        "bytes": 11195258880,
+        "sha256": "ecf46850dd038c2694216ad4778fdcbf788c44c20adcaf6e45c557ac8d8f77bb",
+        "service": "speech-data-full-sova-original-follow-20261012.service",
+        "initial_archive_attempt": "Native curl initially did not follow the provider redirect, producing an empty temporary file. SHA256 check rejected it before S3 upload. The current job follows redirects with TLS verification; the failed receipt is preserved.",
+        "status_at_launch": "RUNNING",
+        "latest_status": "PROVIDER_DOWNLOAD_FAILED",
+        "s3_archive_uploaded": false,
+        "provider_failure": "TLS-verified probes on dev and exp receive HEAD 200 but range GET 206 with zero body/curl exit 18; bounded ordinary GET also yields no data. No archive was admitted or uploaded. The complete pinned HF source is independently copied and verified.",
+        "note": "Native original enables subsequent coverage comparison; no missing-sample conclusion solely from differing reported hours."
+      }
+    },
+    {
+      "id": "golos",
+      "source": "Sh1man/golos_opus",
+      "revision": "931f5c412a8045e0b03b9e5584072f0810c41dcc",
+      "upstream_files": 22,
+      "upstream_bytes": 23583116739,
+      "selection": "Complete pinned source, both crowd and farfield; original train/test boundaries retained",
+      "service": "speech-data-full-golos-default-20261012.service",
+      "status_at_launch": "RUNNING",
+      "native_prefix": "s3://speech-corpora/staging/golos/hf-931f5c412a8045e0b03b9e5584072f0810c41dcc/",
+      "eval_prefix": "s3://speech-benchmarks/upstream-golos-931f5c412a8045e0b03b9e5584072f0810c41dcc/"
+    },
+    {
+      "id": "balalaika",
+      "existing_source_pools": "Original local stress audio/labels and completed native partition exports already copied; see native-corpus-catalog.json and balalaika-native-archive-verification.json",
+      "sources": [
+        {
+          "repo": "bitmanagerai/balalaika_proprietary_v2",
+          "revision": "766eebc95f0c0ccef286a9022624a736221e19d3",
+          "upstream_files": 5346,
+          "upstream_bytes": 808844739662,
+          "selected_files": 1599,
+          "selected_bytes": 402402489236,
+          "exclude": [
+            "tokenizations/*"
+          ],
+          "excluded_bytes": 406442250426,
+          "exclusion_reason": "Derived speech-codec caches, not original audio/transcripts needed for this ASR data task; complete source inventory retained.",
+          "train_audio_shards": 519,
+          "train_shard_bytes": 399748761600,
+          "service": "speech-data-full-balalaika-v2-default-20261012.service",
+          "status_at_launch": "RUNNING",
+          "native_prefix": "s3://speech-corpora/staging/balalaika-v2/hf-766eebc95f0c0ccef286a9022624a736221e19d3/"
+        },
+        {
+          "repo": "lab260/youtube_balalaika",
+          "revision": "f847a349ac9cbf2952726c12b5aab1fd70b8a4cf",
+          "upstream_files": 967,
+          "upstream_bytes": 519349025224,
+          "service": "speech-data-full-balalaika-youtube-default-20261012.service",
+          "status_at_launch": "RUNNING",
+          "native_prefix": "s3://speech-corpora/staging/balalaika-youtube/hf-f847a349ac9cbf2952726c12b5aab1fd70b8a4cf/"
+        }
+      ]
+    },
+    {
+      "id": "gemini-tts-eqvanta",
+      "source": "bitmanagerai/gemini-tts-eqvanta",
+      "revision": "e9b13cc20e57aa93a3df50e91a6d62230cc26cac",
+      "upstream_files": 159,
+      "upstream_bytes": 1814709456,
+      "selection": "Complete pinned repository including paired audio, original text variants, samples and question/prosody data; unpaired text remains explicitly unpaired",
+      "service": "speech-data-full-gemini-20261012.service",
+      "status_at_launch": "RUNNING",
+      "verified_source_files": 159,
+      "verified_s3_readback_files": 159,
+      "native_prefix": "s3://speech-corpora/staging/gemini/hf-e9b13cc20e57aa93a3df50e91a6d62230cc26cac/",
+      "status": "COPIED_AND_FULL_SHA256_READBACK_VERIFIED"
+    },
+    {
+      "id": "bitmanager-sessions",
+      "source": "bitmanagerai/bitmanager_sessions_03_06_2026_18_10",
+      "revision": "52644a10afb6dd0651ed002809cdd24493f409ec",
+      "upstream_files": 27187,
+      "upstream_bytes": 1956302893,
+      "upstream_customer_opus_files": 1716,
+      "upstream_all_opus_files": 3432,
+      "selection": "All files of the pinned native source; preserve raw audio, annotations, source tools and index without executing dataset-provided code",
+      "service": "speech-data-full-sessions-tls-20261012.service",
+      "status_at_launch": "RUNNING",
+      "native_prefix": "s3://speech-corpora/staging/bitmanager-sessions/hf-52644a10afb6dd0651ed002809cdd24493f409ec/",
+      "note": "Full source inventory is not a training admission, complete quality assessment, or proof that every catalogued utterance has usable ground truth.",
+      "status": "COPIED_AND_FULL_SHA256_READBACK_VERIFIED",
+      "verified_source_files": 27187,
+      "verified_s3_readback_files": 27187,
+      "compressed_source_catalog": "russian-compressed-sources-20261013.json"
+    }
+  ],
+  "supplemental_archive_catalog": "supplemental-source-archive-20261012.json",
+  "corporate_tailnet_source_discovery": "tailscale-source-discovery-20261013.json",
+  "research_queue": "Separate local/web source reports and supplemental native archives; additional datasets are not substitutes for the seven requested families.",
+  "publication_gate": "No unified portable training release before an approved format adapter and explicit benchmark exclusion registry; native source staging does not change training_eligible flags.",
+  "russian_compressed_source_catalog": "russian-compressed-sources-20261013.json",
+  "organization_calls_dedup_catalog": "organization-calls-dedup-20261013.json"
+}

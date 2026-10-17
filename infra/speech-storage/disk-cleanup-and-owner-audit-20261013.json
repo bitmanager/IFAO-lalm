@@ -1,0 +1,50 @@
+{
+  "date": "2026-10-13",
+  "units": "decimal bytes; live filesystem snapshots",
+  "completed_cleanup": {
+    "authorization": "User explicitly requested nemo-asr-runs cleanup, repeated Lychee deletion, and inspection/cleanup of old Docker artifacts",
+    "directories_removed": [
+      {"host": "exp-1", "path": "/home/se@bitmanager.ai/nemo-asr-runs", "allocated_bytes_before": 175509508096},
+      {"host": "dev-1", "path": "/home/se@bitmanager.ai/lychee-ru-pipeline", "allocated_bytes_before": 130913259520},
+      {"host": "dev-1", "path": "/home/se@bitmanager.ai/lychee-fd-stock", "allocated_bytes_before": 41146003456},
+      {"host": "dev-1", "path": "/mnt/local/drive1/lychee-ru-checkpoint-archive-se", "allocated_bytes_before": 5148520448}
+    ],
+    "activity_checks": "No process cwd, command-line or open-file reference to nemo-asr-runs on either server; no live container mount reference. No process or live container mount reference to the two Lychee source directories.",
+    "docker": {
+      "exp_stopped_own_containers_removed": 15,
+      "dev_stopped_own_containers_removed": 8,
+      "image_removed_on_both_hosts": "lychee-fd-native:blackwell-20261003",
+      "containers_forced": false,
+      "volumes_deleted": false,
+      "bind_mount_data_removed_by_docker": false,
+      "other_cleanup": "Native dangling image and build-cache prune with until=168h reclaimed 0 bytes; running containers and shared volumes retained",
+      "size_note": "The 34.9 GB nominal image size is not assumed to equal physical reclaimed space because image layers are shared"
+    },
+    "measured_exp_root_free_before": 923416178688,
+    "measured_exp_root_free_after_nemo_and_first_container_cleanup": 1103156330496,
+    "measured_dev_root_free_before_lychee": 267116331008,
+    "measured_dev_root_free_after_lychee_sources": 439175589888,
+    "removed_path_absence_verified": true
+  },
+  "other_owner_candidates": [
+    {"host": "exp-1", "owner": "ni@bitmanager.ai", "path": "/home/ni@bitmanager.ai/uzb-tts/runs", "allocated_bytes": 1363188723712},
+    {"host": "exp-1", "owner": "ni@bitmanager.ai", "path": "/mnt/local/drive1/uzb-tts/runs", "allocated_bytes": 704310685696},
+    {"host": "exp-1", "owner": "ni@bitmanager.ai", "path": "/mnt/local/drive1/uzb-asr/runs", "allocated_bytes": 393412882432},
+    {"host": "exp-1", "owner": "kb@bitmanager.ai", "path": "/mnt/local/drive1/campaign_v2/ckpts", "allocated_bytes": 510825971712},
+    {"host": "exp-1", "owner": "kb@bitmanager.ai", "path": "/mnt/local/drive1/campaign_v2/exports", "allocated_bytes": 212128886784},
+    {"host": "exp-1", "owner": "ib@bitmanager.ai", "path": "/mnt/local/drive1/arabic-speech-foundation/runs", "allocated_bytes": 525015793664},
+    {"host": "dev-1", "owner": "ib@bitmanager.ai", "path": "/mnt/local/drive2/arabic-speech-foundation/runs", "allocated_bytes": 322262491136},
+    {"host": "dev-1", "owner": "ib@bitmanager.ai", "path": "/mnt/local/drive2/arabic-dialect-detector-20260928/results", "allocated_bytes": 343554269184},
+    {"host": "exp-1", "owner": "ga@bitmanager.ai", "path": "/home/ga@bitmanager.ai/ASR-loss-filtration/ckpts", "allocated_bytes": 180305285120}
+  ],
+  "other_owner_candidate_status": "Sizes and owners confirmed, but checkpoint dependencies, latest/best recovery state and current activity have not been assessed; no other-owner project data deleted",
+  "own_additional_candidates": [
+    {"host": "dev-1", "path": "/mnt/local/drive1/tts-normalizer-20261006/runs", "allocated_bytes": 112465711104},
+    {"host": "dev-1", "path": "/mnt/local/drive2/tts-normalizer-20261006/runs", "allocated_bytes": 87576768512},
+    {"host": "dev-1", "path": "/mnt/local/drive1/ifao-data/runs", "allocated_bytes": 296797315072}
+  ],
+  "own_additional_candidate_status": "Not deleted; further active-use and recovery audit required. Source audio, active downloads, MinIO objects and current Qwen training directories retained",
+  "disk_inventory": "Six physical NVMe devices totaling approximately 18 TB raw: dev has two 4 TB data SSDs and two 1 TB mirrored system SSDs; exp has one 4 TB data SSD and one 4 TB system/home SSD. NFS views do not add capacity.",
+  "small_import_progress": "hard_number_eval_for_tts, RU-ASR-Intonation-bench and arariel-question-intonation-benchmark have completed full SHA256 readback; Langswap source import remains separate",
+  "accounts_deleted": false
+}

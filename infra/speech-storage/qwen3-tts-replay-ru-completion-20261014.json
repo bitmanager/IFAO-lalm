@@ -1,0 +1,18 @@
+{
+  "repo": "bitmanagerai/qwen3-tts-uz-grpo-data",
+  "revision": "546cb76e4fd5d48017f2fea0dd204a4b1c3307b6",
+  "at": "2026-10-14T06:02:35.895078+00:00",
+  "status": "COPIED_AND_FULL_SHA256_READBACK_VERIFIED",
+  "files": 9,
+  "bytes": 18160400,
+  "dedup_references": 0,
+  "training_release": false,
+  "records": 1626,
+  "languages": [
+    "ru"
+  ],
+  "unique_ids": 1626,
+  "kind": "Derived Qwen3-TTS codec tokens, text and speaker vectors, no source WAV",
+  "original_audio_source": "NCSpeech/YO-CPT-ru",
+  "independent_new_audio_hours": 0
+}

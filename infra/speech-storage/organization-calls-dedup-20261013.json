@@ -1,0 +1,169 @@
+{
+  "date": "2026-10-13",
+  "scope": "User-requested native Veva3/Meteor/HashTesh exports and exact audio deduplication in protected cold copies",
+  "source_access": "Existing se@bitmanager.ai SSO and noninteractive sudo work on both managed hosts; no source account, ACL or database permission change",
+  "native_tools": [
+    "PostgreSQL psql COPY",
+    "MinIO mc",
+    "Docker cp",
+    "sha256sum",
+    "jdupes 1.27.3",
+    "tar",
+    "zstd",
+    "rsync",
+    "SSH",
+    "systemd"
+  ],
+  "new_python_application_or_format_adapter": false,
+  "database_mode": "Repeatable-read, read-only snapshot; UTC timestamps; all native relation/dialog fields, source schema, relevant project model IDs, organization identity/timezone and raw transcript cells preserved",
+  "metadata": "Native SQL CSV/JSON/TSV, full source S3 object listings, source export instructions, per-file checksums, exact duplicate groups and integrity receipts accompany audio",
+  "deduplication": {
+    "method": "Stock jdupes full byte comparison with permission checks, then hardlinks in root-private cold snapshots",
+    "quick_or_partial_matching": false,
+    "source_alias_paths_preserved": true,
+    "all_annotation_rows_preserved": true,
+    "all_source_files_sha256_unchanged_after_linking": true,
+    "audio_transcoded": false,
+    "original_production_objects_unchanged": true,
+    "active_downloads_unchanged": true,
+    "minio_internal_files_unchanged": true,
+    "raw_audio_paths": 45274,
+    "sum_of_within_snapshot_unique_payloads": 43083,
+    "duplicate_audio_paths_linked": 2191,
+    "raw_audio_bytes": 9121720388,
+    "sum_of_within_snapshot_unique_audio_bytes": 8639206356,
+    "duplicate_payload_bytes_saved": 482514032,
+    "cross_snapshot_audio_dedup": "Not yet run; sums are not a claim of globally unique audio across all corpora",
+    "annotation_variants": "Do not select a single transcript or merge differing histories merely because audio bytes match"
+  },
+  "sources": [
+    {
+      "id": "patch-ru-meteor-hashtesh",
+      "host": "100.71.231.47",
+      "source_instruction": "/opt/calls_export/INSTRUCTIONS.md",
+      "organization_ids": [
+        "8563f8db-f6e3-49c1-8c11-fc695760b9ce",
+        "c19f1873-c014-4f03-95db-b615be5f5536"
+      ],
+      "source_snapshot_at": "2026-10-12T22:32:58.416708+00:00",
+      "native_relation_rows": 7962,
+      "nonempty_transcript_rows": 7878,
+      "organization_nonempty_transcripts": {
+        "Meteor": 5592,
+        "HashTesh": 2286
+      },
+      "transcript_rows_with_audio_key": 4595,
+      "unique_transcript_audio_keys": 4078,
+      "matched_exported_audio_keys": 4078,
+      "missing_exported_audio_keys": 0,
+      "transcripts_without_audio_key": 3283,
+      "declared_transcript_seconds": 907018,
+      "native_audio_paths": 13440,
+      "unique_audio_payloads_in_snapshot": 11311,
+      "exact_duplicate_paths": 2129,
+      "duplicate_payload_bytes_saved": 482454560,
+      "byte_verified_duplicate_groups": 1662,
+      "source_export_status": "NATIVE_DATABASE_AND_AUDIO_EXPORTED",
+      "source_dedup_status": "EXACT_AUDIO_HARDLINK_DEDUP_AND_ALL_SOURCE_SHA256_VERIFIED",
+      "packed_source_status": "PACKED_COMPRESSED_NATIVE_SOURCE_READY_FOR_TRANSFER",
+      "archive_bytes": 3206409123,
+      "archive_sha256": "fb0ad0302805410047ee4027f61ef25b5dbb41efad5cbc1e2f96867da0212196",
+      "source_archive": "/opt/speech-native-source-20261013/patch-ru-meteor-hashtesh-deduplicated-native-source.tar.zst",
+      "s3_target": "s3://speech-private-archive/sources/organization-calls/native-20261013/patch-ru-meteor-hashtesh/patch-ru-meteor-hashtesh-deduplicated-native-source.tar.zst",
+      "publication_receipt": "s3://speech-datasets/catalog/organization-calls-20261013/patch-ru-meteor-hashtesh/status.json",
+      "transfer_service": "speech-calls-dedup-resume-patch-ru-meteor-hashtesh-20261013.service",
+      "language": "UNVERIFIED",
+      "labels": "Existing automatic source transcripts; historical per-record producer not established, current project model IDs preserved",
+      "previous_transfer_service": "speech-calls-dedup-transfer-patch-ru-meteor-hashtesh-20261013.service"
+    },
+    {
+      "id": "patch-uz-veva3",
+      "host": "100.101.176.22",
+      "source_instruction": "/opt/veva3_export/INSTRUCTIONS.md",
+      "organization_ids": [
+        "23b18383-d5d2-4f52-a0c9-c64dba907726"
+      ],
+      "source_snapshot_at": "2026-10-12T22:33:01.563748+00:00",
+      "selection": "Instruction's canonical dialogs.current_relation_id join; not the narrower project join",
+      "native_relation_rows": 23815,
+      "nonempty_transcript_rows": 23815,
+      "transcript_rows_with_audio_key": 23815,
+      "unique_transcript_audio_keys": 23815,
+      "matched_exported_audio_keys": 23815,
+      "missing_exported_audio_keys": 0,
+      "declared_transcript_seconds": 2409330,
+      "native_audio_paths": 31834,
+      "unique_audio_payloads_in_snapshot": 31772,
+      "exact_duplicate_paths": 62,
+      "duplicate_payload_bytes_saved": 59472,
+      "byte_verified_duplicate_groups": 3,
+      "source_export_status": "NATIVE_DATABASE_AND_AUDIO_EXPORTED",
+      "source_dedup_status": "EXACT_AUDIO_HARDLINK_DEDUP_AND_ALL_SOURCE_SHA256_VERIFIED",
+      "packed_source_status": "PACKED_COMPRESSED_NATIVE_SOURCE_READY_FOR_TRANSFER",
+      "archive_bytes": 4910171022,
+      "archive_sha256": "ce9716e671cb5663fae3bef96d11edfae2c08d8f4aa5f7569dde941f5e4da66e",
+      "source_archive": "/opt/speech-native-source-20261013/patch-uz-veva3-deduplicated-native-source.tar.zst",
+      "s3_target": "s3://speech-private-archive/sources/organization-calls/native-20261013/patch-uz-veva3/patch-uz-veva3-deduplicated-native-source.tar.zst",
+      "publication_receipt": "s3://speech-datasets/catalog/organization-calls-20261013/patch-uz-veva3/status.json",
+      "transfer_service": "speech-calls-dedup-resume-patch-uz-veva3-20261013.service",
+      "language": "UNVERIFIED",
+      "labels": "Existing automatic role-marked transcripts; dialogs.text_source/text_labeled and native source_record_context retained without inferring human ASR gold",
+      "previous_transfer_service": "speech-calls-dedup-transfer-patch-uz-veva3-20261013.service"
+    }
+  ],
+  "other_completed_audio_audit": {
+    "sources": [
+      "Bitmanager sessions pinned snapshot",
+      "MTSAIR pinned snapshot",
+      "Gemini pinned snapshot"
+    ],
+    "scope": "Standalone mp3/wav/opus/flac files only; audio embedded inside Parquet/TAR not unpacked in this pass",
+    "native_jdupes_match_sets": 0,
+    "mutation": "None; audit only",
+    "receipt": "/mnt/local/drive2/speech-data-storage-20261012/audit/exact-dedup-20261013/completed-source-audio-duplicates.json"
+  },
+  "storage_measurement_before_import": {
+    "current_s3_objects_bytes": 342471464799,
+    "noncurrent_versions_included": false,
+    "unique_russian_training_bytes": "Not established; stored bytes include source copies, overlapping pools and opaque backups",
+    "download_directory_growth_bytes_per_second": 10564147.85,
+    "measurement_interval_seconds": 20,
+    "note": "Short point-in-time folder-growth estimate, not a guaranteed download rate or ETA"
+  },
+  "transport": {
+    "initial_stream_transfers": "Stopped own transient copies before cold-snapshot hardlinking; incomplete streams never published",
+    "current_engine": "Stock rsync append verification for both source-to-controller and controller-to-dev transfers, followed by native mc upload and complete S3 SHA256 readback",
+    "controller": "minipc user systemd; local transit cache0700/files0600",
+    "root_destination": "/mnt/local/drive2/speech-native-calls-dedup-20261013/incoming",
+    "publication_gate": "Packed source readiness does not mean S3 completion; only successful full SHA256 readback emits final publication receipt",
+    "local_cleanup": "Own transit archive removed only after complete source, dev and S3 verification",
+    "recovery_20261013": {
+      "veva3_previous_failure": "SSH timeout forwarding complete local archive to dev; incomplete destination preserved",
+      "ru_previous_stream": "Stopped own stream at about 89% and resumed its existing partial with native rsync",
+      "current_state": "Both resumable transfer units launched; final S3 completion still requires publication receipt",
+      "retry": "Native user systemd Restart=on-failure, RestartSec=60; rsync timeout=120 and SSH keepalive"
+    }
+  },
+  "training_release": false,
+  "russian_only_training_admission": "Not admitted until language, source quality and benchmark overlap are checked; user explicitly requested these source exports for inspection",
+  "dedup_all_existing_s3_archives_complete": false,
+  "existing_s3_duplicate_audit": {
+    "current_object_inventory_completed": true,
+    "etag_size_candidates": {
+      "groups": 34,
+      "paths": 9263,
+      "potential_duplicate_payload_bytes": 1752808641,
+      "not_a_checksum_proof": true
+    },
+    "large_whole_objects_verified": {
+      "groups": 9,
+      "paths": 18,
+      "duplicate_payload_bytes": 1750340766,
+      "verification": "Complete native mc read and independent SHA256 of every candidate object"
+    },
+    "s3_objects_removed": false,
+    "canonical_reference_proposal": "s3://speech-datasets/catalog/exact-dedup-20261013/s3-canonical-object-reference-proposal.json",
+    "reference_status": "Proposed canonical references retain all source alias metadata; existing logical paths preserved until consumer references are migrated",
+    "inner_parquet_tar_audio_dedup": "NOT_DONE_IN_THIS_PASS"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "at": "2026-10-14T05:15:31.014710+00:00",
+  "repo": "lab260/webinars_balalaika",
+  "revision": "4512dfefe428f3fcdde06f517f6c0096fc5def65",
+  "files": 33,
+  "source_bytes": 4154913224,
+  "all_paths_sizes_lfs_hashes_and_readback_receipts_match": true,
+  "fresh_s3_stat_all_objects": true,
+  "training_release": false
+}

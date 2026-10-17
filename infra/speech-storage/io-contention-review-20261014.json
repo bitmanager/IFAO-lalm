@@ -1,0 +1,44 @@
+{
+  "at": "2026-10-14T06:23:19.758657+00:00",
+  "scope": "dev-1 short 10-second disk and per-process I/O samples; not sustained throughput or causal network diagnosis",
+  "disk_sample": {
+    "drive1_write_MB_s": 864.11,
+    "drive1_busy_pct": 90.1,
+    "drive1_weighted_queue": 33.23,
+    "drive2_write_MB_s": 149.85,
+    "drive2_busy_pct": 26.4
+  },
+  "largest_writers_mapped": [
+    {
+      "container": "speech-data-agy-03-1",
+      "pid": 2067690,
+      "write_MB_s": 154.31
+    },
+    {
+      "container": "speech-data-agy-21-1",
+      "pid": 2067544,
+      "write_MB_s": 124.36
+    },
+    {
+      "container": "speech-data-agy-13-1",
+      "pid": 2068298,
+      "write_MB_s": 100.21
+    },
+    {
+      "container": "speech-data-postgres-1",
+      "pid": 2014892,
+      "write_MB_s": 83.38,
+      "cancelled_write_MB_s": 81.91
+    }
+  ],
+  "minio": {
+    "dev_primary_active": true,
+    "dev_overflow_active": true,
+    "exp_active": true,
+    "new_restarts_observed": false,
+    "dev_primary_current_cgroup_oom_kill": 0,
+    "dev_primary_memory_anon_bytes": 941809664,
+    "dev_primary_memory_file_cache_bytes": 9547317248
+  },
+  "actions": "Read-only diagnosis. No annotation worker, database or download restarted; no extra heavy archive audits launched."
+}

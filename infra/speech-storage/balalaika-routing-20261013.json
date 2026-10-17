@@ -1,0 +1,17 @@
+{
+  "repo": "bitmanagerai/balalaika_proprietary_v2",
+  "revision": "766eebc95f0c0ccef286a9022624a736221e19d3",
+  "service": "speech-data-hf-balalaika-proprietary-v2-primary-20261013.service",
+  "status": "Active replacement; existing import audit and completed-file map reused",
+  "change": "Remaining objects write to speech on dev drive2 instead of speech2 on drive1; existing objects retained at original locations",
+  "ordering": "Original source audio and metadata before tokenizations/ codec caches; all source files remain selected",
+  "implementation": "Existing streaming job with destination configuration and two native awk selection passes; no new application importer",
+  "receipt": "speech2/speech-datasets/catalog/full-download-20261013/balalaika-proprietary-v2/",
+  "snapshot_free_bytes": {
+    "dev_drive1": 1399635861504,
+    "dev_drive2": 1323150000128,
+    "exp_drive1": 435947061248
+  },
+  "capacity_note": "Placement adjusted for remaining queued writes; available capacity is shared with other workloads and continues to change",
+  "training_release": false
+}

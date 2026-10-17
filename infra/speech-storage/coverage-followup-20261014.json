@@ -1,0 +1,56 @@
+{
+  "date": "2026-10-14",
+  "scope": "Reconcile older catalogs with operational receipts; not a complete live inventory",
+  "training_release": false,
+  "sources": [
+    {
+      "id": "lemas-ru",
+      "repo": "LEMAS-Project/LEMAS-Dataset-train",
+      "revision": "91f0c1b9a29f8d1c5bad18182a43975255512cce",
+      "status": "RU000_COPIED_RU001_DOWNLOAD_STARTED_REMAINDER_NOT_QUEUED",
+      "copied_files": 2,
+      "copied_bytes": 24039570517,
+      "copied_selection": "train/ru/ru000.tar.gz and train/ru/ru000.jsonl",
+      "reported_full_ru_bytes": 550841845976,
+      "reported_remaining_bytes": 526802275459,
+      "receipt": "/mnt/local/drive2/speech-data-storage-20261012/audit/full-download-20261012/lemas-ru000/status.json",
+      "receipt_status": "COPIED_AND_FULL_SHA256_READBACK_VERIFIED",
+      "upstream_inventory_revalidated": {"files": 46, "bytes": 550841845976, "local_report": "/mnt/local/drive1/speech-hf-ingest-20261013/audit/lemas-ru-current-inventory-20261014.json"},
+      "next_download": {
+        "selection": ["train/ru/ru001.jsonl", "train/ru/ru001.tar.gz"],
+        "bytes": 24032333932,
+        "unit": "speech-data-lemas-ru001-download-20261014.service",
+        "host": "dev-1",
+        "temporary_directory": "/mnt/local/drive1/speech-hf-ingest-20261013/downloads/lemas-ru001",
+        "engine": "Stock hf download, pinned revision, one worker",
+        "intended_storage": "speech3/speech-private-archive/sources/lemas-ru001/hf-91f0c1b9a29f8d1c5bad18182a43975255512cce/",
+        "download_only": true,
+        "metadata_copy": {
+          "status": "COPIED_AND_FULL_SHA256_READBACK_VERIFIED",
+          "bytes": 856480541,
+          "sha256": "f748093f6315411ad15112e02368cba32b45769876c13cb6c6efd01ad6d180a6",
+          "receipt": "/mnt/local/drive1/speech-hf-ingest-20261013/audit/lemas-ru001/metadata-readback.tsv",
+          "archive_still_downloading": true,
+          "local_metadata_retained": true,
+          "destination_bucket": "speech3/speech-private-archive",
+          "bucket_setup": "Created with stock mc; versioning enabled; anonymous access reports private. Authenticated role-policy checks remain separate."
+        },
+        "next_action": "After successful download verify both upstream SHA256 values, archive integrity and native metadata; upload with mc and verify full S3 readback before marking complete",
+        "known_exact_dedup_receipt_matches": 0,
+        "dedup_scope": "Local TSV/text checksum/readback/file-map receipts under both audit roots, files below 30 MB; not exhaustive object or sample-level dedup"
+      },
+      "remaining_unqueued_bytes": 502769941527,
+      "quality": "Subtitles and automatic alignment; overlap with Golos/YouTube and upstream holdouts unresolved"
+    },
+    {
+      "id": "sova-rudevices",
+      "reconciliation": "native-corpus-catalog.json is an older train-only snapshot. full-download-plan.json records the complete 26-file pinned HF source, including separately routed evaluation files.",
+      "additional_files_receipt": "/mnt/local/drive2/speech-data-storage-20261012/audit/local-s3-cleanup-review-20261013/sova-status.json",
+      "additional_files_verified": 7,
+      "additional_bytes_verified": 1323287769,
+      "kaggle_receipt": "/mnt/local/drive2/speech-data-storage-20261012/audit/local-s3-cleanup-review-20261013/sova-kaggle-status.json",
+      "kaggle_receipt_status": "CURRENT_LOCAL_AND_S3_FULL_SHA256_MATCH",
+      "limitation": "Receipts inspected today; no fresh full S3 hash pass in this follow-up. Original author TAR provider failure remains unresolved."
+    }
+  ]
+}

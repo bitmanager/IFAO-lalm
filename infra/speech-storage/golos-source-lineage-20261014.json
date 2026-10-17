@@ -1,0 +1,14 @@
+{
+  "at": "2026-10-14T03:26:13.096008+00:00",
+  "repo": "lab260/golos_balalaika",
+  "source_family": "golos",
+  "relationship": "Derived annotation and processed audio variant, not independent speech",
+  "canonical_original": "Sh1man/golos_opus@931f5c412a8045e0b03b9e5584072f0810c41dcc",
+  "sample_evidence": "All 14 sampled derived IDs present in original crowd test; no byte-identical audio matches",
+  "preservation": "Keep pinned native TAR files because new annotation and processed audio are bundled",
+  "source_bytes": 1786818736,
+  "count_as_new_independent_audio_hours": false,
+  "training_release": false,
+  "cross_split_clearance": false,
+  "remaining_audit": "Whole-corpus source ID and split overlap"
+}

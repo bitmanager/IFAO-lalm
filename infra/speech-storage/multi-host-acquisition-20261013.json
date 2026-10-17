@@ -1,0 +1,48 @@
+{
+  "date": "2026-10-13",
+  "scope": "Runtime placement and capacity audit; not a completed transfer receipt",
+  "storage_topology": "Three independent MinIO deployments; no unified distributed namespace yet",
+  "source_transfer_engine": "Existing stream importer using stock Hugging Face hf download and MinIO mc; only repository, pinned revision, staging and destination settings changed",
+  "new_application_importer": false,
+  "active_import_jobs_at_check": 13,
+  "previous_queue_remaining_source_bytes": 2260566993095,
+  "previous_queue_size_note": "Pinned source file sizes minus verified file-map entries; future byte-identical deduplication may reduce required writes",
+  "new_job": {
+    "source": "lab260/youtube_balalaika",
+    "revision": "f847a349ac9cbf2952726c12b5aab1fd70b8a4cf",
+    "source_bytes": 519349025224,
+    "service_host": "dev-1",
+    "service": "speech-data-hf-balalaika-youtube-exp-20261013.service",
+    "existing_local_staging": "/mnt/local/drive2/speech-source-downloads-20261012/balalaika-youtube",
+    "destination_host": "exp-1",
+    "destination_alias": "speech3",
+    "destination_bucket": "speech-corpora",
+    "destination_prefix": "staging/balalaika-youtube-exp/hf-f847a349ac9cbf2952726c12b5aab1fd70b8a4cf/",
+    "status_at_check": "RUNNING",
+    "observed_success": "Original train shards 000_0009 through 000_0012 were independently SHA256 readback-verified on speech3",
+    "cleanup": "Existing importer deletes each downloaded source file only after verification or a verified exact-byte deduplication reference",
+    "metadata": "All files of the pinned source remain selected; original audio archives are not transcoded",
+    "prior_unit_state": "Old default YouTube unit was inactive even though its last status JSON still said RUNNING; it was not treated as a completed import"
+  },
+  "disk_audit": {
+    "units": "decimal bytes",
+    "dev_drive1_free_bytes": 1463847235584,
+    "dev_drive2_free_bytes": 1124257415168,
+    "exp_drive1_free_bytes_before_new_transfer": 571706183680,
+    "minio_primary_allocated_bytes": 447505694720,
+    "minio_overflow_allocated_bytes": 71950536704,
+    "old_source_download_staging_allocated_bytes": 563157860352,
+    "current_hf_ingest_allocated_bytes": 90501652480,
+    "allocated_size_note": "Filesystem allocation includes object metadata and in-flight temporary objects; not logical unique audio size or audio hours",
+    "nfs_note": "Remote mounts of dev disks on exp are not additional storage capacity",
+    "exp_largest_directories": {
+      "uzb-tts": 1115148615680,
+      "campaign_v2": 894001192960,
+      "arabic-speech-foundation": 570202484736,
+      "uzb-asr": 458884247552
+    },
+    "capacity_note": "Current imports plus YouTube fit in aggregate only with staged-file cleanup and placement management. The roughly 3.536 TB SOVA Balalaika source is not covered by available headroom. exp has limited final headroom if the entire YouTube source lands there; other project growth must be monitored."
+  },
+  "distributed_minio_migration": "Pending topology and migration planning; independent deployments cannot be combined by a reverse proxy or by counting NFS mounts twice",
+  "training_release": false
+}

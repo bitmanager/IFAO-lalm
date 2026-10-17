@@ -24,7 +24,8 @@ RestartSec=5
 LimitNOFILE=1048576
 TasksMax=infinity
 TimeoutSec=120
-MemoryMax=4G
+MemoryHigh=12G
+MemoryMax=16G
 NoNewPrivileges=true
 
 [Install]

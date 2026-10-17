@@ -1,0 +1,20 @@
+{
+  "host": "dev-1",
+  "client": "Official Xray-core v26.9.9, SHA256 verified",
+  "method": "Sequential curl Range GET of same public HF object, first 32 MiB, timeout 40 seconds, discarded output; normal imports running",
+  "source": "lab260/sova_balalaika@be89f9bbc9908afd34b28e05441bbb9f655c0183/train/shard_000_0000.tar",
+  "direct_MB_s": [
+    0.355129,
+    1.332384,
+    0.719276
+  ],
+  "vless_MB_s": [
+    0.307773,
+    0.170932
+  ],
+  "direct_completed_runs": 1,
+  "vless_completed_runs": 0,
+  "conclusion": "No observed improvement; keep direct route",
+  "limits": "Short single-connection test, not aggregate Xet throughput",
+  "cleanup": "Temporary proxy stopped; credential configs removed; production routes unchanged"
+}

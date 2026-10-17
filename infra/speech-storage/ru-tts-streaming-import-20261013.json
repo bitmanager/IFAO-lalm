@@ -1,0 +1,19 @@
+{
+  "repo": "bitmanagerai/ru_tts_train_data",
+  "revision": "fce435e34cc192839b888e8d58edb4d3bcdb097b",
+  "service": "speech-data-hf-ru-tts-train-data-stream-20261013.service",
+  "engine": "Existing balalaika-youtube-exp streaming job template, configuration substitutions only",
+  "original_batch_service": "Stopped before starting replacement",
+  "local_partial_downloads": "Preserved for Hugging Face resume",
+  "hf_home": "Dedicated to replacement job; shared old HF home retained",
+  "verified_at_check": [
+    ".gitattributes",
+    "README.md"
+  ],
+  "current_file": "data.tar.gz",
+  "current_file_bytes": 68565315676,
+  "total_source_bytes": 82961032231,
+  "state": "RUNNING",
+  "limitation": "Largest upstream file is a 68.6 GB archive; it must finish before per-file verification/upload and staging cleanup. No re-encoding or repartitioning of source.",
+  "destination": "speech2/speech-corpora/staging/ru-tts-train-data/hf-fce435e34cc192839b888e8d58edb4d3bcdb097b/"
+}
